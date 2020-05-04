@@ -1,0 +1,137 @@
+%!PS
+%%BeginProlog
+
+%string or array concatenation
+/concatenate { %given string1 and string2
+   dup length 2 index length add 1 index type
+   /arraytype eq {array}{string} ifelse
+   dup 0 4 index putinterval
+   dup 4 -1 roll length 4 -1 roll putinterval
+} bind def
+
+% Create one number of the time signature.
+/timesignature { % stack: x-coord, y-coord, number
+   5 dict begin
+   /num exch def
+   /ycoord exch def
+   /xcoord exch def
+   gsave
+   xcoord ycoord translate
+   7 8.909 scale
+   66
+   84
+   8
+   [66 0 0 -84 0 84]
+   /str (images/Time_Signature/0.jpg) def
+   /num2 {num 48 add} bind def
+   str 22 num2 put
+   str (r) file /DCTDecode filter
+   false
+   3
+   colorimage
+   grestore
+   end
+} bind def
+
+%HELPER: draw single horizontal staff line
+/staffline { % x and y coords
+   2 dict begin
+   /ycoord exch def
+   /xcoord exch def
+   xcoord ycoord moveto
+   0.4 setlinewidth
+   516 0 rlineto
+   stroke
+   end
+} bind def
+
+%Create the lines
+/guitartablines { % x-coord and y-coord of the first measure line bottom left corner, so NOT the extra fancy line
+   3 dict begin
+   /ycoord exch def
+   /xcoord exch def
+   gsave
+   %first vertical line
+   1.33 setlinewidth
+   xcoord ycoord 0.2 sub moveto
+   0 30.4 rlineto
+   stroke
+   % horizontal lines
+   0.4 setlinewidth
+   0 1 5 {
+      /num exch def
+      xcoord num 6 mul ycoord add staffline
+   } for
+   1.33 setlinewidth
+   xcoord 516 add ycoord 0.2 sub moveto
+   0 30.4 rlineto
+   stroke
+   end
+} bind def
+
+%create fancy line at the beginning of staff
+/fancyline { % given x coord, y coord, height
+   3 dict begin
+   /height exch def
+   /ycoord exch def
+   /xcoord exch def
+   xcoord 5 sub ycoord 5 sub moveto
+   2.5 setlinewidth
+   0 height rlineto
+   stroke
+   newpath %bottom curl
+   0.1 setlinewidth
+   xcoord 4 sub ycoord 5 sub moveto
+   xcoord 2 sub ycoord 5 sub xcoord 0.5 sub ycoord 5.5 sub xcoord 2 add ycoord 8 sub curveto
+   xcoord ycoord 4.666 sub xcoord 6 sub ycoord 3 sub 10 arct
+   closepath
+   fill
+   newpath %top curl
+   xcoord 4 sub ycoord 5 sub height add moveto
+   xcoord 2 sub ycoord 5 sub height add xcoord 0.5 sub ycoord 4.5 sub height add xcoord 2 add ycoord 2 sub height add curveto
+   xcoord ycoord 5.333 sub height add xcoord 6 sub ycoord 7 sub height add 10 arct
+   closepath
+   fill
+} bind def
+
+
+%%jpeg images
+/printimage {
+%% stack: xcoord, ycoord, scalex, scaley, sizex, sizey, pathtofile
+   7 dict begin
+   /pathtofile exch def
+   /sizey exch def
+   /sizex exch def
+   /scaley exch def
+   /scalex exch def
+   /ycoord exch def
+   /xcoord exch def
+   gsave
+   xcoord ycoord translate
+   scalex scaley scale
+   sizex sizey
+   8
+   [sizex 0 0 -1 sizey mul 0 sizey]
+   pathtofile (r) file /DCTDecode filter
+   false
+   3
+   colorimage
+   grestore
+   end
+} bind def
+
+%%EndProlog
+
+%%print staff
+53 651 8 27 36 128 (images/Staves/staff.jpg) printimage
+
+%% timesignature
+68 656 4 timesignature
+68 665 3 timesignature
+
+%%staff lines
+50 650 guitartablines
+50 650 40 fancyline
+
+showpage
+%%EOF

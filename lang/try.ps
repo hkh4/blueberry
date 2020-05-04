@@ -1,0 +1,29 @@
+%!PS
+%%BeginProlog
+%%EndProlog
+/timesignature { % stack: x-coord, y-coord, number
+   4 dict begin
+   /num exch def
+   /ycoord exch def
+   /xcoord exch def
+   gsave
+   xcoord ycoord translate
+   7 8.909 scale
+   66
+   84
+   8
+   [66 0 0 -84 0 84]
+   /str (images/Time_Signature/0.jpg) def
+   /num2 {num 48 add} bind def
+   str 22 num2 put
+   str (r) file /DCTDecode filter
+   false
+   3
+   colorimage
+   grestore
+   end
+} bind def
+
+68 656 3 timesignature
+showpage
+%%EOF
