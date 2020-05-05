@@ -9,28 +9,42 @@
    dup 4 -1 roll length 4 -1 roll putinterval
 } bind def
 
+%%jpeg images
+/printimage {
+%% stack: xcoord, ycoord, scalex, scaley, sizex, sizey, pathtofile, color
+   8 dict begin
+   /color exch def
+   /pathtofile exch def
+   /sizey exch def
+   /sizex exch def
+   /scaley exch def
+   /scalex exch def
+   /ycoord exch def
+   /xcoord exch def
+   gsave
+   xcoord ycoord translate
+   scalex scaley scale
+   sizex sizey
+   8
+   [sizex 0 0 -1 sizey mul 0 sizey]
+   pathtofile (r) file /DCTDecode filter
+   false
+   color
+   colorimage
+   grestore
+   end
+} bind def
+
 % Create one number of the time signature.
 /timesignature { % stack: x-coord, y-coord, number
    5 dict begin
    /num exch def
    /ycoord exch def
    /xcoord exch def
-   gsave
-   xcoord ycoord translate
-   7 8.909 scale
-   66
-   84
-   8
-   [66 0 0 -84 0 84]
    /str (images/Time_Signature/0.jpg) def
    /num2 {num 48 add} bind def
    str 22 num2 put
-   str (r) file /DCTDecode filter
-   false
-   3
-   colorimage
-   grestore
-   end
+   xcoord ycoord 7 8.909 66 84 str 3 printimage
 } bind def
 
 %HELPER: draw single horizontal staff line
@@ -94,30 +108,31 @@
    fill
 } bind def
 
-
-%%jpeg images
-/printimage {
-%% stack: xcoord, ycoord, scalex, scaley, sizex, sizey, pathtofile, color
+/guitarfretnumber { %xcoord, ycoord, filestring
    8 dict begin
-   /color exch def
-   /pathtofile exch def
-   /sizey exch def
-   /sizex exch def
-   /scaley exch def
-   /scalex exch def
+   /str exch def
    /ycoord exch def
    /xcoord exch def
-   gsave
-   xcoord ycoord translate
-   scalex scaley scale
-   sizex sizey
-   8
-   [sizex 0 0 -1 sizey mul 0 sizey]
-   pathtofile (r) file /DCTDecode filter
-   false
-   color
-   colorimage
-   grestore
+   /scalex 4 def
+   /scaley 4.51 def
+   /sizex 800 def
+   /sizey 902 def
+   /filestring (temp) def
+   str type /stringtype eq {
+      /xcoord xcoord 0.4 sub store
+      /filestring (images/Tab_Numbers/) str (.jpg) concatenate concatenate store
+      /scalex 4.6 store
+      /scaley 4.8 store
+      /sizex 1000 store
+      }{
+      str 9 gt {
+         /xcoord xcoord 1.7 sub store
+         /scalex 7.3 store
+         /sizex 1460 store
+         }{} ifelse
+      /filestring (images/Tab_Numbers/) str (ffff) cvs (.jpg) concatenate concatenate store
+      } ifelse
+   xcoord ycoord scalex scaley sizex sizey filestring 1 printimage
    end
 } bind def
 
@@ -134,9 +149,9 @@
 50 650 guitartablines
 50 650 40 fancyline
 
-100 659.5 4 4.51 800 902 (images/Tab_Numbers/5.jpg) 1 printimage
-100 665.5 4 4.51 800 902 (images/Tab_Numbers/1.jpg) 1 printimage
-110 665.5 7.3 4.51 1460 902 (images/Tab_Numbers/10.jpg) 1 printimage
+100 659.5 5 guitarfretnumber
+100 665.5 10 guitarfretnumber
+100 671.5 (x) guitarfretnumber
 
 
 
