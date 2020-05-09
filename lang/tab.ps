@@ -48,10 +48,13 @@
 } bind def
 
 %HELPER: draw single horizontal staff line
-/staffline { % x and y coords
-   2 dict begin
+/staffline { % xcoord, ycoord, int - 1 means first line, else 0
+   4 dict begin
+   /first exch def
    /ycoord exch def
    /xcoord exch def
+   /width 516 def
+   first 1 eq {/width 500 store} {} ifelse
    xcoord ycoord moveto
    0.4 setlinewidth
    516 0 rlineto
@@ -60,8 +63,9 @@
 } bind def
 
 %Create the lines
-/guitartablines { % x-coord and y-coord of the first measure line bottom left corner, so NOT the extra fancy line
-   3 dict begin
+/guitartablines { % x-coord and y-coord of the first measure line bottom left corner, so NOT the extra fancy line, and an int 1 or 0 to say if first line
+   4 dict begin
+   /flag exch def
    /ycoord exch def
    /xcoord exch def
    gsave
@@ -74,12 +78,13 @@
    0.4 setlinewidth
    0 1 5 {
       /num exch def
-      xcoord num 6 mul ycoord add staffline
+      xcoord num 6 mul ycoord add flag staffline
    } for
    1.33 setlinewidth
    xcoord 516 add ycoord 0.2 sub moveto
    0 30.4 rlineto
    stroke
+   xcoord ycoord 40 fancyline
    end
 } bind def
 
@@ -139,15 +144,15 @@
 %%EndProlog
 
 %%print staff
-53 651 8 27 36 128 (images/Staves/staff.jpg) 3 printimage
+69 652 7 25.2 70 252 (images/Staves/staff.jpg) 3 printimage
 
 %% timesignature
-68 656 4 timesignature
-68 665 3 timesignature
+84 656 4 timesignature
+84 665 3 timesignature
 
 %%staff lines
-50 650 guitartablines
-50 650 40 fancyline
+66 650 1 guitartablines
+50 550 0 guitartablines
 
 100 659.5 5 guitarfretnumber
 100 665.5 10 guitarfretnumber
