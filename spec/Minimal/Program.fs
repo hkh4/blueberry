@@ -1,13 +1,14 @@
-﻿// Learn more about F# at http://fsharp.org
+// Learn more about F# at http://fsharp.org
  
 open System
 open System.IO
 open Parser
-open CS334
-open Eval
+open ProjectParser
+open ProjectInterpreter
 
 [<EntryPoint>]
 let main argv =
+   // Reads in from a file
    if (Array.length argv = 0) then
       1
    else
