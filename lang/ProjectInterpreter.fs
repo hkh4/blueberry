@@ -339,7 +339,6 @@ let rec showElements (els: Element List) (x: float) (y: float) (l: string List) 
       | NormalGuitarNote(guitarString,pitch) ->
          match (calculateStringAndFret guitarString pitch) with
          | Some(fret) ->
-            printfn "%A" fret
             let yCoord = (y - 2.5) + (6.0 * (float guitarString))
             let newText = string x + " " + string yCoord + " " + string fret + " guitarfretnumber"
             let newX = x + (head.Width * insideScale)
@@ -395,7 +394,7 @@ let rec showLines (lines: Line List) (text: string) : string option =
       // Show measures of the line
       match (showMeasures head.Measures staffx staffy l scale) with
       | Some(li) ->
-         let allNewElements = staffline + (List.fold (fun acc elem -> acc + " " + elem) "" li) 
+         let allNewElements = staffline + (List.fold (fun acc elem -> acc + " " + elem) "" li)
          let newText = text + allNewElements
          showLines tail newText
       | None -> None
