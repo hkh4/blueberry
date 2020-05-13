@@ -1,4 +1,4 @@
-module CS334
+module ProjectParser
 
 open System
 open Parser
