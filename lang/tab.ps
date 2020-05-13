@@ -53,26 +53,42 @@
    /first exch def
    /ycoord exch def
    /xcoord exch def
-   /width 516 def
-   first 1 eq {/width 500 store} {} ifelse
+   /width 515 def
+   first 1 eq {/width 495 store} {} ifelse
    xcoord ycoord moveto
    0.4 setlinewidth
-   516 0 rlineto
+   width 0 rlineto
    stroke
+   end
+} bind def
+
+%Bar line
+/barline { %xcoord, ycoord, height, linewidth
+   4 dict begin
+   /linewidth exch def
+   /height exch def
+   /ycoord exch def
+   /ycoord ycoord 0.2 sub store
+   /xcoord exch def
+   gsave
+   linewidth setlinewidth
+   xcoord ycoord moveto
+   0 height rlineto
+   stroke
+   grestore
    end
 } bind def
 
 %Create the lines
 /guitartablines { % x-coord and y-coord of the first measure line bottom left corner, so NOT the extra fancy line, and an int 1 or 0 to say if first line
-   4 dict begin
+   5 dict begin
    /flag exch def
    /ycoord exch def
    /xcoord exch def
    gsave
    %first vertical line
    1.33 setlinewidth
-   xcoord ycoord 0.2 sub moveto
-   0 30.4 rlineto
+   xcoord ycoord 30.4 1.33 barline
    stroke
    % horizontal lines
    0.4 setlinewidth
@@ -81,8 +97,9 @@
       xcoord num 6 mul ycoord add flag staffline
    } for
    1.33 setlinewidth
-   xcoord 516 add ycoord 0.2 sub moveto
-   0 30.4 rlineto
+   /width 515 def
+   flag 1 eq {/width 495 store}{} ifelse
+   xcoord width add ycoord 30.4 1.33 barline
    stroke
    xcoord ycoord 40 fancyline
    end
@@ -144,19 +161,48 @@
 %%EndProlog
 
 %%print staff
-69 652 7 25.2 70 252 (images/Staves/staff.jpg) 3 printimage
+73 652 7 25.2 70 252 (images/Staves/staff.jpg) 3 printimage
 
 %% timesignature
 84 656 4 timesignature
-84 665 3 timesignature
+84 665 4 timesignature
 
 %%staff lines
-66 650 1 guitartablines
-50 550 0 guitartablines
+70 650 1 guitartablines
+50 580 0 guitartablines
+50 510 0 guitartablines
+50 440 0 guitartablines
+50 370 0 guitartablines
+50 300 0 guitartablines
+50 230 0 guitartablines
+50 160 0 guitartablines
+50 90 0 guitartablines
 
 100 659.5 5 guitarfretnumber
 100 665.5 10 guitarfretnumber
 100 671.5 (x) guitarfretnumber
+
+115 659.5 5 guitarfretnumber
+115 665.5 10 guitarfretnumber
+115 671.5 (x) guitarfretnumber
+
+130 659.5 3 guitarfretnumber
+130 665.5 12 guitarfretnumber
+
+145 653.5 4 guitarfretnumber
+145 677.5 19 guitarfretnumber
+
+155 650 30.4 0.7 barline
+
+160 647.5 (x) guitarfretnumber
+160 671.5 2 guitarfretnumber
+
+160 647.5 (x) guitarfretnumber
+160 671.5 2 guitarfretnumber
+
+160 647.5 (x) guitarfretnumber
+160 671.5 2 guitarfretnumber
+
 
 
 
