@@ -1,8 +1,8 @@
-module Eval
+module ProjectInterpreter
 
 open System
 open System.IO
-open CS334
+open ProjectParser
 // ******************* EVAL *********************
 
 // Data structures
