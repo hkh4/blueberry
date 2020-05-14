@@ -105,12 +105,97 @@ Output:
 
 
 \section{Language Concepts}
+Data types:
+There are several data types useful to the user:
 
+Notes - consist of a string, pitch, rhythm, and possible properties
+Measure numbers
+Specifiers, such as key and time signature
+
+Grammar:
+
+\begin{verbatim}
+
+<expr>             ::= <option>
+                     | <measure>
+<option>           ::= <type>
+                     | <time>
+                     | <key>
+<key>              ::= c | cm | c# | c#m| cb | d | dm | db | d#m | e | em | eb | ebm | f | fm | f# | f#m | g | gm | g#m | gb | a | am | a#m | ab | abm | b | bm | bb | bbm
+<time>             ::= <num>-<num>
+<num>              ::= x ∈ ℕ
+<type>             ::= tab
+<measure>          ::= <note>+
+<note>             ::= <simple>
+                     | <complex>
+                     | <group>
+                     | <tuplet>
+<simple>           ::= <singlesimple>
+                     | <restsimple>
+<complex>          ::= <singlecomplex>
+                     | <restcomplex>
+<singlesimple>     ::= <string><pitch><property>*
+<restsimple>       ::= r
+<singlecomplex>    ::= <string><pitch><rhythm><property>*
+<restcomplex>      ::= r<rhythm>
+<group>            ::= (<singlesimple>+)
+                     | (<singlesimple>+)<rhythm>
+<tuplet>           ::= t<num>o<num> {<simple>+}
+<string>           ::= 1 | 2 | 3 | 4 | 5 | 6
+<pitch>            ::= | A | ASharp | AFlat | ANat | B | BSharp | BFlat | BNat | C | CSharp | CFlat | CNat | D | DSharp | DFlat | DNat | E | ESharp | EFlat | ENat | F | FSharp | FFlat | FNat | G | GSharp | GFlat | GNat
+<rhythm>           ::= <rhythmnumber><dot>*
+<rhythmnumber      ::= 1 | 2 | 4 | 8 | 16 | 32 | 64
+<dot>              ::= .
+<property>         ::= /sls | /sle | /stu | /std | /p | /plu | /pld | /gr | /har | /sl | /si
+
+
+\end{verbatim}
 
 \section{Syntax}
+A program begins with optional specifiers as to the type of music being written (only tab supported as of now), time signature, and key. They being with a dash, followed by the specifier, and then the actual string
+e.g.
+-type tab
+-key f\#
+-time 12-8
 
+Measures always being with an int, which is the measure number, followed by a colon
+e.g.
+4:
+
+Notes start with a string number (1-6), and then a pitch
+e.g. 5gb
+
+A rhythm can be specified as: 1 2 4 8 16 32 64
+It can be followed by dots as well
+e.g.
+32..
+If no rhythm is given, it defaults to 4
+
+Properties can be specified to change or add qualities. They begin with a / and then the abbreviation
+e.g.
+/gr means grace note
+
+Notes can also be rests, which are an r followed by an optional rhythm
+
+Examples of valid notes:
+5f
+4g64../gr/sl
+r
+r4.
 
 \section{Semantics}
+
+\begin{table}[h!]
+  \begin{center}
+    \caption{Data and Operations}
+    \label{tab:table1}
+    \begin{tabular}{c|c|c|c|c}
+      \textbf{Syntax} & \textbf{Abstract Syntax} & \textbf{Type} & \textbf{Association} & \textbf{Meaning} \\
+      \hline
+      &  &  &  & 
+    \end{tabular}
+  \end{center}
+\end{table}
 
 
 \section{Remaining Work}
