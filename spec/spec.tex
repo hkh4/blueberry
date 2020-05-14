@@ -105,14 +105,14 @@ Output:
 
 
 \section{Language Concepts}
-Data types:
-There are several data types useful to the user:
+Data types: \\
+There are several data types useful to the user: \\
 
-Notes - consist of a string, pitch, rhythm, and possible properties
-Measure numbers
-Specifiers, such as key and time signature
+Notes - consist of a string, pitch, rhythm, and possible properties \\
+Measure numbers \\
+Specifiers, such as key and time signature \\
 
-Grammar:
+Grammar: \\
 
 \begin{verbatim}
 
@@ -152,36 +152,38 @@ Grammar:
 \end{verbatim}
 
 \section{Syntax}
-A program begins with optional specifiers as to the type of music being written (only tab supported as of now), time signature, and key. They being with a dash, followed by the specifier, and then the actual string
-e.g.
--type tab
--key f\#
--time 12-8
+A program begins with optional specifiers as to the type of music being written (only tab supported as of now), time signature, and key. They being with a dash, followed by the specifier, and then the actual string \\
+e.g.\\
+-type tab \\
+-key f\# \\
+-time 12-8 \\
 
-Measures always being with an int, which is the measure number, followed by a colon
-e.g.
-4:
+Measures always being with an int, which is the measure number, followed by a colon \\
+e.g. \\
+4: \\
 
-Notes start with a string number (1-6), and then a pitch
-e.g. 5gb
+Notes start with a string number (1-6), and then a pitch \\
+e.g. 5gb \\
 
-A rhythm can be specified as: 1 2 4 8 16 32 64
-It can be followed by dots as well
-e.g.
-32..
-If no rhythm is given, it defaults to 4
+A rhythm can be specified as: 1 2 4 8 16 32 64 \\
+It can be followed by dots as well \\
+e.g. \\
+32.. \\
+If no rhythm is given, it defaults to 4 \\
 
-Properties can be specified to change or add qualities. They begin with a / and then the abbreviation
-e.g.
-/gr means grace note
+Properties can be specified to change or add qualities. They begin with a / and then the abbreviation \\
+e.g. \\
+/gr means grace note \\
 
-Notes can also be rests, which are an r followed by an optional rhythm
+Notes can also be rests, which are an r followed by an optional rhythm \\
 
-Examples of valid notes:
-5f
-4g64../gr/sl
-r
-r4.
+Examples of valid notes: \\
+5f \\
+4g64../gr/sl \\
+r \\
+r4. \\
+
+This language doesn't really have associativity issues
 
 \section{Semantics}
 
@@ -189,10 +191,11 @@ r4.
   \begin{center}
     \caption{Data and Operations}
     \label{tab:table1}
-    \begin{tabular}{c|c|c|c|c}
-      \textbf{Syntax} & \textbf{Abstract Syntax} & \textbf{Type} & \textbf{Association} & \textbf{Meaning} \\
+    \begin{tabular}{c|c|c|c}
+      \textbf{Syntax} & \textbf{Abstract Syntax} & \textbf{Type} &  \textbf{Meaning} \\
       \hline
-      &  &  &  & 
+      -type tab & ScoreOption of string * string & string * string & This is an option type, where it begins with a dash, followed by the specifier and the data \\ \hline
+      4e32/gr & Complex of int * Pitch * Rhythm * PropertyList & Note & This is a complex note, comprised of all the parts that could make up a note 
     \end{tabular}
   \end{center}
 \end{table}
