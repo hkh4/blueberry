@@ -8,7 +8,7 @@ open ProjectParser
 // Data structures
 type optionsRecord = {
    mutable Type: string
-   mutable Time: int []
+   mutable Time: int * int
    mutable Key: string
 }
 
@@ -22,11 +22,14 @@ type Notehead =
 type Element = {
    NoteInfo : Notehead
    Duration : Rhythm
+   Start: float
    Width : float
    LastNote : int
 }
 
 type SingleMeasure = {
+   Key : string
+   Time : int * int
    MeasureNumber : int
    Notes : Element List
    Width : float
@@ -46,6 +49,25 @@ type Page = {
    Lines: Line List
 }
 
+///////// Useful Global Variables /////////
+// Rhythms ordered in an array in order to be used to do rhythm math
+let arrayOfRhythms = [|X1;X2;X4;X8;X16;X32;X64|]
+
+// Widths of different rhythms
+let widthOfRhythms =
+   Map.empty.
+      Add(R(X1,0),40.5).
+      Add(R(X2,0),27.0).
+      Add(R(X4,0),18.0).
+      Add(R(X8,0),12.0).
+      Add(R(X16,0),8.0).
+      Add(R(X32,0),5.33333).
+      Add(R(X64,0),3.555555)
+
+let mutable defaultRhythm = R(X4,0)
+
+
+
 // ***********************************************************
 // ******************* EVALUATE OPTIONS **********************
 
@@ -64,8 +86,8 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) =
       let timeArray = value.Split('-')
       match (timeArray.Length) with
       | 2 ->
-         let newArray = [| (int timeArray.[0]); (int timeArray.[1]) |]
-         optionsR.Time <- newArray
+         let timeTuple = ((int timeArray.[0]),(int timeArray.[1]))
+         optionsR.Time <- timeTuple
          Some(true)
       | _ ->
          printfn "Use the form (int)-(int) for the time"
@@ -106,75 +128,128 @@ let rec evalOption o optionsR=
 
 // ############ Step 1: Convert the AST into a SingleMeasure List
 
+(* Helper method to figure out width and start of a note
+1) template is the Element created by evalNote which will be modified
+2) r is the Duration of this Element
+3) nextStart is the start spot of this element, which will be updated and returned
+4) base is the RhythmNumber of the time signature, this constitutes one beat
+RETURNS new Element and the new nextStart for the next element
+*)
+let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: RhythmNumber) (last: int) : (Element * float) option =
+   let indexOfBeat = Array.findIndex (fun elem -> elem = baseBeat) arrayOfRhythms
+   let rNumber =
+     match r with
+     | R(a,b) -> a
+     | Other -> X4 // NOT YET IMPLEMENTED
+   let indexOfRhythm = Array.findIndex (fun elem -> elem = rNumber) arrayOfRhythms
+   // TODO: figure out dotted rhythms
+   let differenceOfRhythm = indexOfBeat - indexOfRhythm
+   let newWidthTemp = widthOfRhythms.[r]
+   let newWidth =
+      match last with
+      | 0 -> newWidthTemp
+      | _ ->
+         match newWidthTemp with
+         | num when num < 10.0 -> 10.0
+         | _ -> newWidthTemp
+   let newNextStart = nextStart + (2.0**(float differenceOfRhythm))
+   Some({ template with Width = newWidth },newNextStart)
+
+
+
 // Evaluate a single note
 // Given a note, the options record, and a default rhythm to use for simples
-let evalNote (n: Note) (optionsR: optionsRecord) (def: Rhythm) (last: int) : Element option =
-   let newNote =
+let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) : (Element * float) option =
+   let note =
       match n with // figure out the type of the note
       | Simple(p) ->
          match p with
          // Single Simple
          | SingleSimple(string,pitch,properties) ->
             let nInfo = NormalGuitarNote(string,pitch)
-            { NoteInfo = nInfo; Duration = def; Width = 15.0; LastNote = 0 }
+            { NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 15.0; LastNote = 0 }
             // Rest Simple
          | RestSimple ->
-            { NoteInfo = Rest; Duration = def; Width = 15.0; LastNote = 0 }
+            { NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 15.0; LastNote = 0 }
       | Complex(p) ->
          match p with
          // Single Complex
          | SingleComplex(string,pitch,r,properties) ->
             let nInfo = NormalGuitarNote(string,pitch)
-            { NoteInfo = nInfo; Duration = r; Width = 15.0; LastNote = 0 }
+            defaultRhythm <- r
+            { NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 15.0; LastNote = 0 }
          // Rest Complex
          | RestComplex(r) ->
-            { NoteInfo = Rest; Duration = r; Width = 15.0; LastNote = 0 }
-      // If it's the last note in the measure, decrease the width to make room for the barline
-      // TODO: only change width for certain note rhythms
-   match last with
-   | 1 -> Some({ newNote with LastNote = 1; Width = 15.0 })
-   | 0 -> Some({ newNote with LastNote = 0; Width = 15.0 })
-   | _ ->
-      printfn "Error. Integer about whether note is last can be 0 or 1"
-      None
+            defaultRhythm <- r
+            { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 15.0; LastNote = 0 }
+   // TODO: change width for certain note rhythms
+   match (widthStart note (note.Duration) nextStart baseBeat last) with
+   | Some(newNote,newNextStart) ->
+      printfn "%A" newNote
+      printfn "%A" newNextStart
+      printfn "%A" last
+      match last with
+      | 1 ->
+         match newNextStart with
+         | num when num = float numberOfBeats + 1.0 -> Some({ newNote with LastNote = 1 },newNextStart)
+         | num when num > float numberOfBeats + 1.0 ->
+            printfn "Error! Too many beats in measure %i" measureNumber
+            None
+         | _ ->
+            printfn "Error! Not enough beats in measure %i" measureNumber
+            None
+      | _ ->
+         match newNextStart with
+         | num when num >= float numberOfBeats + 1.0 ->
+            printfn "Error! Too many beats in measure %i" measureNumber
+            None
+         | _ -> Some({ newNote with LastNote = 1 },newNextStart)
+   | None -> None
 
 
 // Recursive helper for measure evaluator, calls the note evaluator and composes the list of Elements, returns a SingleMeasure
-let rec evalMeasureHelper (m : Note List) optionsR def elementList acc =
+let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : Element List) (baseBeat: RhythmNumber) (numberOfBeats: int) (acc : float) (nextStart: float) : (float * Element List) option =
    match m with
    | [] -> Some(acc, elementList)
    | head::tail ->
       // create a new list that contains the new note evaluated added onto all the others
       let el =
+         // if tail is empty, then this note is the last one
          match tail with
-         | [] -> evalNote head optionsR def 1
-         | _ -> evalNote head optionsR def 0
+         | [] -> evalNote measureNumber head baseBeat numberOfBeats nextStart 1
+         | _ -> evalNote measureNumber head baseBeat numberOfBeats nextStart 0
       match el with
-      | Some(n) ->
-         let w = n.Width + acc
+      | Some(n,newNextStart) ->
+         // keep track of the total width of the measure
+         let newAcc = n.Width + acc
          let newList = elementList @ [n]
-         evalMeasureHelper tail optionsR def newList w
+         evalMeasureHelper measureNumber tail newList baseBeat numberOfBeats newAcc newNextStart
       | None -> None
 
 
 
 // Evaluate a single measure
-let evalMeasure (m: Expr) (optionsR: optionsRecord) (def: Rhythm) : SingleMeasure option =
+let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
    match m with
    // b is measure number, c is Note List
    | Measure(b,c) ->
       let elementList : Element List = []
       let acc = 0.0
-      match (evalMeasureHelper c optionsR def elementList acc) with
+      let (numberOfBeats,baseNumber) = optionsR.Time
+      let baseBeat =
+         match baseNumber with
+         | 4 -> X4
+         | _ -> X4 //NOT YET IMPLEMENTED
+      match (evalMeasureHelper b c elementList baseBeat numberOfBeats acc 1.0) with
       // tuple: first element is the total width of all the elements added together, second is the list of elements
       | Some(width,list) ->
          // Add empty space at the beginning and barline at the end
-         let empty = { NoteInfo = Empty; Duration = Other; Width = 5.0; LastNote = 0 }
-         let bar = { NoteInfo = Barline; Duration = Other; Width = 0.0; LastNote = 0 }
+         let empty = { NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0 }
+         let bar = { NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0 }
          let newList = [empty] @ list @ [bar]
          let newWidth = width + 5.0
          // create instance of SingleMeasure
-         let mes = { MeasureNumber = b; Notes = newList; Width = newWidth }
+         let mes = { Time = optionsR.Time; Key = optionsR.Key; MeasureNumber = b; Notes = newList; Width = newWidth }
          Some(mes)
       | None -> None
    | _ ->
@@ -183,17 +258,17 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) (def: Rhythm) : SingleMeasur
 
 
 // Goes through each measure one at a time, gives to evalMeasure, returns list of SingleMeasure
-let rec evalAllMeasures(measuresList : Expr List) (optionsR : optionsRecord) (singleMeasureList : SingleMeasure List) (def : Rhythm) : SingleMeasure List option =
+let rec evalAllMeasures(measuresList : Expr List) (optionsR : optionsRecord) (singleMeasureList : SingleMeasure List) : SingleMeasure List option =
    match measuresList with
    // Base case : return SingleMeasure List
    | [] -> Some(singleMeasureList)
    | head::tail ->
       // Create a single SingleMeasure
-      match (evalMeasure head optionsR def) with
+      match (evalMeasure head optionsR) with
       | Some(m) ->
          // Concatenate and recurse on tail
          let newList = singleMeasureList @ [m]
-         evalAllMeasures tail optionsR newList def
+         evalAllMeasures tail optionsR newList
       | None -> None
 
 
@@ -229,7 +304,7 @@ let rec divideLines (measureList : SingleMeasure List) (lineList : Line List) (w
    | head::tail ->
       let measuresSoFar : SingleMeasure List = []
       // Returns a Line
-      match divideSingleLine measureList measuresSoFar widthPerLine 0.0 with
+      match (divideSingleLine measureList measuresSoFar widthPerLine 0.0) with
          | Some(l) ->
             // Figure out the index of the next element after the list returned, which is the starting index for the next line
             let nextMeasure = l.Length
@@ -253,15 +328,20 @@ let rec divideLines (measureList : SingleMeasure List) (lineList : Line List) (w
 
 // ################# Step 3: Divide lines into pages
 
+// create one page
 let rec divideOnePage (lines : Line List) (linesSoFar : Line List) (start : float * float) : Line List option =
    match lines with
+   // base case: return list of lines that will make up this page
    | [] -> Some(linesSoFar)
    | head::tail ->
+      // start coordinates of the next line
       let (x,y) = start
       match (head.Type) with
       | "tab" ->
+         // subtract 70 to be the start of the next line
          let newY = y - 70.0
          match newY with
+         // 60 is the lowest a line can start at the bottom of a page
          | num when num >= 60.0 ->
             let newLine = { head with Start = (x,newY) }
             let newList = linesSoFar @ [newLine]
@@ -272,17 +352,24 @@ let rec divideOnePage (lines : Line List) (linesSoFar : Line List) (start : floa
 
 let rec dividePages (lines : Line List) (pageList : Page List) (start : float * float) : Page List option =
    match lines with
+   // base case: return list of pages
    | [] -> Some(pageList)
    | head::tail ->
       let linesSoFar : Line List = []
       match (divideOnePage lines linesSoFar start) with
+      // returns a Line List
       | Some(l) ->
+         // figure out which is the next line for the start of the next page
          let nextLine = l.Length
+         // page number
          let pageNumber = pageList.Length + 1
          let newPage = { PageNumber = pageNumber; Lines = l }
+         // add this page to the list
          let newList = pageList @ [newPage]
+         // split line list
          let linesRemaining = lines.[nextLine..]
-         dividePages linesRemaining newList (50.0,680.0)
+         // 770, so that 770-70=700 is the start of the next line for all pages except the first, which instead starts at 720-70=650
+         dividePages linesRemaining newList (50.0,770.0)
       | None -> None
 
 
@@ -339,14 +426,14 @@ let rec showElements (els: Element List) (x: float) (y: float) (l: string List) 
       | NormalGuitarNote(guitarString,pitch) ->
          match (calculateStringAndFret guitarString pitch) with
          | Some(fret) ->
-            let yCoord = (y - 2.5) + (6.0 * (float guitarString))
-            let newText = string x + " " + string yCoord + " " + string fret + " guitarfretnumber"
+            let yCoord = (y - 2.5) + (6.0 * ((float guitarString)-1.0))
+            let newText = string x + " " + string yCoord + " " + string fret + " guitarfretnumber "
             let newX = x + (head.Width * insideScale)
-            let newList = [newText] @ l
+            let newList = l @ [newText]
             showElements tail newX y newList insideScale
          | None -> None
       | Barline ->
-         let barline = string (x - 5.0) + " " + string y + " 30.4 0.7 barline"
+         let barline = string (x - 5.0) + " " + string y + " 30.4 0.7 barline "
          let newList = l @ [barline]
          showElements tail x y newList insideScale
       | Rest -> // NOT YET IMPLEMENTED
@@ -357,16 +444,21 @@ let rec showElements (els: Element List) (x: float) (y: float) (l: string List) 
 
 
 
-
+// Show all measures of a line
 let rec showMeasures (measures: SingleMeasure List) (x: float) (y: float) (l: string List) (scale: float) : string List option =
    match measures with
    | [] -> Some(l)
    | head::tail ->
+      // list of elements
       let els = head.Notes
+      // new Width of the measure based on the scale
       let newWidth = head.Width * scale
+      // used to scale the notes on the inside, removing the 5 units of space in the beginning
+      // TODO : add -5.0 after newWidth if the last element has a width of less than 15
       let insideScale = System.Math.Round((newWidth / (head.Width - 5.0)),5)
       match (showElements els x y l insideScale) with
       | Some(li) ->
+         // x coordinate of the beginning of the next measure
          let newX = x + newWidth
          showMeasures tail newX y li scale
       | None -> None
@@ -388,14 +480,29 @@ let rec showLines (lines: Line List) (text: string) : string option =
          // If first line, pass "1" to the function to specify length
          | 70.0 -> string staffx + " " + string staffy + " 1 guitartablines"
          | _ -> string staffx + " " + string staffy + " 0 guitartablines"
+      // Creat clef and/or time signature
+      let (clef, timeSig, newX) =
+         match head.LineNumber with
+         // If it's the first line, add a clef AND time signature
+         | 1 ->
+            let clefString = string (staffx + 3.0) + " " + string (staffy + 2.0) + " 7 25.2 70 252 (images/Staves/staff.jpg) 3 printimage "
+            // Time signature depends on the time sig of the first measure of that line
+            let (currentTime1, currentTime2) = head.Measures.Head.Time
+            let timeSigString = string (staffx + 14.0) + " " + string (staffy + 15.0) + " " + string currentTime1 + " timesignature " + string (staffx + 14.0) + " " + string (staffy + 6.0) + " " + string currentTime2 + " timesignature "
+            (clefString, timeSigString, staffx + 30.0)
+         // For all other lines, just add the clef
+         | _ ->
+            let clefString = string (staffx + 3.0) + " " + string (staffy + 2.0) + " 7 25.2 70 252 (images/Staves/staff.jpg) 3 printimage "
+            (clefString, "", staffx + 20.0)
       // Float to tell how much to scale widths of individual elements
-      let scale = System.Math.Round((head.FinalWidth / head.OriginalWidth),5)
+      let scale = System.Math.Round(((head.FinalWidth + staffx - newX) / head.OriginalWidth),5)
       let l : String List = []
       // Show measures of the line
-      match (showMeasures head.Measures staffx staffy l scale) with
+      match (showMeasures head.Measures newX staffy l scale) with
       | Some(li) ->
+         // Put all the strings together
          let allNewElements = staffline + (List.fold (fun acc elem -> acc + " " + elem) "" li)
-         let newText = text + allNewElements
+         let newText = text + clef + timeSig + allNewElements
          showLines tail newText
       | None -> None
 
@@ -414,7 +521,8 @@ let rec show (pages : Page List) (text: string) : string option =
       // Show the lines of a page
       match (showLines lines text) with
       | Some(t) ->
-         show tail t
+         let newText = t + " showpage "
+         show tail newText
       | None -> None
 
 
@@ -427,27 +535,25 @@ let eval ast =
    //decompose
    let (optionsList,measuresList) = ast
    //default options
-   let optionsR = {Type = "tab"; Time = [|4;4|]; Key = "c"}
+   let optionsR = {Type = "tab"; Time = (4,4); Key = "c"}
    // First, parse the options
    match (evalOption optionsList optionsR) with
    // If the options are valid, parse the measures
    | Some(_) ->
-      // default for if rhythm isn't specified : quarter note
-      let defaultRhythm = R(X4,0)
       let emptyList : SingleMeasure List = []
       // create SingleMeasure List
-      match (evalAllMeasures measuresList optionsR emptyList defaultRhythm) with
+      match (evalAllMeasures measuresList optionsR emptyList) with
       | Some(list) ->
          // Take SingleMeasure List and use the widths to create list of lines
          let emptyLineList : Line List = []
-         //495 is the width of the first line. The rest are 515
+         //495 is the width of the first line. The rest are 515.
          match (divideLines list emptyLineList 495.0) with
          | Some(lines) ->
             // Take Line List and use heights and type to divide into pages
             let emptyPageList : Page List = []
             match (dividePages lines emptyPageList (70.0,720.0)) with
             | Some(pages) ->
-               printfn "%A" pages
+               //printfn "%A" pages
                let text = "%!PS
                %%BeginProlog
                /concatenate { dup length 2 index length add 1 index type /arraytype eq {array}{string} ifelse dup 0 4 index putinterval dup 4 -1 roll length 4 -1 roll putinterval } bind def
@@ -460,6 +566,7 @@ let eval ast =
                /guitarfretnumber { 8 dict begin /str exch def /ycoord exch def /xcoord exch def /scalex 4 def /scaley 4.51 def /sizex 800 def /sizey 902 def /filestring (temp) def str type /stringtype eq { /xcoord xcoord 0.4 sub store /filestring (images/Tab_Numbers/) str (.jpg) concatenate concatenate store /scalex 4.6 store /scaley 4.8 store /sizex 1000 store }{ str 9 gt { /xcoord xcoord 1.7 sub store /scalex 7.3 store /sizex 1460 store }{} ifelse /filestring (images/Tab_Numbers/) str (ffff) cvs (.jpg) concatenate concatenate store } ifelse xcoord ycoord scalex scaley sizex sizey filestring 1 printimage end } bind def
                %%EndProlog
                "
+               //print and show
                match (show pages text) with
                | Some(t) ->
                   //let tester = string (5.0 / 2.0)

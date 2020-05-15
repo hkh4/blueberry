@@ -8,13 +8,12 @@ open ProjectInterpreter
 
 [<EntryPoint>]
 let main argv =
-   //reads in from a file 
+   //reads in from a file
    if (Array.length argv = 0) then
       1
    else
       let fileName = argv.[0]
       let fileText = System.IO.File.ReadAllText fileName
-      printfn "%A" fileText
       match parse fileText with
       | Some ast ->
          match (eval ast) with
