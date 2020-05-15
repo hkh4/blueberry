@@ -158,6 +158,26 @@
    end
 } bind def
 
+/quarterRest { %x,y
+2 dict begin
+gsave
+0.1 setlinewidth
+/ycoord exch def
+/xcoord exch def
+/ycoord ycoord 12 add store
+xcoord ycoord moveto
+xcoord 2.8000000000000003 add ycoord 3.857142857142857 sub lineto
+xcoord 0.5714285714285714 add ycoord 6.571428571428571 sub xcoord 1.1428571428571428 add ycoord 7.285714285714286 sub xcoord 3.4285714285714284 add ycoord 9.514285714285714 sub curveto
+xcoord 0.8571428571428571 add ycoord 8.657142857142857 sub xcoord ycoord 10.085714285714285 sub xcoord 1.657142857142857 add ycoord 12.085714285714285 sub curveto
+xcoord 1.657142857142857 add ycoord 12.142857142857142 sub xcoord 1.5714285714285714 add ycoord 12.200000000000001 sub xcoord 1.4857142857142858 add ycoord 12.12857142857143 sub curveto
+xcoord 2.142857142857143 sub ycoord 10.0 sub xcoord 0.19999999999999998 add ycoord 7.428571428571429 sub xcoord 1.7142857142857142 add ycoord 8.285714285714286 sub curveto
+xcoord 0.6571428571428571 sub ycoord 5.257142857142857 sub lineto
+xcoord 1.1428571428571428 add ycoord 3.257142857142857 sub xcoord 1.1428571428571428 add ycoord 2.2857142857142856 sub xcoord 0.24285714285714285 sub ycoord 0.19999999999999998 sub curveto
+xcoord 0.24285714285714285 sub ycoord 0.1142857142857143 sub xcoord 0.14285714285714285 sub ycoord xcoord ycoord curveto
+fill
+grestore
+end
+} bind def
 %%EndProlog
 
 %%print staff
@@ -170,13 +190,7 @@
 %%staff lines
 70 650 1 guitartablines
 50 580 0 guitartablines
-50 510 0 guitartablines
-50 440 0 guitartablines
-50 370 0 guitartablines
-50 300 0 guitartablines
-50 230 0 guitartablines
-50 160 0 guitartablines
-50 90 0 guitartablines
+
 
 100 659.5 5 guitarfretnumber
 100 665.5 10 guitarfretnumber
@@ -200,6 +214,104 @@
 160 647.5 (x) guitarfretnumber
 160 671.5 2 guitarfretnumber
 
+
+
+170 650 quarterRest
+
+
+0.1 setlinewidth
+
+/restCurl {
+   2 dict begin
+   gsave
+   /ycoord exch def
+   /xcoord exch def
+   newpath
+   xcoord ycoord moveto
+   xcoord 15 sub ycoord 12 sub xcoord 24.5 sub ycoord 20.5 sub xcoord 34 sub ycoord 23 sub curveto
+   xcoord 57 sub ycoord 43 sub lineto
+   xcoord 47 sub ycoord 43 sub xcoord 43 sub ycoord 41 sub xcoord 22 sub ycoord 33.5 sub curveto
+   xcoord 20 sub ycoord 33 sub xcoord 20 sub ycoord 38.5 sub 2 arct
+   closepath
+   fill
+   newpath xcoord 57 sub ycoord 19 sub 24 0 360 arc fill
+   grestore
+   end
+} bind def
+
+/eighthRest {
+   2 dict begin
+   gsave
+   0.1 setlinewidth
+   /ycoord exch def
+   /xcoord exch def
+   xcoord ycoord moveto
+   xcoord 1 add ycoord 4.5 sub xcoord 19 add ycoord 3.5 sub xcoord 23 add ycoord curveto
+   xcoord 63 add ycoord 144 add lineto
+   xcoord 63 add ycoord 147 add xcoord 58 add ycoord 151 add xcoord 55 add ycoord 149 add curveto
+   xcoord 35 add ycoord 113.5 add lineto
+   xcoord 35 add ycoord 106 add xcoord 1 sub ycoord 3 add xcoord 1 sub ycoord 3 add curveto
+   xcoord 2 sub ycoord xcoord 1.2 add ycoord 1.5 sub 4 arct
+   fill
+   xcoord 55 add ycoord 149 add restCurl
+   grestore
+   end
+} bind def
+
+newpath
+300 400 moveto
+301 395.5 319 396.5 323 400 curveto
+363 544 lineto
+363 547 358 551 355 549 curveto
+335 513.5 lineto
+335 506 299 403 299 403 curveto
+298 400 301.2 398.5 4 arct
+fill
+
+newpath
+355 549 moveto
+340 537 330.5 528.5 321 526 curveto
+298 506 lineto
+308 506 312 508 333 515.5 curveto
+335 516 335 510.5 2 arct
+closepath
+fill
+newpath 298 530 24 0 360 arc fill
+
+
+
+
+%16
+newpath
+400 400 moveto
+401 395.5 419 396.5 423 400 curveto
+491 635 lineto
+491 638 486 650 483 640 curveto
+463 604.5 lineto
+435 506 399 403 399 403 curveto
+398 400 401.2 398.5 4 arct
+fill
+
+
+%shift over 1
+newpath
+456 549 moveto
+441 537 431.5 529.5 421 526 curveto
+399 506 lineto
+409 506 413 508 434 515.5 curveto
+436 516 436 510.5 2 arct
+closepath
+fill
+newpath 399 530 24 0 360 arc fill
+
+
+%27 90
+
+
+%28 91
+
+
+500 400 eighthRest
 
 
 

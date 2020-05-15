@@ -436,8 +436,12 @@ let rec showElements (els: Element List) (x: float) (y: float) (l: string List) 
          let barline = string (x - 5.0) + " " + string y + " 30.4 0.7 barline "
          let newList = l @ [barline]
          showElements tail x y newList insideScale
-      | Rest -> // NOT YET IMPLEMENTED
-         showElements tail x y l insideScale
+      | Rest ->
+         let yCoord = y + 9.0
+         let newText = string x + " " + string yCoord + " quarterRest "
+         let newX = x + (head.Width * insideScale)
+         let newList = l @ [newText]
+         showElements tail newX y newList insideScale
       | X(string) -> // NOT YET IMPLEMENTED
          showElements tail x y l insideScale
       // TODO::: FOR OTHERS : for raster image items, like clefs, they need to be PREPENDED to the list so that when evaluated, they are printed FIRST
@@ -455,7 +459,7 @@ let rec showMeasures (measures: SingleMeasure List) (x: float) (y: float) (l: st
       let newWidth = head.Width * scale
       // used to scale the notes on the inside, removing the 5 units of space in the beginning
       // TODO : add -5.0 after newWidth if the last element has a width of less than 15
-      let insideScale = System.Math.Round((newWidth / (head.Width - 5.0)),5)
+      let insideScale = newWidth / (head.Width - 5.0)
       match (showElements els x y l insideScale) with
       | Some(li) ->
          // x coordinate of the beginning of the next measure
@@ -495,7 +499,7 @@ let rec showLines (lines: Line List) (text: string) : string option =
             let clefString = string (staffx + 3.0) + " " + string (staffy + 2.0) + " 7 25.2 70 252 (images/Staves/staff.jpg) 3 printimage "
             (clefString, "", staffx + 20.0)
       // Float to tell how much to scale widths of individual elements
-      let scale = System.Math.Round(((head.FinalWidth + staffx - newX) / head.OriginalWidth),5)
+      let scale = (head.FinalWidth + staffx - newX) / head.OriginalWidth
       let l : String List = []
       // Show measures of the line
       match (showMeasures head.Measures newX staffy l scale) with
@@ -564,6 +568,7 @@ let eval ast =
                /guitartablines { 5 dict begin /flag exch def /ycoord exch def /xcoord exch def gsave 1.33 setlinewidth xcoord ycoord 30.4 1.33 barline stroke 0.4 setlinewidth 0 1 5 { /num exch def xcoord num 6 mul ycoord add flag staffline } for 1.33 setlinewidth /width 515 def flag 1 eq {/width 495 store}{} ifelse xcoord width add ycoord 30.4 1.33 barline stroke xcoord ycoord 40 fancyline end } bind def
                /fancyline { 3 dict begin /height exch def /ycoord exch def /xcoord exch   def xcoord 5 sub ycoord 5 sub moveto 2.5 setlinewidth 0 height rlineto stroke newpath 0.1 setlinewidth xcoord 4 sub ycoord 5 sub moveto xcoord 2 sub ycoord 5 sub xcoord 0.5 sub ycoord 5.5 sub xcoord 2 add ycoord 8 sub curveto xcoord ycoord 4.666 sub xcoord 6 sub ycoord 3 sub 10 arct closepath fill newpath xcoord 4 sub ycoord 5 sub height add moveto xcoord 2 sub ycoord 5 sub height add xcoord 0.5 sub ycoord 4.5 sub height add xcoord 2 add ycoord 2 sub height add curveto xcoord ycoord 5.333 sub height add xcoord 6 sub ycoord 7 sub height add 10 arct closepath fill } bind def
                /guitarfretnumber { 8 dict begin /str exch def /ycoord exch def /xcoord exch def /scalex 4 def /scaley 4.51 def /sizex 800 def /sizey 902 def /filestring (temp) def str type /stringtype eq { /xcoord xcoord 0.4 sub store /filestring (images/Tab_Numbers/) str (.jpg) concatenate concatenate store /scalex 4.6 store /scaley 4.8 store /sizex 1000 store }{ str 9 gt { /xcoord xcoord 1.7 sub store /scalex 7.3 store /sizex 1460 store }{} ifelse /filestring (images/Tab_Numbers/) str (ffff) cvs (.jpg) concatenate concatenate store } ifelse xcoord ycoord scalex scaley sizex sizey filestring 1 printimage end } bind def
+               /quarterRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def /ycoord ycoord 12 add store xcoord ycoord moveto xcoord 2.8000000000000003 add ycoord 3.857142857142857 sub lineto xcoord 0.5714285714285714 add ycoord 6.571428571428571 sub xcoord 1.1428571428571428 add ycoord 7.285714285714286 sub xcoord 3.4285714285714284 add ycoord 9.514285714285714 sub curveto xcoord 0.8571428571428571 add ycoord 8.657142857142857 sub xcoord ycoord 10.085714285714285 sub xcoord 1.657142857142857 add ycoord 12.085714285714285 sub curveto xcoord 1.657142857142857 add ycoord 12.142857142857142 sub xcoord 1.5714285714285714 add ycoord 12.200000000000001 sub xcoord 1.4857142857142858 add ycoord 12.12857142857143 sub curveto xcoord 2.142857142857143 sub ycoord 10.0 sub xcoord 0.19999999999999998 add ycoord 7.428571428571429 sub xcoord 1.7142857142857142 add ycoord 8.285714285714286 sub curveto xcoord 0.6571428571428571 sub ycoord 5.257142857142857 sub lineto xcoord 1.1428571428571428 add ycoord 3.257142857142857 sub xcoord 1.1428571428571428 add ycoord 2.2857142857142856 sub xcoord 0.24285714285714285 sub ycoord 0.19999999999999998 sub curveto xcoord 0.24285714285714285 sub ycoord 0.1142857142857143 sub xcoord 0.14285714285714285 sub ycoord xcoord ycoord curveto fill grestore end } bind def
                %%EndProlog
                "
                //print and show
