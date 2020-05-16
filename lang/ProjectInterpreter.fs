@@ -1,5 +1,5 @@
 module ProjectInterpreter
-
+ 
 open System
 open System.IO
 open ProjectParser
@@ -624,7 +624,7 @@ let rec showLines (lines: Line List) (text: string) : string option =
 
 (* Driver for creating text for postscript file. Every method from here appends onto the base text, which is all the functions and other variables needed
 1) pages is list of Pages to be evaluated
-2) text is the text that will be updated then printed to postscript file 
+2) text is the text that will be updated then printed to postscript file
 *)
 let rec show (pages : Page List) (text: string) : string option =
    match pages with

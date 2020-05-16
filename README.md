@@ -4,4 +4,4 @@ Starter code for Lab 7
 # Lab Feedback
 
 ## Ready for Feeback?
- Minimally working project complete
+ Mostly Working done!
