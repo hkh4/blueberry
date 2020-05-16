@@ -576,7 +576,7 @@ let eval ast =
                | Some(t) ->
                   //let tester = string (5.0 / 2.0)
                   //File.WriteAllText("score.ps",tester)
-                  Some(t)
+                  Some(t) 
                | None -> None
             | None -> None
          | None -> None

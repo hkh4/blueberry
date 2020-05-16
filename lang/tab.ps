@@ -228,90 +228,109 @@ end
    /xcoord exch def
    newpath
    xcoord ycoord moveto
-   xcoord 15 sub ycoord 12 sub xcoord 24.5 sub ycoord 20.5 sub xcoord 34 sub ycoord 23 sub curveto
-   xcoord 57 sub ycoord 43 sub lineto
-   xcoord 47 sub ycoord 43 sub xcoord 43 sub ycoord 41 sub xcoord 22 sub ycoord 33.5 sub curveto
-   xcoord 20 sub ycoord 33 sub xcoord 20 sub ycoord 38.5 sub 2 arct
+   xcoord 0.64816513755 sub ycoord 0.51853211004 sub xcoord 1.058669724665 sub ycoord 0.885825687985 sub xcoord 1.46917431178 sub ycoord 0.99385321091 sub curveto
+   xcoord 2.46302752269 sub ycoord 1.85807339431 sub lineto
+   xcoord 2.03091743099 sub ycoord 1.85807339431 sub xcoord 1.85807339431 sub ycoord 1.77165137597 sub xcoord 0.95064220174 sub ycoord 1.4475688071950001 sub curveto
+   xcoord 0.8642201834000001 sub ycoord 1.42596330261 sub xcoord 0.8642201834000001 sub ycoord 1.663623853045 sub 0.08642201834 arct
    closepath
    fill
-   newpath xcoord 57 sub ycoord 19 sub 24 0 360 arc fill
+   newpath xcoord 2.46302752269 sub ycoord 0.8210091742300001 sub 1.03706422008 0 360 arc fill
    grestore
    end
 } bind def
 
-/eighthRest {
+/8thRest {
    2 dict begin
    gsave
    0.1 setlinewidth
    /ycoord exch def
    /xcoord exch def
    xcoord ycoord moveto
-   xcoord 1 add ycoord 4.5 sub xcoord 19 add ycoord 3.5 sub xcoord 23 add ycoord curveto
-   xcoord 63 add ycoord 144 add lineto
-   xcoord 63 add ycoord 147 add xcoord 58 add ycoord 151 add xcoord 55 add ycoord 149 add curveto
-   xcoord 35 add ycoord 113.5 add lineto
-   xcoord 35 add ycoord 106 add xcoord 1 sub ycoord 3 add xcoord 1 sub ycoord 3 add curveto
-   xcoord 2 sub ycoord xcoord 1.2 add ycoord 1.5 sub 4 arct
+   xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto
+   xcoord 2.72229357771 add ycoord 6.22238532048 add lineto
+   xcoord 2.72229357771 add ycoord 6.3520183479900005 add xcoord 2.5062385318600002 add ycoord 6.5248623846700005 add xcoord 2.37660550435 add ycoord 6.43844036633 add curveto
+   xcoord 1.51238532095 add ycoord 4.904449540795 add lineto
+   xcoord 1.51238532095 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto
+   xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct
    fill
-   xcoord 55 add ycoord 149 add restCurl
+   xcoord 2.37660550435 add ycoord 6.43844036633 add restCurl
    grestore
    end
 } bind def
 
-newpath
-300 400 moveto
-301 395.5 319 396.5 323 400 curveto
-363 544 lineto
-363 547 358 551 355 549 curveto
-335 513.5 lineto
-335 506 299 403 299 403 curveto
-298 400 301.2 398.5 4 arct
-fill
-
-newpath
-355 549 moveto
-340 537 330.5 528.5 321 526 curveto
-298 506 lineto
-308 506 312 508 333 515.5 curveto
-335 516 335 510.5 2 arct
-closepath
-fill
-newpath 298 530 24 0 360 arc fill
 
 
+/16thRest {
+   2 dict begin
+   gsave
+   /ycoord exch def
+   /xcoord exch def
+   xcoord ycoord moveto
+   xcoord 1 add ycoord 4.5 sub xcoord 19 add ycoord 3.5 sub xcoord 23 add ycoord curveto
+   xcoord 91 add ycoord 235 add lineto
+   xcoord 91.5 add ycoord 237.5 add xcoord 86.5 add ycoord 241.5 add xcoord 84 add ycoord 240 add curveto
+   xcoord 64 add ycoord 204.5 add lineto
+   xcoord 35 add ycoord 106 add xcoord 1 sub ycoord 3 add xcoord 1 sub ycoord 3 add curveto
+   xcoord 2 sub ycoord xcoord 1.2 add ycoord 1.5 sub 4 arct
+   fill
+   xcoord 56 add ycoord 149 add restCurl
+   xcoord 84 add ycoord 240 add restCurl
+   grestore
+   end
+} bind def
 
+6 85
 
-%16
-newpath
-400 400 moveto
-401 395.5 419 396.5 423 400 curveto
-491 635 lineto
-491 638 486 650 483 640 curveto
-463 604.5 lineto
-435 506 399 403 399 403 curveto
-398 400 401.2 398.5 4 arct
-fill
+/32ndRest {
+   2 dict begin
+   gsave
+   /ycoord exch def
+   /xcoord exch def
+   xcoord ycoord moveto
+   xcoord 1 add ycoord 4.5 sub xcoord 19 add ycoord 3.5 sub xcoord 23 add ycoord curveto
+   xcoord 104.5 add ycoord 327.5 add lineto
+   xcoord 105 add ycoord 328 add xcoord 102.5 add ycoord 332.5 add xcoord 98 add ycoord 330.3 add curveto
+   xcoord 79 add ycoord 296 add lineto
+   xcoord 31 add ycoord 106 add xcoord 1 sub ycoord 3 add xcoord 1 sub ycoord 3 add curveto
+   xcoord 2 sub ycoord xcoord 1.2 add ycoord 1.5 sub 4 arct
+   fill
+   xcoord 51 add ycoord 149 add restCurl
+   xcoord 75.5 add ycoord 240 add restCurl
+   xcoord 99 add ycoord 331 add restCurl
+   grestore
+   end
+} bind def
 
+123 415
+18.5 87.5
+/64thRest {
+   2 dict begin
+   gsave
+   /ycoord exch def
+   /xcoord exch def
+   xcoord ycoord moveto
+   xcoord 1 add ycoord 4.5 sub xcoord 19 add ycoord 3.5 sub xcoord 23 add ycoord curveto
+   xcoord 128 add ycoord 420 add lineto
+   xcoord 127 add ycoord 423 add xcoord 126 add ycoord 424 add xcoord 121.5 add ycoord 422.8 add curveto
+   xcoord 102 add ycoord 388 add lineto
+   xcoord 31 add ycoord 106 add xcoord 1 sub ycoord 3 add xcoord 1 sub ycoord 3 add curveto
+   xcoord 2 sub ycoord xcoord 1.2 add ycoord 1.5 sub 4 arct
+   fill
+   xcoord 51 add ycoord 149 add restCurl
+   xcoord 75 add ycoord 240 add restCurl
+   xcoord 99 add ycoord 331 add restCurl
+   xcoord 122 add ycoord 423 add restCurl
+   grestore
+   end
+} bind def
 
-%shift over 1
-newpath
-456 549 moveto
-441 537 431.5 529.5 421 526 curveto
-399 506 lineto
-409 506 413 508 434 515.5 curveto
-436 516 436 510.5 2 arct
-closepath
-fill
-newpath 399 530 24 0 360 arc fill
+%400 200 64thRest
 
+%300 200 32ndRest
 
-%27 90
+%200 200 16thRest
 
-
-%28 91
-%t
-
-500 400 eighthRest
+100 200 8thRest
 
 
 
