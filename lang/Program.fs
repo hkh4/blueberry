@@ -10,6 +10,7 @@ open ProjectInterpreter
 let main argv =
    //reads in from a file
    if (Array.length argv = 0) then
+      printfn "Correct usage: dotnet run <file>"
       1
    else
       let fileName = argv.[0]
