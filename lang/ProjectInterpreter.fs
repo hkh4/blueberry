@@ -1,5 +1,5 @@
 module ProjectInterpreter
- 
+
 open System
 open System.IO
 open ProjectParser
@@ -11,7 +11,7 @@ type optionsRecord = {
    mutable Time: int * int
    mutable Key: string
 }
-
+ 
 // Types of "notes"
 type Notehead =
 | NormalGuitarNote of int * Pitch  // int is the string number
