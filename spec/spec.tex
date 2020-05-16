@@ -192,11 +192,13 @@ This language doesn't really have associativity issues
   \begin{center}
     \caption{Data and Operations}
     \label{tab:table1}
-    \begin{tabular}{|p{4cm}|p{4cm}|p{4cm}|p{4cm}|p{4cm}|}
+    \begin{tabular}{|p{4cm}|p{4cm}|p{4cm}|p{4cm}|}
       \textbf{Syntax} & \textbf{Abstract Syntax} & \textbf{Type} &  \textbf{Meaning} \\
       \hline
       -type tab & ScoreOption of string * string & string * string & This is an option type, where it begins with a dash, followed by the specifier and the data \\ \hline
-      4e32/gr & Complex of int * Pitch * Rhythm * PropertyList & Note & This is a complex note, comprised of all the parts that could make up a note 
+      5g\# & SingleSimple of int * Pitch * Property List & Note & This is a simple note, with no rhythm specified, so it uses the default rhythm, which begins as a quarter note and afterwards is whatever the last rhythm specified was. \\ \hline
+      4e32/gr & SingleComplex of int * Pitch * Rhythm * PropertyList & Note & This is a complex note, comprised of all the parts that could make up a note \\ \hline
+      r32 & RestComplex of Rhythm & Note & This represents a rest, which is complex since it has a rhythm specified
     \end{tabular}
   \end{center}
 \end{table}
