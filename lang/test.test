@@ -1,52 +1,19 @@
 -type tab
--time 5-4
+-time 3-4
 -key c
 
 1:
    r
+   6e16
+   1f
+   2g#
+   4ab
    r8
-   r8
-   r16
-   r
-   r
-   r
-   r32
-   r
-   r
-   r
-   r
-   r
-   r
-   r
-   r64
-   r
-   r
-   r
-   r
-   r
-   r
-   r
-   r
-   r
-   r
-   r
-   r
-   r
-   r
    r
 2:
-   1g1
-   4f4
+   r4
+   3fn
+   5g#
 3:
    5a2
-   6b4
-   3d8
-   1f
-   4e16
-   2a
-   4f32
-   6a
-   1e64
-   1f#
-   5gn
-   4db
+   3bb4
