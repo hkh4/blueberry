@@ -1,7 +1,7 @@
 module ProjectParser
 
 open System
-open Parser
+open Parser 
 (*
 <expr>             ::= <option>
                      | <measure>
