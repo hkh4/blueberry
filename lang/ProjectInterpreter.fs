@@ -11,7 +11,7 @@ type optionsRecord = {
    mutable Time: int * int
    mutable Key: string
 }
- 
+
 // Types of "notes"
 type Notehead =
 | NormalGuitarNote of int * Pitch  // int is the string number
@@ -58,6 +58,7 @@ let arrayOfRhythms = [|X1;X2;X4;X8;X16;X32;X64|]
 // Widths of different rhythms
 let widthOfRhythms =
    Map.empty.
+      Add(R(X0,0),20.0).
       Add(R(X1,0),40.5).
       Add(R(X2,0),27.0).
       Add(R(X4,0),18.0).
@@ -137,35 +138,42 @@ let rec evalOption o optionsR=
 2) r is the Duration of this Element
 3) nextStart is the start spot of this element, which will be updated and returned
 4) baseBeat is the RhythmNumber of the time signature, this constitutes one beat
+5) numberOfBeats is the top number of the time signature
+6) last is an into - 1 if last note, 0 else
 RETURNS: new Element and the new nextStart for the next element
 *)
-let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: RhythmNumber) (last: int) : (Element * float) option =
+let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: RhythmNumber) (numberOfBeats: int) (last: int) : (Element * float) option =
    // Find the index of the baseBeat in the list of rhythms
    let indexOfBeat = Array.findIndex (fun elem -> elem = baseBeat) arrayOfRhythms
    let rNumber =
      match r with
      | R(a,b) -> a
      | Other -> X4 // NOT YET IMPLEMENTED
-     // Find the index of the given rhythm in the list of rhythms
-   let indexOfRhythm = Array.findIndex (fun elem -> elem = rNumber) arrayOfRhythms
-   // TODO: figure out dotted rhythms
-   // The difference in index if used to figure out how many beats are used
-   let differenceOfRhythm = indexOfBeat - indexOfRhythm
-   // Look into the Map of rhythms to widths
-   let newWidthTemp = widthOfRhythms.[r]
-   let newWidth =
-      match last with
-      // If this isn't the last note, return
-      | 0 -> newWidthTemp
-      | _ ->
-         // If it is the last note, and the width is less than 10, set it to 10 so that there's sufficient space before the next bar line
-         match newWidthTemp with
-         | num when num < 10.0 -> 10.0
-         | _ -> newWidthTemp
-   // The start of the next note is 2 ^ the difference between beat and given rhythm. e.g. if the beat is 4 and the given is 8, the difference in index is -1, and 2 ^ -1 is half a beat
-   let newNextStart = nextStart + (2.0**(float differenceOfRhythm))
-   // Return the new element with updated width, and the next start
-   Some({ template with Width = newWidth },newNextStart)
+   match rNumber with
+   | X0 ->
+      let newWidth = widthOfRhythms.[r]
+      Some({ template with Width = newWidth }, (float numberOfBeats + 1.0))
+   | _ ->
+      // Find the index of the given rhythm in the list of rhythms
+      let indexOfRhythm = Array.findIndex (fun elem -> elem = rNumber) arrayOfRhythms
+      // TODO: figure out dotted rhythms
+      // The difference in index if used to figure out how many beats are used
+      let differenceOfRhythm = indexOfBeat - indexOfRhythm
+      // Look into the Map of rhythms to widths
+      let newWidthTemp = widthOfRhythms.[r]
+      let newWidth =
+         match last with
+         // If this isn't the last note, return
+         | 0 -> newWidthTemp
+         | _ ->
+            // If it is the last note, and the width is less than 10, set it to 10 so that there's sufficient space before the next bar line
+            match newWidthTemp with
+            | num when num < 10.0 -> 10.0
+            | _ -> newWidthTemp
+      // The start of the next note is 2 ^ the difference between beat and given rhythm. e.g. if the beat is 4 and the given is 8, the difference in index is -1, and 2 ^ -1 is half a beat
+      let newNextStart = nextStart + (2.0**(float differenceOfRhythm))
+      // Return the new element with updated width, and the next start
+      Some({ template with Width = newWidth },newNextStart)
 
 
 
@@ -198,10 +206,15 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
             { NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 15.0; LastNote = 0 }
          // Rest Complex
          | RestComplex(r) ->
-            defaultRhythm <- r
-            { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 15.0; LastNote = 0 }
+            // Only update default rhythm is the rhythm is NOT X0
+            match r with
+            | R(X0,0) ->
+               { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 15.0; LastNote = 0 }
+            | _ ->
+               defaultRhythm <- r
+               { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 15.0; LastNote = 0 }
    // Call widthStart to create the note element object with updated width
-   match (widthStart note (note.Duration) nextStart baseBeat last) with
+   match (widthStart note (note.Duration) nextStart baseBeat numberOfBeats last) with
    | Some(newNote,newNextStart) ->
       match last with
       // If it's the last note
@@ -277,8 +290,16 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
       // (assuming that the bottom number will only ever be 1 2 4 8 etc)
       let baseBeat =
          match baseNumber with
+         | 1 -> X1
+         | 2 -> X2
          | 4 -> X4
-         | _ -> X4 //NOT YET IMPLEMENTED
+         | 8 -> X8
+         | 16 -> X16
+         | 32 -> X32
+         | 64 -> X64
+         | _ ->
+            printfn "Error! The bottom of the time signature can be 1 2 4 8 16 32 or 64"
+            X0
       match (evalMeasureHelper b c elementList baseBeat numberOfBeats acc 1.0) with
       // tuple: first element is the total width of all the elements added together, second is the list of elements
       | Some(width,list) ->
@@ -486,14 +507,15 @@ let calculateStringAndFret (guitarString: int) (pitch: Pitch) : int option =
 
 (* Return a list of strings which are the postscript code to write each element
 1) els is the list of Elements in the measure to be displayed
-2) x is the x-coord for this note
-3) y is the y-coord for this note
-4) l is the list of strings that represents the elements to be displayed
+2) measureWidth is the total width of this measure. it is used to place a whole rest in the middle of the measure
+3) x is the x-coord for this note
+4) y is the y-coord for this note
+5) l is the list of strings that represents the elements to be displayed
    note: raster images in general PREPENDED to the list so they are displayed FIRST
-5) insideScale is the scale used to change the widths
+6) insideScale is the scale used to change the widths
 RETURNS: updated list of strings to be displayed
 *)
-let rec showElements (els: Element List) (x: float) (y: float) (l: string List) (insideScale: float) : string List option =
+let rec showElements (els: Element List) (measureWidth: float) (x: float) (y: float) (l: string List) (insideScale: float) : string List option =
    match els with
    | [] -> Some(l)
    | head::tail ->
@@ -501,7 +523,7 @@ let rec showElements (els: Element List) (x: float) (y: float) (l: string List) 
       match head.NoteInfo with
       // Do nothing, just move forward 5 units
       | Empty ->
-         showElements tail (x + 5.0) y l insideScale
+         showElements tail measureWidth (x + 5.0) y l insideScale
       // Guitar note: although raster image, still put at the end of the list because i want the white border
       | NormalGuitarNote(guitarString,pitch) ->
          match (calculateStringAndFret guitarString pitch) with
@@ -510,18 +532,28 @@ let rec showElements (els: Element List) (x: float) (y: float) (l: string List) 
             let newText = string x + " " + string yCoord + " " + string fret + " guitarfretnumber "
             let newX = x + (head.Width * insideScale)
             let newList = l @ [newText]
-            showElements tail newX y newList insideScale
+            showElements tail measureWidth newX y newList insideScale
          | None -> None
       // Barline : print the vertical line
       | Barline ->
          let barline = string (x - 5.0) + " " + string y + " 30.4 0.7 barline "
          let newList = l @ [barline]
          // same x and y since it has no width
-         showElements tail x y newList insideScale
+         showElements tail measureWidth x y newList insideScale
       // Rest : depending on rhythm, use the right rest
       | Rest ->
          let newText =
             match head.Duration with
+            | R(X0,0) ->
+               let xCoord = x + (measureWidth / 2.0) - 7.0
+               let yCoord = y + 15.8
+               string xCoord + " " + string yCoord + " halfWholeRest "
+            | R(X1,0) ->
+               let yCoord = y + 15.8
+               string x + " " + string yCoord + " halfWholeRest "
+            | R(X2,0) ->
+               let yCoord = y + 11.9
+               string x + " " + string yCoord + " halfWholeRest "
             | R(X4,0) ->
                let yCoord = y + 9.0
                string x + " " + string yCoord + " quarterRest "
@@ -540,9 +572,9 @@ let rec showElements (els: Element List) (x: float) (y: float) (l: string List) 
             | _ -> ""
          let newX = x + (head.Width * insideScale)
          let newList = l @ [newText]
-         showElements tail newX y newList insideScale
+         showElements tail measureWidth newX y newList insideScale
       | X(string) -> // NOT YET IMPLEMENTED
-         showElements tail x y l insideScale
+         showElements tail measureWidth x y l insideScale
       // TODO::: FOR OTHERS : for raster image items, like clefs, they need to be PREPENDED to the list so that when evaluated, they are printed FIRST
 
 
@@ -566,7 +598,7 @@ let rec showMeasures (measures: SingleMeasure List) (x: float) (y: float) (l: st
       // used to scale the notes on the inside, removing the 5 units of space in the beginning
       // TODO : add -5.0 after newWidth if the last element has a width of less than 15
       let insideScale = newWidth / (head.Width - 5.0)
-      match (showElements els x y l insideScale) with
+      match (showElements els newWidth x y l insideScale) with
       | Some(li) ->
          // x coordinate of the beginning of the next measure
          let newX = x + newWidth
@@ -675,7 +707,7 @@ let eval ast =
                %%BeginProlog
                /concatenate { dup length 2 index length add 1 index type /arraytype eq {array}{string} ifelse dup 0 4 index putinterval dup 4 -1 roll length 4 -1 roll putinterval } bind def
                /printimage { 8 dict begin /color exch def /pathtofile exch def /sizey exch def /sizex exch def /scaley exch def /scalex exch def /ycoord exch def /xcoord exch def gsave xcoord ycoord translate scalex scaley scale sizex sizey 8 [sizex 0 0 -1 sizey mul 0 sizey] pathtofile (r) file /DCTDecode filter false color colorimage grestore end } bind def
-               /timesignature { 5 dict begin /num exch def /ycoord exch def /xcoord exch def /str (images/Time_Signature/0.jpg) def /num2 {num 48 add} bind def str 22 num2 put xcoord ycoord 7 8.909 66 84 str 3 printimage } bind def
+               /timesignature { 7 dict begin /num exch def /ycoord exch def /xcoord exch def /str (images/Time_Signature/0.jpg) def /num2 {num 48 add} bind def num 10 ge { /str (images/Time_Signature/10.jpg) store /tens num 10 idiv 48 add def /ones num 10 mod 48 add def str 22 tens put str 23 ones put xcoord 3 sub ycoord 13.2575758 8.909 125 84 str 3 printimage }{str 22 num2 put xcoord ycoord 7 8.909 66 84 str 3 printimage } ifelse } bind def
                /staffline { 4 dict begin /first exch def /ycoord exch def /xcoord exch def /width 515 def first 1 eq {/width 495 store} {} ifelse xcoord ycoord moveto 0.4 setlinewidth width 0 rlineto stroke end } bind def
                /barline { 4 dict begin /linewidth exch def /height exch def /ycoord exch def /ycoord ycoord 0.2 sub store /xcoord exch def gsave linewidth setlinewidth xcoord ycoord moveto 0 height rlineto stroke grestore end } bind def
                /guitartablines { 5 dict begin /flag exch def /ycoord exch def /xcoord exch def gsave 1.33 setlinewidth xcoord ycoord 30.4 1.33 barline stroke 0.4 setlinewidth 0 1 5 { /num exch def xcoord num 6 mul ycoord add flag staffline } for 1.33 setlinewidth /width 515 def flag 1 eq {/width 495 store}{} ifelse xcoord width add ycoord 30.4 1.33 barline stroke xcoord ycoord 40 fancyline end } bind def
@@ -687,6 +719,7 @@ let eval ast =
                /16thRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord ycoord moveto xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto xcoord 3.9322018344700003 add ycoord 10.15458715495 add lineto xcoord 3.9538073390550004 add ycoord 10.262614677875 add xcoord 3.7377522932050002 add ycoord 10.435458714555 add xcoord 3.62972477028 add ycoord 10.3706422008 add curveto xcoord 2.76550458688 add ycoord 8.836651375265001 add lineto xcoord 1.51238532095 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct fill xcoord 2.4198165135200003 add ycoord 6.43844036633 add restCurl xcoord 3.62972477028 add ycoord 10.3706422008 add restCurl grestore end } bind def
                /32ndRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord ycoord moveto xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto xcoord 4.515550458265 add ycoord 14.151605503175 add lineto xcoord 4.53715596285 add ycoord 14.17321100776 add xcoord 4.429128439925 add ycoord 14.367660549025 add xcoord 4.23467889866 add ycoord 14.272596328851002 add curveto xcoord 3.41366972443 add ycoord 12.79045871432 add lineto xcoord 1.33954128427 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct fill xcoord 2.20376146767 add ycoord 6.43844036633 add restCurl xcoord 3.2624311923350002 add ycoord 10.3706422008 add restCurl xcoord 4.277889907830001 add ycoord 14.30284403527 add restCurl grestore end } bind def
                /64thRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord ycoord moveto xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto xcoord 5.53100917376 add ycoord 18.1486238514 add lineto xcoord 5.48779816459 add ycoord 18.27825687891 add xcoord 5.44458715542 add ycoord 18.32146788808 add xcoord 5.250137614155 add ycoord 18.269614677076 add curveto xcoord 4.40752293534 add ycoord 16.76587155796 add lineto xcoord 1.33954128427 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct fill xcoord 2.20376146767 add ycoord 6.43844036633 add restCurl xcoord 3.24082568775 add ycoord 10.3706422008 add restCurl xcoord 4.277889907830001 add ycoord 14.30284403527 add restCurl xcoord 5.27174311874 add ycoord 18.27825687891 add restCurl grestore end } bind def
+               /halfWholeRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord 0.37129898 add ycoord moveto xcoord 4.48414922 add ycoord xcoord 4.48414922 add ycoord 0.37129898 add 0.37129898 arct xcoord 4.48414922 add ycoord 2.31347826 add xcoord 4.11285024 add ycoord 2.31347826 add 0.37129898 arct xcoord ycoord 2.31347826 add xcoord ycoord 0.37129898 add 0.37129898 arct xcoord ycoord xcoord 0.37129898 add ycoord 0.37129898 arct fill grestore end } bind def
                %%EndProlog
                "
                //print and show

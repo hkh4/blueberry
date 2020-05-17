@@ -1,6 +1,6 @@
 %!PS
 %%BeginProlog
- 
+
 %string or array concatenation
 /concatenate { %given string1 and string2
    dup length 2 index length add 1 index type
@@ -37,14 +37,22 @@
 
 % Create one number of the time signature.
 /timesignature { % stack: x-coord, y-coord, number
-   5 dict begin
+   7 dict begin
    /num exch def
    /ycoord exch def
    /xcoord exch def
    /str (images/Time_Signature/0.jpg) def
    /num2 {num 48 add} bind def
-   str 22 num2 put
+   num 10 ge {
+   /str (images/Time_Signature/10.jpg) store
+   /tens num 10 idiv 48 add def
+   /ones num 10 mod 48 add def
+   str 22 tens put
+   str 23 ones put
+   xcoord 3 sub ycoord 13.2575758 8.909 125 84 str 3 printimage
+   }{str 22 num2 put
    xcoord ycoord 7 8.909 66 84 str 3 printimage
+   } ifelse
 } bind def
 
 %HELPER: draw single horizontal staff line
@@ -285,14 +293,26 @@ end
    grestore
    end
 } bind def
+
+
+/halfWholeRest {
+2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def
+xcoord 0.37129898 add ycoord moveto
+xcoord 4.48414922 add ycoord xcoord 4.48414922 add ycoord 0.37129898 add 0.37129898 arct
+xcoord 4.48414922 add ycoord 2.31347826 add xcoord 4.11285024 add ycoord 2.31347826 add 0.37129898 arct
+xcoord ycoord 2.31347826 add xcoord ycoord 0.37129898 add 0.37129898 arct
+xcoord ycoord xcoord 0.37129898 add ycoord 0.37129898 arct
+fill
+grestore end
+} bind def
 %%EndProlog
 
 %%print staff
 73 652 7 25.2 70 252 (images/Staves/staff.jpg) 3 printimage
 
 %% timesignature
-84 656 4 timesignature
-84 665 4 timesignature
+84 656 12 timesignature
+84 665 64 timesignature
 
 %%staff lines
 70 650 1 guitartablines
@@ -333,6 +353,10 @@ end
 190 650 16thRest
 
 180 650 8thRest
+
+
+100 100 halfWholeRest
+
 
 
 

@@ -1,5 +1,5 @@
 module ProjectParser
- 
+
 open System
 open Parser
 (*
@@ -60,7 +60,7 @@ type simple =
 | RestSimple
 
 type RhythmNumber =
-| X1 | X2 | X4 | X8 | X16 | X32 | X64
+| X0 | X1 | X2 | X4 | X8 | X16 | X32 | X64
 
 type Rhythm =
 | R of RhythmNumber * int          //int is the number of dots
@@ -153,10 +153,11 @@ let x8 = pstr "8" |>> (fun _ -> X8) <!> "8"
 let x4 = pstr "4" |>> (fun _ -> X4) <!> "4"
 let x2 = pstr "2" |>> (fun _ -> X2) <!> "2"
 let x1 = pstr "1" |>> (fun _ -> X1) <!> "1"
+let x0 = pstr "0" |>> (fun _ -> X0) <!> "0"
 
 let dot = pmany0 (pchar '.') |>> (fun list -> list.Length) <!> "dot"
 
-let rhythm = pseq (x64 <|> x32 <|> x16 <|> x8 <|> x4 <|> x2 <|> x1) dot (fun (a,b) -> (a,b)) |>> R <!> "Rhythm"
+let rhythm = pseq (x64 <|> x32 <|> x16 <|> x8 <|> x4 <|> x2 <|> x1 <|> x0) dot (fun (a,b) -> (a,b)) |>> R <!> "Rhythm"
 
 ///// SIMPLE //////
 
