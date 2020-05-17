@@ -75,6 +75,8 @@ This language is used to write sheet music for guitar tabs. Maybe in the future 
 I've always found GUI music writing software to be annoying to use, and it's always difficult to find all the buttons and features you need. I've felt like it would be easier and faster to simply type out music, since typing something like 'e4' is faster than looking for the right buttons and finding the right placement. This language would also be very customizable, and the user could adjust widths, spacing, etc.
 
 
+To run the program, first type dotnet run <file>, and then run the score.ps postscript file that is created by the f\# code. You will need to have Ghostscript downloaded, and you can call gs score.gs to run the code. ps2pdf score.gs will open a pdf version, which is generally more useful.
+
 \section{Design Principles}
 I want the language to be as simple and intuitive as possible. The syntax is very simple, and a lot of the formatting is taken care of by the evaluator, which means that there are default values for a lot of parameters, making life easier for the user. Aesthetically, I'm working to make sure the output sheet music follows music engraving standards to look professional.
 
