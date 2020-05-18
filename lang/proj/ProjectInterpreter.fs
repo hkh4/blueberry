@@ -26,6 +26,7 @@ type Element = {
    Start: float
    Width : float
    LastNote : int
+   Location : int * int
 }
 
 type SingleMeasure = {
@@ -70,6 +71,16 @@ let widthOfRhythms =
 // Changeable default
 let mutable defaultRhythm = R(X4,0)
 
+// Measure with just a full rest, to be used to fill a line when it's not long enough to avoid overstretched measures
+// NOTE: I made the width of the whole rest 30 instead of 20 so the existing measures wouldn't be so stretched in relation to the empty ones. Need to change numbers in showLines function if this number is changed
+let emptyMeasure =
+   {
+      Key = "c";
+      Time = (4,4);
+      MeasureNumber = 0;
+      Notes = [{ NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location - (0,0) };{ NoteInfo = Rest; Duration = R(X0,0); Start = 1.0; Width = 30.0; LastNote = 1; Location = (0,0) };{ NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0,0) }];
+      Width = 35.0
+   }
 
 
 // ***********************************************************
@@ -193,26 +204,26 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
          // Single Simple
          | SingleSimple(string,pitch,properties) ->
             let nInfo = NormalGuitarNote(string,pitch)
-            { NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 15.0; LastNote = 0 }
+            { NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0,0) }
             // Rest Simple
          | RestSimple ->
-            { NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 15.0; LastNote = 0 }
+            { NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0,0) }
       | Complex(p) ->
          match p with
          // Single Complex
          | SingleComplex(string,pitch,r,properties) ->
             let nInfo = NormalGuitarNote(string,pitch)
             defaultRhythm <- r
-            { NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 15.0; LastNote = 0 }
+            { NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0,0) }
          // Rest Complex
          | RestComplex(r) ->
             // Only update default rhythm is the rhythm is NOT X0
             match r with
             | R(X0,0) ->
-               { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 15.0; LastNote = 0 }
+               { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0,0) }
             | _ ->
                defaultRhythm <- r
-               { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 15.0; LastNote = 0 }
+               { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0,0) }
    // Call widthStart to create the note element object with updated width
    match (widthStart note (note.Duration) nextStart baseBeat numberOfBeats last) with
    | Some(newNote,newNextStart) ->
@@ -304,9 +315,9 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
       // tuple: first element is the total width of all the elements added together, second is the list of elements
       | Some(width,list) ->
          // Add empty space at the beginning and barline at the end
-         let empty = { NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0 }
+         let empty = { NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0,0) }
          // Barline at the end of the measure
-         let bar = { NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0 }
+         let bar = { NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0,0) }
          let newList = [empty] @ list @ [bar]
          // Add 5 to the width because of the empty space at the beginning
          let newWidth = width + 5.0
@@ -472,6 +483,8 @@ let rec dividePages (lines : Line List) (pageList : Page List) (start : float * 
 // ****************************************************************
 // **************************** GRAPHICS *****************************
 
+// ################## Step 1: Draw the notes and rests, and figure out spacing
+
 (* Given a string number and a pitch, figure out the fret number
 1) guitarString is the int of which string this note will be on
 2) pitch is the Pitch of the note
@@ -507,15 +520,16 @@ let calculateStringAndFret (guitarString: int) (pitch: Pitch) : int option =
 
 (* Return a list of strings which are the postscript code to write each element
 1) els is the list of Elements in the measure to be displayed
-2) measureWidth is the total width of this measure. it is used to place a whole rest in the middle of the measure
-3) x is the x-coord for this note
-4) y is the y-coord for this note
-5) l is the list of strings that represents the elements to be displayed
+2) updatedElements is the list of elements but where the location has been updated, to be used later to draw the beams
+3) measureWidth is the total width of this measure. it is used to place a whole rest in the middle of the measure
+4) x is the x-coord for this note
+5) y is the y-coord for this note
+6) l is the list of strings that represents the elements to be displayed
    note: raster images in general PREPENDED to the list so they are displayed FIRST
-6) insideScale is the scale used to change the widths
-RETURNS: updated list of strings to be displayed
+7) insideScale is the scale used to change the widths
+RETURNS: updated list of strings to be displayed, and updated list of elements
 *)
-let rec showElements (els: Element List) (measureWidth: float) (x: float) (y: float) (l: string List) (insideScale: float) : string List option =
+let rec showElements (els: Element List) (updatedElements: Element List) (measureWidth: float) (x: float) (y: float) (l: string List) (insideScale: float) : (string List * Element List) option =
    match els with
    | [] -> Some(l)
    | head::tail ->
@@ -528,7 +542,7 @@ let rec showElements (els: Element List) (measureWidth: float) (x: float) (y: fl
       | NormalGuitarNote(guitarString,pitch) ->
          match (calculateStringAndFret guitarString pitch) with
          | Some(fret) ->
-            let yCoord = (y - 2.5) + (6.0 * ((float guitarString)-1.0))
+            let yCoord = (y - 2.5) + (6.0 * ((float guitarString) - 1.0))
             let newText = string x + " " + string yCoord + " " + string fret + " guitarfretnumber "
             let newX = x + (head.Width * insideScale)
             let newList = l @ [newText]
@@ -581,13 +595,14 @@ let rec showElements (els: Element List) (measureWidth: float) (x: float) (y: fl
 
 (* Show all measures of a line
 1) measures is the list of SingleMeasures to be evaluated and printed
+2) updatedMeasures are the measures with the new elements that have new Locations, to be used for beaming
 2) x is the x-coord of the next note
 3) y is the y-coord of the next note
 4) l is the list of strings to be printed
 5) scale is the scale of the measures - width of line / width of measures in the line
-RETURNS: list of strings to be printed
+RETURNS: list of strings to be printed, and list of updated measures that have th new elements
 *)
-let rec showMeasures (measures: SingleMeasure List) (x: float) (y: float) (l: string List) (scale: float) : string List option =
+let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeasure List) (x: float) (y: float) (l: string List) (scale: float) : (string List * SingleMeasure List) option =
    match measures with
    | [] -> Some(l)
    | head::tail ->
@@ -598,7 +613,8 @@ let rec showMeasures (measures: SingleMeasure List) (x: float) (y: float) (l: st
       // used to scale the notes on the inside, removing the 5 units of space in the beginning
       // TODO : add -5.0 after newWidth if the last element has a width of less than 15
       let insideScale = newWidth / (head.Width - 5.0)
-      match (showElements els newWidth x y l insideScale) with
+      let e : Element List = []
+      match (showElements els e newWidth x y l insideScale) with
       | Some(li) ->
          // x coordinate of the beginning of the next measure
          let newX = x + newWidth
@@ -640,17 +656,45 @@ let rec showLines (lines: Line List) (text: string) : string option =
          | _ ->
             let clefString = string (staffx + 3.0) + " " + string (staffy + 2.0) + " 7 25.2 70 252 (images/Staves/staff.jpg) 3 printimage "
             (clefString, "", staffx + 20.0)
+      let newHead : Line =
+         // If the line isn't very full, add some empty measures
+         match head.OriginalWidth with
+         // Add 3 empty measures if less than 25% full
+         | num when num <= (head.FinalWidth / 4.0) ->
+            let oldMeasures = head.Measures
+            let newMeasures = oldMeasures @ [emptyMeasure] @ [emptyMeasure] @ [emptyMeasure] @ [emptyMeasure] @ [emptyMeasure]
+            { head with Measures = newMeasures; OriginalWidth = num + 175.0 }
+         // Add 2 empty measures if 25-50% full
+         | num when num > (head.FinalWidth / 4.0) && num <= (head.FinalWidth / 2.0) ->
+            let oldMeasures = head.Measures
+            let newMeasures = oldMeasures @ [emptyMeasure] @ [emptyMeasure] @ [emptyMeasure]
+            { head with Measures = newMeasures; OriginalWidth = num + 105.0 }
+         // Add 1 empty measure if 50-75% full
+         | num when num > (head.FinalWidth / 2.0) && num <= (head.FinalWidth * (3.0/4.0)) ->
+            let oldMeasures = head.Measures
+            let newMeasures = oldMeasures @ [emptyMeasure]
+            { head with Measures = newMeasures; OriginalWidth = num + 35.0 }
+         | _ -> head
       // Float to tell how much to scale widths of individual elements
-      let scale = (head.FinalWidth + staffx - newX) / head.OriginalWidth
+      let scale = (newHead.FinalWidth + staffx - newX) / newHead.OriginalWidth
       let l : String List = []
+      let m : SingleMeasure List = []
       // Show measures of the line
-      match (showMeasures head.Measures newX staffy l scale) with
+      match (showMeasures newHead.Measures m newX staffy l scale) with
       | Some(li) ->
          // Put all the strings together
          let allNewElements = staffline + (List.fold (fun acc elem -> acc + " " + elem) "" li)
          let newText = text + clef + timeSig + allNewElements
          showLines tail newText
       | None -> None
+
+
+
+
+
+// #################### Step 2 : Draw stems and beams
+
+
 
 
 
@@ -715,7 +759,7 @@ let eval ast =
                /guitarfretnumber { 8 dict begin /str exch def /ycoord exch def /xcoord exch def /scalex 4 def /scaley 4.51 def /sizex 800 def /sizey 902 def /filestring (temp) def str type /stringtype eq { /xcoord xcoord 0.4 sub store /filestring (images/Tab_Numbers/) str (.jpg) concatenate concatenate store /scalex 4.6 store /scaley 4.8 store /sizex 1000 store }{ str 9 gt { /xcoord xcoord 1.7 sub store /scalex 7.3 store /sizex 1460 store }{} ifelse /filestring (images/Tab_Numbers/) str (ffff) cvs (.jpg) concatenate concatenate store } ifelse xcoord ycoord scalex scaley sizex sizey filestring 1 printimage end } bind def
                /quarterRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def /ycoord ycoord 12 add store xcoord ycoord moveto xcoord 2.8000000000000003 add ycoord 3.857142857142857 sub lineto xcoord 0.5714285714285714 add ycoord 6.571428571428571 sub xcoord 1.1428571428571428 add ycoord 7.285714285714286 sub xcoord 3.4285714285714284 add ycoord 9.514285714285714 sub curveto xcoord 0.8571428571428571 add ycoord 8.657142857142857 sub xcoord ycoord 10.085714285714285 sub xcoord 1.657142857142857 add ycoord 12.085714285714285 sub curveto xcoord 1.657142857142857 add ycoord 12.142857142857142 sub xcoord 1.5714285714285714 add ycoord 12.200000000000001 sub xcoord 1.4857142857142858 add ycoord 12.12857142857143 sub curveto xcoord 2.142857142857143 sub ycoord 10.0 sub xcoord 0.19999999999999998 add ycoord 7.428571428571429 sub xcoord 1.7142857142857142 add ycoord 8.285714285714286 sub curveto xcoord 0.6571428571428571 sub ycoord 5.257142857142857 sub lineto xcoord 1.1428571428571428 add ycoord 3.257142857142857 sub xcoord 1.1428571428571428 add ycoord 2.2857142857142856 sub xcoord 0.24285714285714285 sub ycoord 0.19999999999999998 sub curveto xcoord 0.24285714285714285 sub ycoord 0.1142857142857143 sub xcoord 0.14285714285714285 sub ycoord xcoord ycoord curveto fill grestore end } bind def
                /restCurl { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def newpath xcoord ycoord moveto xcoord 0.64816513755 sub ycoord 0.51853211004 sub xcoord 1.058669724665 sub ycoord 0.885825687985 sub xcoord 1.46917431178 sub ycoord 0.99385321091 sub curveto xcoord 2.46302752269 sub ycoord 1.85807339431 sub lineto xcoord 2.03091743099 sub ycoord 1.85807339431 sub xcoord 1.85807339431 sub ycoord 1.77165137597 sub xcoord 0.95064220174 sub ycoord 1.4475688071950001 sub curveto xcoord 0.8642201834000001 sub ycoord 1.42596330261 sub xcoord 0.8642201834000001 sub ycoord 1.663623853045 sub 0.08642201834 arct closepath fill newpath xcoord 2.46302752269 sub ycoord 0.8210091742300001 sub 1.03706422008 0 360 arc fill grestore end } bind def
-               /8thRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord ycoord moveto xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto xcoord 2.72229357771 add ycoord 6.22238532048 add lineto xcoord 2.72229357771 add ycoord 6.3520183479900005 add xcoord 2.5062385318600002 add ycoord 6.5248623846700005 add xcoord 2.37660550435 add ycoord 6.43844036633 add curveto xcoord 1.51238532095 add ycoord 4.904449540795 add lineto xcoord 1.51238532095 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct fill xcoord 2.37660550435 add ycoord 6.43844036633 add restCurl grestore end } bind def
+               /8thRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def /xcoord xcoord 1 add store xcoord ycoord moveto xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto xcoord 2.72229357771 add ycoord 6.22238532048 add lineto xcoord 2.72229357771 add ycoord 6.3520183479900005 add xcoord 2.5062385318600002 add ycoord 6.5248623846700005 add xcoord 2.37660550435 add ycoord 6.43844036633 add curveto xcoord 1.51238532095 add ycoord 4.904449540795 add lineto xcoord 1.51238532095 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct fill xcoord 2.37660550435 add ycoord 6.43844036633 add restCurl grestore end } bind def
                /16thRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord ycoord moveto xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto xcoord 3.9322018344700003 add ycoord 10.15458715495 add lineto xcoord 3.9538073390550004 add ycoord 10.262614677875 add xcoord 3.7377522932050002 add ycoord 10.435458714555 add xcoord 3.62972477028 add ycoord 10.3706422008 add curveto xcoord 2.76550458688 add ycoord 8.836651375265001 add lineto xcoord 1.51238532095 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct fill xcoord 2.4198165135200003 add ycoord 6.43844036633 add restCurl xcoord 3.62972477028 add ycoord 10.3706422008 add restCurl grestore end } bind def
                /32ndRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord ycoord moveto xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto xcoord 4.515550458265 add ycoord 14.151605503175 add lineto xcoord 4.53715596285 add ycoord 14.17321100776 add xcoord 4.429128439925 add ycoord 14.367660549025 add xcoord 4.23467889866 add ycoord 14.272596328851002 add curveto xcoord 3.41366972443 add ycoord 12.79045871432 add lineto xcoord 1.33954128427 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct fill xcoord 2.20376146767 add ycoord 6.43844036633 add restCurl xcoord 3.2624311923350002 add ycoord 10.3706422008 add restCurl xcoord 4.277889907830001 add ycoord 14.30284403527 add restCurl grestore end } bind def
                /64thRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord ycoord moveto xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto xcoord 5.53100917376 add ycoord 18.1486238514 add lineto xcoord 5.48779816459 add ycoord 18.27825687891 add xcoord 5.44458715542 add ycoord 18.32146788808 add xcoord 5.250137614155 add ycoord 18.269614677076 add curveto xcoord 4.40752293534 add ycoord 16.76587155796 add lineto xcoord 1.33954128427 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct fill xcoord 2.20376146767 add ycoord 6.43844036633 add restCurl xcoord 3.24082568775 add ycoord 10.3706422008 add restCurl xcoord 4.277889907830001 add ycoord 14.30284403527 add restCurl xcoord 5.27174311874 add ycoord 18.27825687891 add restCurl grestore end } bind def

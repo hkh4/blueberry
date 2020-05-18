@@ -1,0 +1,58 @@
+-type tab
+-time 4-4
+-key c
+
+1:
+   r
+   r
+   r
+   r
+2:
+   r
+   r
+   4d
+   r
+3:
+   1a
+   2b
+   3c
+   4d
+4:
+   3b8
+   r
+   r
+   r
+   r
+   r
+   4d
+   1e32
+   r
+   4d
+   r
+5:
+   r4
+   r
+   r
+   r8
+   r16
+   r
+6:
+   r4
+   r
+   r
+   r
+7:
+   r
+   r
+   r
+   r
+8:
+   r
+   r
+   r
+   r
+9:
+   r
+   r
+   r
+   r
