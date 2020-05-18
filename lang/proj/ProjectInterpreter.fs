@@ -26,14 +26,14 @@ type Element = {
    Start: float
    Width : float
    LastNote : int
-   Location : int * int
+   Location : float * float
 }
 
 type SingleMeasure = {
    Key : string
    Time : int * int
    MeasureNumber : int
-   Notes : Element List
+   Elements : Element List
    Width : float
 }
 
@@ -78,7 +78,7 @@ let emptyMeasure =
       Key = "c";
       Time = (4,4);
       MeasureNumber = 0;
-      Notes = [{ NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location - (0,0) };{ NoteInfo = Rest; Duration = R(X0,0); Start = 1.0; Width = 30.0; LastNote = 1; Location = (0,0) };{ NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0,0) }];
+      Elements = [{ NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0) };{ NoteInfo = Rest; Duration = R(X0,0); Start = 1.0; Width = 30.0; LastNote = 1; Location = (0.0,0.0) };{ NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0) }];
       Width = 35.0
    }
 
@@ -204,26 +204,26 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
          // Single Simple
          | SingleSimple(string,pitch,properties) ->
             let nInfo = NormalGuitarNote(string,pitch)
-            { NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0,0) }
+            { NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0) }
             // Rest Simple
          | RestSimple ->
-            { NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0,0) }
+            { NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0) }
       | Complex(p) ->
          match p with
          // Single Complex
          | SingleComplex(string,pitch,r,properties) ->
             let nInfo = NormalGuitarNote(string,pitch)
             defaultRhythm <- r
-            { NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0,0) }
+            { NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0) }
          // Rest Complex
          | RestComplex(r) ->
             // Only update default rhythm is the rhythm is NOT X0
             match r with
             | R(X0,0) ->
-               { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0,0) }
+               { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0) }
             | _ ->
                defaultRhythm <- r
-               { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0,0) }
+               { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0) }
    // Call widthStart to create the note element object with updated width
    match (widthStart note (note.Duration) nextStart baseBeat numberOfBeats last) with
    | Some(newNote,newNextStart) ->
@@ -315,14 +315,14 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
       // tuple: first element is the total width of all the elements added together, second is the list of elements
       | Some(width,list) ->
          // Add empty space at the beginning and barline at the end
-         let empty = { NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0,0) }
+         let empty = { NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0) }
          // Barline at the end of the measure
-         let bar = { NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0,0) }
+         let bar = { NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0) }
          let newList = [empty] @ list @ [bar]
          // Add 5 to the width because of the empty space at the beginning
          let newWidth = width + 5.0
          // create instance of SingleMeasure
-         let mes = { Time = optionsR.Time; Key = optionsR.Key; MeasureNumber = b; Notes = newList; Width = newWidth }
+         let mes = { Time = optionsR.Time; Key = optionsR.Key; MeasureNumber = b; Elements = newList; Width = newWidth }
          Some(mes)
       | None -> None
    | _ ->
@@ -483,7 +483,41 @@ let rec dividePages (lines : Line List) (pageList : Page List) (start : float * 
 // ****************************************************************
 // **************************** GRAPHICS *****************************
 
-// ################## Step 1: Draw the notes and rests, and figure out spacing
+// ################## Draw the notes and rests, figure out spacing, beam
+let stemDrawer (lastLocation: float * float) (guitarString: int) : string =
+   let (x,y) = lastLocation
+   match guitarString with
+   | 6 -> "0.8 setlinewidth " + string (x + 2.0) + " " + string (y + 33.0) + " moveto 0 9 rlineto stroke "
+   | _ -> "0.8 setlinewidth " + string (x + 2.0) + " " + string (y + 32.0) + " moveto 0 10 rlineto stroke "
+
+
+let rec beamHelper (els: Element List) (text: string List) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (guitarString: int) : string List =
+   match els with
+   | [] ->
+   | head::tail ->
+      let stem =
+         match guitarString with
+         | 6 -> "0.8 setlinewidth " + string (x + 2.0) + " " + string (y + 33.0) + " moveto 0 9 rlineto stroke "
+         | _ -> "0.8 setlinewidth " + string (x + 2.0) + " " + string (y + 32.0) + " moveto 0 10 rlineto stroke "
+      match lastRhythm with
+      | R(X8,n) -> // TODO
+      // If the last element wasn't a note, do nothing and recurse
+      | Other ->
+         match head.NoteInfo with
+         // If this element is a note, recurse with the correct info
+         | NormalGuitarNote(s,p) -> beamHelper tail text head.Location head.Duration head.Start s
+         // If this element is not a note, recurse with blank info
+         | _ -> beamHelper tail text (0.0,0.0) Other 0.0 0
+
+
+
+
+// Driver for beam drawing
+let beam (m: SingleMeasure) (text: string List) =
+   let newText = beamHelper m.Elements text
+
+
+
 
 (* Given a string number and a pitch, figure out the fret number
 1) guitarString is the int of which string this note will be on
@@ -531,34 +565,47 @@ RETURNS: updated list of strings to be displayed, and updated list of elements
 *)
 let rec showElements (els: Element List) (updatedElements: Element List) (measureWidth: float) (x: float) (y: float) (l: string List) (insideScale: float) : (string List * Element List) option =
    match els with
-   | [] -> Some(l)
+   | [] -> Some(l,updatedElements)
    | head::tail ->
       // Depending on what type of element is to be written
       match head.NoteInfo with
       // Do nothing, just move forward 5 units
       | Empty ->
-         showElements tail measureWidth (x + 5.0) y l insideScale
+         // update element with location
+         let newElement = { head with Location = (x,y) }
+         let newUpdatedElements = updatedElements @ [newElement]
+         showElements tail newUpdatedElements measureWidth (x + 5.0) y l insideScale
       // Guitar note: although raster image, still put at the end of the list because i want the white border
       | NormalGuitarNote(guitarString,pitch) ->
          match (calculateStringAndFret guitarString pitch) with
          | Some(fret) ->
+            // sub 2.5 and add 6 times the number of strings above 1. For placement
             let yCoord = (y - 2.5) + (6.0 * ((float guitarString) - 1.0))
             let newText = string x + " " + string yCoord + " " + string fret + " guitarfretnumber "
+            // x coord of the next element
             let newX = x + (head.Width * insideScale)
             let newList = l @ [newText]
-            showElements tail measureWidth newX y newList insideScale
+            // updated element with location
+            let newElement = { head with Location = (x,y) }
+            let newUpdatedElements = updatedElements @ [newElement]
+            showElements tail newUpdatedElements measureWidth newX y newList insideScale
          | None -> None
       // Barline : print the vertical line
       | Barline ->
+         // subtract 5 because the last note of the measure looks 5 into the future for placement
          let barline = string (x - 5.0) + " " + string y + " 30.4 0.7 barline "
          let newList = l @ [barline]
+         // thus, take 5 away for its location
+         let newElement = { head with Location = (x-5.0,y) }
+         let newUpdatedElements = updatedElements @ [newElement]
          // same x and y since it has no width
-         showElements tail measureWidth x y newList insideScale
+         showElements tail newUpdatedElements measureWidth x y newList insideScale
       // Rest : depending on rhythm, use the right rest
       | Rest ->
          let newText =
             match head.Duration with
             | R(X0,0) ->
+               // place the whole rest in the middle of the measure
                let xCoord = x + (measureWidth / 2.0) - 7.0
                let yCoord = y + 15.8
                string xCoord + " " + string yCoord + " halfWholeRest "
@@ -586,9 +633,11 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
             | _ -> ""
          let newX = x + (head.Width * insideScale)
          let newList = l @ [newText]
-         showElements tail measureWidth newX y newList insideScale
+         let newElement = { head with Location = (x,y) }
+         let newUpdatedElements = updatedElements @ [newElement]
+         showElements tail newUpdatedElements measureWidth newX y newList insideScale
       | X(string) -> // NOT YET IMPLEMENTED
-         showElements tail measureWidth x y l insideScale
+         showElements tail updatedElements measureWidth x y l insideScale
       // TODO::: FOR OTHERS : for raster image items, like clefs, they need to be PREPENDED to the list so that when evaluated, they are printed FIRST
 
 
@@ -604,10 +653,10 @@ RETURNS: list of strings to be printed, and list of updated measures that have t
 *)
 let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeasure List) (x: float) (y: float) (l: string List) (scale: float) : (string List * SingleMeasure List) option =
    match measures with
-   | [] -> Some(l)
+   | [] -> Some(l,updatedMeasures)
    | head::tail ->
       // list of elements
-      let els = head.Notes
+      let els = head.Elements
       // new Width of the measure based on the scale
       let newWidth = head.Width * scale
       // used to scale the notes on the inside, removing the 5 units of space in the beginning
@@ -615,23 +664,29 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
       let insideScale = newWidth / (head.Width - 5.0)
       let e : Element List = []
       match (showElements els e newWidth x y l insideScale) with
-      | Some(li) ->
+      | Some(li,updatedElements) ->
          // x coordinate of the beginning of the next measure
          let newX = x + newWidth
-         showMeasures tail newX y li scale
+         // Update the measure with the new elements
+         let newMeasure = { head with Elements = updatedElements }
+         // Call the beam function, and return a new list of strings that describe how to draw the beams for that new measure
+         let listWithBeams = beam newMeasure li
+         let newUpdatedMeasures = updatedMeasures @ [newMeasure]
+         showMeasures tail newUpdatedMeasures newX y li scale
       | None -> None
 
 
 
 (* Show all lines of one page
 1) lines is the list of Lines to be evaluated and printed
-2) text is all the postscript text to be written
-RETURNS: new updated text
+2) updatedLines is the list of new lines with the new measures and elements
+3) text is all the postscript text to be written
+RETURNS: new updated text and new Line List
 *)
-let rec showLines (lines: Line List) (text: string) : string option =
+let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) : (string * Line List) option =
    match lines with
    // Base case: return the text when all lines have been processed
-   | [] -> Some(text)
+   | [] -> Some(text,updatedLines)
    // Recursive case
    | head::tail ->
       // Get x and y coordinates of the beginning of the line
@@ -681,44 +736,43 @@ let rec showLines (lines: Line List) (text: string) : string option =
       let m : SingleMeasure List = []
       // Show measures of the line
       match (showMeasures newHead.Measures m newX staffy l scale) with
-      | Some(li) ->
+      | Some(li,updatedMeasures) ->
          // Put all the strings together
          let allNewElements = staffline + (List.fold (fun acc elem -> acc + " " + elem) "" li)
          let newText = text + clef + timeSig + allNewElements
-         showLines tail newText
+         // Update the line with the new measures
+         let newLine = { head with Measures = updatedMeasures }
+         let newUpdatedLines = updatedLines @ [newLine]
+         showLines tail newUpdatedLines newText
       | None -> None
-
-
-
-
-
-// #################### Step 2 : Draw stems and beams
-
-
 
 
 
 (* Driver for creating text for postscript file. Every method from here appends onto the base text, which is all the functions and other variables needed
 1) pages is list of Pages to be evaluated
-2) text is the text that will be updated then printed to postscript file
+2) updatedPages is the list of new pages that have been updated
+3) text is the text that will be updated then printed to postscript file
+RETURNS string to be printed and the new Page List
 *)
-let rec show (pages : Page List) (text: string) : string option =
+let rec show (pages: Page List) (updatedPages: Page List) (text: string) : (string * Page List) option =
    match pages with
    // Base: no more pages, print the text to a file called score.ps
    | [] ->
       File.WriteAllText("score.ps",text)
-      Some(text)
+      Some(text,updatedPages)
    // Recursive case
    | head::tail ->
       let lines = head.Lines
+      let l : Line List = []
       // Show the lines of a page
-      match (showLines lines text) with
-      | Some(t) ->
+      match (showLines lines l text) with
+      | Some(t,updatedLines) ->
          let newText = t + " showpage "
-         show tail newText
+         // update the Page with the new lines
+         let newPage = { head with Lines = updatedLines }
+         let newUpdatedPages = updatedPages @ [newPage]
+         show tail newUpdatedPages newText
       | None -> None
-
-
 
 
 
@@ -766,12 +820,12 @@ let eval ast =
                /halfWholeRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord 0.37129898 add ycoord moveto xcoord 4.48414922 add ycoord xcoord 4.48414922 add ycoord 0.37129898 add 0.37129898 arct xcoord 4.48414922 add ycoord 2.31347826 add xcoord 4.11285024 add ycoord 2.31347826 add 0.37129898 arct xcoord ycoord 2.31347826 add xcoord ycoord 0.37129898 add 0.37129898 arct xcoord ycoord xcoord 0.37129898 add ycoord 0.37129898 arct fill grestore end } bind def
                %%EndProlog
                "
+               let p : Page List = []
                //print and show
-               match (show pages text) with
-               | Some(t) ->
-                  //let tester = string (5.0 / 2.0)
-                  //File.WriteAllText("score.ps",tester)
-                  Some(t)
+               match (show pages p text) with
+               | Some(updatedText, updatedPages) ->
+                  printfn "%A" updatedPages
+                  Some(updatedText, updatedPages)
                | None -> None
             | None -> None
          | None -> None

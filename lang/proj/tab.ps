@@ -189,7 +189,7 @@ end
 
 
 
-/restCurl {
+/restCurl { %given x and y coord
    2 dict begin
    gsave
    0.1 setlinewidth
@@ -208,7 +208,7 @@ end
    end
 } bind def
 
-/8thRest {
+/8thRest { %given x and y coord
    2 dict begin
    gsave
    0.1 setlinewidth
@@ -230,7 +230,7 @@ end
 
 
 
-/16thRest {
+/16thRest { %given x and y coord
    2 dict begin
    gsave
    0.1 setlinewidth
@@ -252,7 +252,7 @@ end
 
 
 
-/32ndRest {
+/32ndRest { %given x and y coord
    2 dict begin
    gsave
    0.1 setlinewidth
@@ -273,7 +273,7 @@ end
    end
 } bind def
 
-/64thRest {
+/64thRest { %given x and y coord
    2 dict begin
    gsave
    0.1 setlinewidth
@@ -296,7 +296,7 @@ end
 } bind def
 
 
-/halfWholeRest {
+/halfWholeRest { %given x and y coord
 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def
 xcoord 0.37129898 add ycoord moveto
 xcoord 4.48414922 add ycoord xcoord 4.48414922 add ycoord 0.37129898 add 0.37129898 arct
@@ -306,6 +306,7 @@ xcoord ycoord xcoord 0.37129898 add ycoord 0.37129898 arct
 fill
 grestore end
 } bind def
+
 %%EndProlog
 
 %%print staff
@@ -320,12 +321,11 @@ grestore end
 50 580 0 guitartablines
 
 
+%notes
 100 659.5 5 guitarfretnumber
 100 665.5 10 guitarfretnumber
 100 671.5 (x) guitarfretnumber
 
-0.9 setlinewidth
-102 682 moveto 0 10 rlineto stroke
 
 115 659.5 5 guitarfretnumber
 115 665.5 10 guitarfretnumber
@@ -342,10 +342,7 @@ grestore end
 160 647.5 (x) guitarfretnumber
 160 671.5 2 guitarfretnumber
 
-
-
 170 650 quarterRest
-
 
 210 650 64thRest
 
@@ -354,6 +351,20 @@ grestore end
 190 650 16thRest
 
 180 650 8thRest
+
+
+% beams
+0.8 setlinewidth
+102 682 moveto 0 10 rlineto stroke
+117 682 moveto 0 10 rlineto stroke
+
+2 setlinewidth
+116.6 692 moveto
+132.45 692 lineto stroke
+
+0.8 setlinewidth
+132 682 moveto 0 10 rlineto stroke
+147 683 moveto 0 9 rlineto stroke
 
 
 100 100 halfWholeRest
