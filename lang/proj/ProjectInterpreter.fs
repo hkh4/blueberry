@@ -71,6 +71,14 @@ let widthOfRhythms =
 // Changeable default
 let mutable defaultRhythm = R(X4,0)
 
+// Number of beams by rhythm
+let numberOfBeams =
+   Map.empty.
+      Add(X8,1).
+      Add(X16,2).
+      Add(X32,3).
+      Add(X64,4)
+
 // Measure with just a full rest, to be used to fill a line when it's not long enough to avoid overstretched measures
 // NOTE: I made the width of the whole rest 30 instead of 20 so the existing measures wouldn't be so stretched in relation to the empty ones. Need to change numbers in showLines function if this number is changed
 let emptyMeasure =
@@ -484,37 +492,66 @@ let rec dividePages (lines : Line List) (pageList : Page List) (start : float * 
 // **************************** GRAPHICS *****************************
 
 // ################## Draw the notes and rests, figure out spacing, beam
-let stemDrawer (lastLocation: float * float) (guitarString: int) : string =
+
+// Figure out beaming for time signature where quarter note is the beat
+let beam4 (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (el: Element) : string List =
    let (x,y) = lastLocation
-   match guitarString with
-   | 6 -> "0.8 setlinewidth " + string (x + 2.0) + " " + string (y + 33.0) + " moveto 0 9 rlineto stroke "
-   | _ -> "0.8 setlinewidth " + string (x + 2.0) + " " + string (y + 32.0) + " moveto 0 10 rlineto stroke "
-
-
-let rec beamHelper (els: Element List) (text: string List) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (guitarString: int) : string List =
-   match els with
-   | [] ->
-   | head::tail ->
-      let stem =
-         match guitarString with
-         | 6 -> "0.8 setlinewidth " + string (x + 2.0) + " " + string (y + 33.0) + " moveto 0 9 rlineto stroke "
-         | _ -> "0.8 setlinewidth " + string (x + 2.0) + " " + string (y + 32.0) + " moveto 0 10 rlineto stroke "
+   let (previousRhythmNumber,previousDots) =
       match lastRhythm with
-      | R(X8,n) -> // TODO
-      // If the last element wasn't a note, do nothing and recurse
-      | Other ->
-         match head.NoteInfo with
-         // If this element is a note, recurse with the correct info
-         | NormalGuitarNote(s,p) -> beamHelper tail text head.Location head.Duration head.Start s
-         // If this element is not a note, recurse with blank info
-         | _ -> beamHelper tail text (0.0,0.0) Other 0.0 0
+      | R(x,n) -> x,n
+      | _ ->
+         printfn "Error in beam4: lastRhythm was of type Other, should be R(x,n)"
+         X0,0 // SHOULD NEVER REACH THIS CASE
+   let (currentRhythmNumber,currentDots) =
+      match el.Duration with
+      | R(x,n) -> x,n
+      | _ ->
+         printfn "Error in beam4: els.Duration was of type Other, should be R(x,n)"
+         X0,0 // SHOULD NEVER REACH THIS CASE
+   match (int lastStart) with
+   | num when num = (int el.Start) ->
+   // FOR NOW: if they aren't in the same group, don't beam
+      let beamsOfPrevious = numberOfBeams.[previousRhythmNumber]
+      let beamsofCurrent = numberOfBeams.[currentRhythmNumber]
+      let (newX,newY) = el.Location
+      [" 2 setlinewidth " + string (x + 1.6) + " " + string (y + 42.0) + " moveto " + string (newX + 2.45) + " " + string (newY + 42.0) + " lineto stroke "]
+   | _ -> [""]
 
 
 
+(* Driver for drawing beams
+1) els is the list of Elements in this measure
+2) text is the list of strings
+*)
+let rec beam (els: Element List) (text: string List) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (timeSignature: int * int) : string List =
+   match els with
+   | [] -> text
+   | head::tail ->
+      match head.NoteInfo with
+      | NormalGuitarNote(s,p) ->
+         let stem =
+            let (x,y) = head.Location
+            match s with
+            | 6 -> "0.8 setlinewidth " + string (x + 2.0) + " " + string (y + 33.0) + " moveto 0 9 rlineto stroke "
+            | _ -> "0.8 setlinewidth " + string (x + 2.0) + " " + string (y + 32.0) + " moveto 0 10 rlineto stroke "
+         match lastRhythm with
+         // If it's a whole, half, or quarter note, just put the stem and dots
+         | R(X0,n) | R(X1,n) | R(X2,n) | R(X4,n) ->
+            beam tail (text @ [stem]) head.Location head.Duration head.Start timeSignature
+         | Other ->
+            beam tail (text @ [stem]) head.Location head.Duration head.Start timeSignature
+         | R(x,n) ->
+            // The way notes are beamed depends on the time signature
+            match timeSignature with
+            | (n,4) ->
+               let newText : string List = beam4 lastLocation lastRhythm lastStart head
+               beam tail (text @ [stem] @ newText) head.Location head.Duration head.Start timeSignature
+            | _ -> // NOT YET IMPLEMENTED
+               beam tail (text @ [stem]) head.Location head.Duration head.Start timeSignature
+      | _ -> beam tail text (0.0,0.0) Other 0.0 timeSignature
 
-// Driver for beam drawing
-let beam (m: SingleMeasure) (text: string List) =
-   let newText = beamHelper m.Elements text
+
+
 
 
 
@@ -670,9 +707,9 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
          // Update the measure with the new elements
          let newMeasure = { head with Elements = updatedElements }
          // Call the beam function, and return a new list of strings that describe how to draw the beams for that new measure
-         let listWithBeams = beam newMeasure li
+         let listWithBeams = beam newMeasure.Elements li (0.0,0.0) Other 0.0 newMeasure.Time
          let newUpdatedMeasures = updatedMeasures @ [newMeasure]
-         showMeasures tail newUpdatedMeasures newX y li scale
+         showMeasures tail newUpdatedMeasures newX y listWithBeams scale
       | None -> None
 
 
@@ -824,7 +861,7 @@ let eval ast =
                //print and show
                match (show pages p text) with
                | Some(updatedText, updatedPages) ->
-                  printfn "%A" updatedPages
+
                   Some(updatedText, updatedPages)
                | None -> None
             | None -> None
