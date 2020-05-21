@@ -51,7 +51,7 @@ si = slide in
 
 *)
 type Pitch =
-| A | ASharp | AFlat | ANat | B | BSharp | BFlat | BNat | C | CSharp | CFlat | CNat | D | DSharp | DFlat | DNat | E | ESharp | EFlat | ENat | F | FSharp | FFlat | FNat | G | GSharp | GFlat | GNat
+| A | ASharp | AFlat | ANat | B | BSharp | BFlat | BNat | C | CSharp | CFlat | CNat | D | DSharp | DFlat | DNat | E | ESharp | EFlat | ENat | F | FSharp | FFlat | FNat | G | GSharp | GFlat | GNat | NoPitch
 
 type Property = | Gr | Sls | Sle | Stu | Std | P | Plu | Pld | Har | Sl | Si
 
@@ -126,8 +126,9 @@ let d = pchar 'd' |>> (fun _ -> D) <!> "d"
 let e = pchar 'e' |>> (fun _ -> E) <!> "e"
 let f = pchar 'f' |>> (fun _ -> F) <!> "f"
 let g = pchar 'g' |>> (fun _ -> G) <!> "g"
+let noPitch = pchar 'x' |>> (fun _ -> NoPitch) <!> "no pitch"
 
-let pitch = csharp <|> cflat <|> cnat <|> dsharp <|> dflat <|> dnat <|> esharp <|> eflat <|> enat <|> fsharp <|> fflat <|> fnat <|> gsharp <|> gflat <|> gnat <|> asharp <|> aflat <|> anat <|> bsharp <|> bflat <|> bnat <|> a <|> b <|> c <|> d <|> e <|> f <|> g <!> "pitch"
+let pitch = csharp <|> cflat <|> cnat <|> dsharp <|> dflat <|> dnat <|> esharp <|> eflat <|> enat <|> fsharp <|> fflat <|> fnat <|> gsharp <|> gflat <|> gnat <|> asharp <|> aflat <|> anat <|> bsharp <|> bflat <|> bnat <|> a <|> b <|> c <|> d <|> e <|> f <|> g <|> noPitch <!> "pitch"
 
 //properties
 let sls = pstr "sls" |>> (fun _ -> Sls) <!> "sls"

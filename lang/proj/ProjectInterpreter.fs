@@ -60,12 +60,30 @@ let arrayOfRhythms = [|X1;X2;X4;X8;X16;X32;X64|]
 let widthOfRhythms =
    Map.empty.
       Add(R(X0,0),20.0).
+      Add(R(X1,3),70.0).
+      Add(R(X1,2),60.0).
+      Add(R(X1,1),50.0).
       Add(R(X1,0),40.5).
+      Add(R(X2,3),37.0).
+      Add(R(X2,2),34.0).
+      Add(R(X2,1),31.0).
       Add(R(X2,0),27.0).
+      Add(R(X4,3),25.0).
+      Add(R(X4,2),23.0).
+      Add(R(X4,1),21.0).
       Add(R(X4,0),18.0).
+      Add(R(X8,3),16.5).
+      Add(R(X8,2),15.0).
+      Add(R(X8,1),13.5).
       Add(R(X8,0),12.0).
+      Add(R(X16,2),10.6).
+      Add(R(X16,1),9.3).
       Add(R(X16,0),8.0).
+      Add(R(X32,2),7.3).
+      Add(R(X32,1),6.6).
       Add(R(X32,0),6.0).
+      Add(R(X64,2),5.5).
+      Add(R(X64,1),5.0).
       Add(R(X64,0),4.5)
 
 // Changeable default
@@ -123,7 +141,7 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) =
       | "c" | "cm" | "c#" | "c#m" | "cb" | "d" | "dm" | "db" | "d#m" | "e" | "em" | "eb" | "ebm" | "f" | "fm" | "f#m" ->
          optionsR.Key <- value
          Some(true)
-      | "f#m" | "g" | "gm" | "g#m" | "gb" | "a" | "am" | "a#m" | "ab" | "abm" | "b" | "bm" | "bb" | "bbm" ->
+      | "f#" | "g" | "gm" | "g#m" | "gb" | "a" | "am" | "a#m" | "ab" | "abm" | "b" | "bm" | "bb" | "bbm" ->
          optionsR.Key <- value
          Some(true)
       | _ ->
@@ -132,6 +150,7 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) =
    | _ ->
       printfn "Invalid option! Valid options are type, key, and time"
       None
+
 
 
 // update the options record
@@ -164,10 +183,12 @@ RETURNS: new Element and the new nextStart for the next element
 let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: RhythmNumber) (numberOfBeats: int) (last: int) : (Element * float) option =
    // Find the index of the baseBeat in the list of rhythms
    let indexOfBeat = Array.findIndex (fun elem -> elem = baseBeat) arrayOfRhythms
-   let rNumber =
-     match r with
-     | R(a,b) -> a
-     | Other -> X4 // NOT YET IMPLEMENTED
+   let (rNumber,dotNumber) =
+      match r with
+      | R(a,b) -> a,b
+      | Other ->
+         printfn "Error in widthStart. The note had a rhythm of type Other"
+         X4,0 // Should never reach this
    match rNumber with
    | X0 ->
       let newWidth = widthOfRhythms.[r]
@@ -176,7 +197,7 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
       // Find the index of the given rhythm in the list of rhythms
       let indexOfRhythm = Array.findIndex (fun elem -> elem = rNumber) arrayOfRhythms
       // TODO: figure out dotted rhythms
-      // The difference in index if used to figure out how many beats are used
+      // The difference in index is used to figure out how many beats are used
       let differenceOfRhythm = indexOfBeat - indexOfRhythm
       // Look into the Map of rhythms to widths
       let newWidthTemp = widthOfRhythms.[r]
@@ -189,10 +210,22 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
             match newWidthTemp with
             | num when num < 10.0 -> 10.0
             | _ -> newWidthTemp
-      // The start of the next note is 2 ^ the difference between beat and given rhythm. e.g. if the beat is 4 and the given is 8, the difference in index is -1, and 2 ^ -1 is half a beat
-      let newNextStart = nextStart + (2.0**(float differenceOfRhythm))
+      // The start of the next note is 2 ^ the difference between beat and given rhythm. e.g. if the beat is 4 and the given is 8, the difference in index is -1, and 2 ^ -1 is half a beat. If there's a dot, multiply by 1.5. 2 dots, 1.75.
+      let fullNextStart = (2.0**(float differenceOfRhythm))
+      // Modify the start of the next note depending on the dots
+      let startWithDotsAdded =
+         match dotNumber with
+         | 0 -> fullNextStart
+         | 1 -> fullNextStart * 1.5
+         | 2 -> fullNextStart * 1.75
+         | 3 -> fullNextStart * 1.875
+         | _ ->
+            printfn "You can only have up to 3 dots on a note"
+            -1.0
+      let newNextStart = nextStart + startWithDotsAdded
       // Return the new element with updated width, and the next start
       Some({ template with Width = newWidth },newNextStart)
+
 
 
 
@@ -210,17 +243,31 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
       | Simple(p) ->
          match p with
          // Single Simple
-         | SingleSimple(string,pitch,properties) ->
-            let nInfo = NormalGuitarNote(string,pitch)
+         | SingleSimple(guitarString,pitch,properties) ->
+            let nInfo =
+               match pitch with
+               // the note is an X
+               | NoPitch ->
+                  X(guitarString)
+               // normal note
+               | _ ->
+                  NormalGuitarNote(guitarString,pitch)
             { NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0) }
-            // Rest Simple
+         // Rest Simple
          | RestSimple ->
             { NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0) }
       | Complex(p) ->
          match p with
          // Single Complex
-         | SingleComplex(string,pitch,r,properties) ->
-            let nInfo = NormalGuitarNote(string,pitch)
+         | SingleComplex(guitarString,pitch,r,properties) ->
+            let nInfo =
+               match pitch with
+               // the note is an X
+               | NoPitch ->
+                  X(guitarString)
+               // normal note
+               | _ ->
+                  NormalGuitarNote(guitarString,pitch)
             defaultRhythm <- r
             { NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0) }
          // Rest Complex
@@ -232,33 +279,52 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
             | _ ->
                defaultRhythm <- r
                { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0) }
-   // Call widthStart to create the note element object with updated width
-   match (widthStart note (note.Duration) nextStart baseBeat numberOfBeats last) with
-   | Some(newNote,newNextStart) ->
-      match last with
-      // If it's the last note
-      | 1 ->
-         match newNextStart with
-         // If there are exactly the right number of beats in the measure, return
-         | num when num = float numberOfBeats + 1.0 -> Some({ newNote with LastNote = 1 },newNextStart)
-         // Too many beats
-         | num when num > float numberOfBeats + 1.0 ->
-            printfn "Error! Too many beats in measure %i" measureNumber
-            None
-         // Not enough beats
+   // Check to see if a note has a valid number of dots. 8th notes and longer can up to 3 dots. 16th can have 2, 32nd can have 1, 64th cannot have any
+   match note.Duration with
+   | R(x,n) when n > 3 ->
+      printfn "Notes cannot have more than 3 dots"
+      None
+   | R(x,n) when x = X0 && n > 0 ->
+      printfn "0 rhythms cannot have dots"
+      None
+   | R(x,n) when x = X64 && n > 0 ->
+      printfn "64th notes cannot have any dots"
+      None
+   | R(x,n) when x = X32 && n > 1 ->
+      printfn "32nd notes can only have up to 1 dot"
+      None
+   | R(x,n) when x = X16 && n > 2 ->
+      printfn "16th notes can only have up to 2 dots"
+      None
+   | _ ->
+      // Call widthStart to create the note element object with updated width
+      match (widthStart note (note.Duration) nextStart baseBeat numberOfBeats last) with
+      | Some(newNote,newNextStart) ->
+         match last with
+         // If it's the last note
+         | 1 ->
+            match newNextStart with
+            // If there are exactly the right number of beats in the measure, return
+            | num when num = float numberOfBeats + 1.0 -> Some({ newNote with LastNote = 1 },newNextStart)
+            // Too many beats
+            | num when num > float numberOfBeats + 1.0 ->
+               printfn "Error! Too many beats in measure %i" measureNumber
+               None
+            // Not enough beats
+            | _ ->
+               printfn "Error! Not enough beats in measure %i" measureNumber
+               None
+               // If it's not the last note
          | _ ->
-            printfn "Error! Not enough beats in measure %i" measureNumber
-            None
-      // If it's not the last note
-      | _ ->
-         match newNextStart with
-         // Too many beats
-         | num when num >= float numberOfBeats + 1.0 ->
-            printfn "Error! Too many beats in measure %i" measureNumber
-            None
-         // Just right
-         | _ -> Some({ newNote with LastNote = 1 },newNextStart)
-   | None -> None
+            match newNextStart with
+            // Too many beats
+            | num when num >= float numberOfBeats + 1.0 ->
+               printfn "Error! Too many beats in measure %i" measureNumber
+               None
+            // Just right
+            | _ -> Some({ newNote with LastNote = 1 },newNextStart)
+      | None -> None
+
 
 
 
@@ -293,6 +359,88 @@ let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : El
 
 
 
+(* Depending on the key, change the pitches
+1) l is the list of Elements
+2) key is the key of the measure
+RETURNS the updated list of elements
+*)
+let parseKey (l: Element List) (key: string) : Element List =
+   // A map which maps the pitches to be changed to what they should be changed to
+   let mapOfChanges : Map<Pitch,Pitch> =
+      match key with
+      | "cb" | "abm" ->
+         Map.empty.Add(E,EFlat).Add(A,AFlat).Add(B,BFlat)
+      | "c" | "am" ->
+         Map.empty
+      | "c#" | "a#m" ->
+         Map.empty.Add(C,CSharp).Add(D,DSharp).Add(E,ESharp).Add(F,FSharp).Add(G,GSharp).Add(A,ASharp).Add(B,BSharp)
+      | "db" | "bbm" ->
+         Map.empty.Add(D,DFlat).Add(E,EFlat).Add(G,GFlat).Add(A,AFlat).Add(B,BFlat)
+      | "d" | "bm" ->
+         Map.empty.Add(F,FSharp).Add(C,CSharp)
+      | "eb" | "cm" ->
+         Map.empty.Add(E,EFlat).Add(A,AFlat).Add(B,BFlat)
+      | "e" | "c#m" ->
+         Map.empty.Add(F,FSharp).Add(G,GSharp).Add(C,CSharp).Add(D,DSharp)
+      | "f" | "dm" ->
+         Map.empty.Add(B,BFlat)
+      | "f#" | "d#m" ->
+         Map.empty.Add(F,FSharp).Add(G,GSharp).Add(A,ASharp).Add(C,CSharp).Add(D,DSharp).Add(E,ESharp)
+      | "gb" | "ebm" ->
+         Map.empty.Add(G,GFlat).Add(A,AFlat).Add(B,BFlat).Add(C,CFlat).Add(D,DFlat).Add(E,EFlat)
+      | "g" | "em" ->
+         Map.empty.Add(F,FSharp)
+      | "ab" | "fm" ->
+         Map.empty.Add(A,AFlat).Add(B,BFlat).Add(D,DFlat).Add(E,EFlat)
+      | "a" | "f#m" ->
+         Map.empty.Add(C,CSharp).Add(F,FSharp).Add(G,GSharp)
+      | "bb" | "gm" ->
+         Map.empty.Add(B,BFlat).Add(E,EFlat)
+      | "b" | "g#m" ->
+         Map.empty.Add(C,CSharp).Add(D,DSharp).Add(F,FSharp).Add(G,GSharp).Add(A,ASharp)
+      | _ ->
+         printfn "Error in parseKey! Invalid key given"
+         Map.empty
+
+   (* recursive helper
+   1) l is the element list
+   2) updatedList is the updated elements
+   3) mapOfChanges is the map by key which says which pitches to change and to what
+   RETURNS the updated Element list
+   *)
+   let rec parseKeyHelper (l: Element List) (updatedList: Element List) (mapOfChanges: Map<Pitch,Pitch>) : Element List =
+      match l with
+      | [] -> updatedList
+      | head::tail ->
+         match head.NoteInfo with
+         // if it's a guitar note and thus has a pitch
+         | NormalGuitarNote(s,pitch) ->
+            // see if this pitch needs to be changed
+            match mapOfChanges.TryFind pitch with
+            // change the pitch
+            | Some(newPitch) ->
+               // update all the info for the new Element
+               let newNInfo = NormalGuitarNote(s,newPitch)
+               let newElement = { head with NoteInfo = newNInfo }
+               let newList = updatedList @ [newElement]
+               parseKeyHelper tail newList mapOfChanges
+            // don't change this pitch, recurse
+            | None ->
+               let newList = updatedList @ [head]
+               parseKeyHelper tail newList mapOfChanges
+         // if it's not a guitar note, just recurse
+         | _ ->
+            let newList = updatedList @ [head]
+            parseKeyHelper tail newList mapOfChanges
+   // call the helper, return its result
+   let emptyList : Element List = []
+   parseKeyHelper l emptyList mapOfChanges
+
+
+
+
+
+
 (* Evaluate a single measure
 1) m is an Expression, which should be a Measure
 2) optionsR is the options evaluated earlier, which will be added into the metadata of the measure
@@ -319,14 +467,16 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
          | _ ->
             printfn "Error! The bottom of the time signature can be 1 2 4 8 16 32 or 64"
             X0
-      match (evalMeasureHelper b c elementList baseBeat numberOfBeats acc 1.0) with
+      match (evalMeasureHelper b c elementList baseBeat numberOfBeats acc 1.0 ) with
       // tuple: first element is the total width of all the elements added together, second is the list of elements
       | Some(width,list) ->
+         // update the notes based on the key
+         let listWithUpdatedKeys = parseKey list optionsR.Key
          // Add empty space at the beginning and barline at the end
          let empty = { NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0) }
          // Barline at the end of the measure
          let bar = { NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0) }
-         let newList = [empty] @ list @ [bar]
+         let newList = [empty] @ listWithUpdatedKeys @ [bar]
          // Add 5 to the width because of the empty space at the beginning
          let newWidth = width + 5.0
          // create instance of SingleMeasure
@@ -336,6 +486,7 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
    | _ ->
       printfn "Something is very wrong. Given ScoreOption instead of Measure"
       None
+
 
 
 (* Goes through each measure one at a time, gives to evalMeasure, returns list of SingleMeasure
@@ -387,6 +538,7 @@ let rec divideSingleLine (measureList : SingleMeasure List) (measuresSoFar : Sin
       | _ -> Some(measuresSoFar)
 
 
+
 (* Divide the SingleMeasure List into Line List
 1) measureList is the list of SingleMeasures that have not yet been evaluated
 2) lineList is the list of Lines that is continually added to
@@ -422,7 +574,6 @@ let rec divideLines (measureList : SingleMeasure List) (lineList : Line List) (w
 
 
 
-
 // ################# Step 3: Divide lines into pages
 
 (* recursively divide lines into a page
@@ -450,6 +601,7 @@ let rec divideOnePage (lines : Line List) (linesSoFar : Line List) (start : floa
             divideOnePage tail newList (50.0,newY)
          | _ -> Some(linesSoFar)
       | _ -> None
+
 
 
 (* driver for page dividing
@@ -491,70 +643,314 @@ let rec dividePages (lines : Line List) (pageList : Page List) (start : float * 
 // ****************************************************************
 // **************************** GRAPHICS *****************************
 
-// ################## Draw the notes and rests, figure out spacing, beam
+// ################## DRAW THE BEAMS ###################
 
-// Figure out beaming for time signature where quarter note is the beat
-let beam4 (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (el: Element) : string List =
+(* used to draw stubs at the end of a note
+1) lastLocation is the x and y coords
+2) lastRhythm is the Rhythm of the last note
+note: does similar thing as initialStubs but the required info is figured out within the method, for simplicity
+RETURNS list of strings to be printed
+*)
+let rec endingStubs (lastLocation: float * float) (lastRhythm: Rhythm) : string List =
+   let (oldX,oldY) = lastLocation
+   let (previousRhythmNumber,previousDots) =
+      match lastRhythm with
+      | R(x,n) -> x,n
+      | _ ->
+         printfn "Error in endingStubs: lastRhythm was of type Other, should be R(x,n)"
+         X0,0 // SHOULD NEVER REACH THIS CASE
+   let beamsOfPrevious = numberOfBeams.[previousRhythmNumber]
+   let emptyList : string List = []
+   // helper function to do the actual drawing
+   let rec endingStubsHelper (x: float) (y: float) (toAdd: int List) (text: string List) : string List =
+      match toAdd with
+      | [] -> text
+      | head::tail ->
+         let stub =
+            match head with
+            | 1 ->
+               [" 1.6 setlinewidth " + string (x - 2.35) + " " + string (y + 42.0) + " moveto " + string (x + 1.65) + " " + string (y + 42.0) + " lineto stroke "]
+            | 2 ->
+               [" 1.6 setlinewidth " + string (x - 2.35) + " " + string (y + 39.6) + " moveto " + string (x + 1.65) + " " + string (y + 39.6) + " lineto stroke "]
+            | 3 ->
+               [" 1.6 setlinewidth " + string (x - 2.35) + " " + string (y + 37.2) + " moveto " + string (x + 1.65) + " " + string (y + 37.2) + " lineto stroke "]
+            | 4 ->
+               [" 1.6 setlinewidth " + string (x - 2.35) + " " + string (y + 34.8) + " moveto " + string (x + 1.65) + " " + string (y + 34.8) + " lineto stroke "]
+            | _ -> [""] //should never reach this
+         endingStubsHelper x y tail (text @ stub)
+   endingStubsHelper oldX oldY [1..beamsOfPrevious] emptyList
+
+
+
+
+(* used to draw stubs at the beginning of a note
+1) x is the x coord
+2) y is the y coord
+3) toAdd is the list of ints which is the beams to draw
+4) text is a string list that is composed as the function recurses
+RETURNS the list of strings
+*)
+let rec initialStubs (x: float) (y: float) (toAdd: int List) (text: string List) : string List =
+   match toAdd with
+   | [] -> text
+   | head::tail ->
+      let stub =
+         match head with
+         | 1 ->
+            [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 42.0) + " moveto " + string (x + 5.65) + " " + string (y + 42.0) + " lineto stroke "]
+         | 2 ->
+            [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 39.6) + " moveto " + string (x + 5.65) + " " + string (y + 39.6) + " lineto stroke "]
+         | 3 ->
+            [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 37.2) + " moveto " + string (x + 5.65) + " " + string (y + 37.2) + " lineto stroke "]
+         | 4 ->
+            [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 34.8) + " moveto " + string (x + 5.65) + " " + string (y + 34.8) + " lineto stroke "]
+         | _ -> [""] //should never reach this
+      initialStubs x y tail (text @ stub)
+
+
+
+
+(* draws the full beams between notes
+1) x is the x coord of the last note
+2) newX is the x coord of the current note
+3) y is the y coord
+4) numberOfBeams is the number of beams to be drawn
+RETURNS a string list to be printed
+*)
+let fullBeams (x: float) (newX: float) (y: float) (numberOfBeams: int) : string List =
+   match numberOfBeams with
+   | 1 ->
+      [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 42.0) + " moveto " + string (newX + 2.35) + " " + string (y + 42.0) + " lineto stroke "]
+   | 2 ->
+      [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 42.0) + " moveto " + string (newX + 2.35) + " " + string (y + 42.0) + " lineto stroke ";" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 39.6) + " moveto " + string (newX + 2.35) + " " + string (y + 39.6) + " lineto stroke "]
+   | 3 ->
+      [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 42.0) + " moveto " + string (newX + 2.35) + " " + string (y + 42.0) + " lineto stroke ";" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 39.6) + " moveto " + string (newX + 2.35) + " " + string (y + 39.6) + " lineto stroke ";" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 37.2) + " moveto " + string (newX + 2.35) + " " + string (y + 37.2) + " lineto stroke "]
+   | 4 ->
+      [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 42.0) + " moveto " + string (newX + 2.35) + " " + string (y + 42.0) + " lineto stroke ";" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 39.6) + " moveto " + string (newX + 2.35) + " " + string (y + 39.6) + " lineto stroke ";" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 37.2) + " moveto " + string (newX + 2.35) + " " + string (y + 37.2) + " lineto stroke ";" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 34.8) + " moveto " + string (newX + 2.35) + " " + string (y + 34.8) + " lineto stroke "]
+   | _ ->
+      printfn "Error in fullBeams: a note can only have 1 2 3 or 4 beams"
+      [""] //should never reach this
+
+
+
+
+(* Used to determine the index of the last start and current start which is to be used to see if they should be beamed or not
+1) key is the list of int lists that describe the time signature and how to beam notes
+2) baseStart is the int that will be looked up in the key list
+3) i is the index
+RETURNS the index
+*)
+let rec findElementInKey (key: int list list) (baseStart: int) (i: int) : int option =
+   let baseStartOfLast = int baseStart
+   match key with
+   | [] ->
+      printfn "Error in findElementInKey: the start of this note wasn't found in the key"
+      None //shouldn't ever reach this
+   | head::tail ->
+      match List.tryFindIndex (fun el -> el = baseStart) head with
+      | Some(v) -> Some(i)
+      | None -> findElementInKey tail baseStart (i+1)
+
+
+
+
+(* Figure out beaming for time signature depending on time signature
+1) key is an int list list which depending on the time signature, tells hows the group beams
+2) lastLocation is the x y coords of the last note
+3) lastRhythm is the rhythm of the last note
+4) lastStart is the start beat of the last note
+5) el is the current element
+6) lastBeamed is 1 if the two previous notes were beamed and the same number of lines, 2 if the two previous notes were beamed but the first had more beams, 3 if the two previous notes were beamed but the second had more beams, and 0 else
+7) lastLastRhythm is two rhythms ago
+RETURNS a list of strings
+*)
+let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (el: Element) (lastBeamed: int) (lastLastRhythm: Rhythm) : string List * int =
    let (x,y) = lastLocation
+   // decompose lastRhythm into its rhythmNumber and dots
    let (previousRhythmNumber,previousDots) =
       match lastRhythm with
       | R(x,n) -> x,n
       | _ ->
          printfn "Error in beam4: lastRhythm was of type Other, should be R(x,n)"
          X0,0 // SHOULD NEVER REACH THIS CASE
+   // decompose current rhythm into its rhythmNumber and dots
    let (currentRhythmNumber,currentDots) =
       match el.Duration with
       | R(x,n) -> x,n
       | _ ->
-         printfn "Error in beam4: els.Duration was of type Other, should be R(x,n)"
+         printfn "Error in beam4: el.Duration was of type Other, should be R(x,n)"
          X0,0 // SHOULD NEVER REACH THIS CASE
-   match (int lastStart) with
-   | num when num = (int el.Start) ->
-   // FOR NOW: if they aren't in the same group, don't beam
+   let indexOfLast = findElementInKey key (int lastStart) 0
+   let indexOfCurrent = findElementInKey key (int el.Start) 0
+   match (indexOfLast) with
+   // if they're in the same group
+   | num when num = indexOfCurrent ->
       let beamsOfPrevious = numberOfBeams.[previousRhythmNumber]
-      let beamsofCurrent = numberOfBeams.[currentRhythmNumber]
+      let beamsOfCurrent = numberOfBeams.[currentRhythmNumber]
       let (newX,newY) = el.Location
-      [" 2 setlinewidth " + string (x + 1.6) + " " + string (y + 42.0) + " moveto " + string (newX + 2.45) + " " + string (newY + 42.0) + " lineto stroke "]
-   | _ -> [""]
+      match beamsOfPrevious with
+      | num when num = beamsOfCurrent ->
+         let equalBeams = fullBeams x newX y num
+         (equalBeams,1)
+      | num when num > beamsOfCurrent ->
+         let equalBeams = fullBeams x newX y beamsOfCurrent
+         let emptyList : string List = []
+         match lastBeamed with
+         | 0 ->
+            let iStubs = initialStubs x y [1..num] emptyList
+            ((equalBeams @ iStubs),2)
+         | 1 ->
+            (equalBeams,2)
+         | 2 ->
+            (equalBeams,2)
+         | 3 ->
+            let lastLastRhythmNumber =
+               match lastLastRhythm with
+               | R(x,n) -> x
+               | Other ->
+                  printfn "Error in beam4! If the lastBeamed is 3, then lastLastRhythm cannot by of type Other"
+                  X0
+            let numberOfBeamsLastLast = numberOfBeams.[lastLastRhythmNumber]
+            match numberOfBeamsLastLast with
+            | num when num <= beamsOfCurrent ->
+               let iStubs = initialStubs x y [1..beamsOfPrevious] emptyList
+               ((equalBeams @ iStubs),2)
+            | _ ->
+               let endStubs = endingStubs lastLocation lastRhythm
+               ((equalBeams @ endStubs),2)
+         | _ ->
+            printfn "Error in beam4: lastBeamed can only be 0 1 2 or 3"
+            ([""],0) //should never reach this case
+      | _ ->
+         let equalBeams = fullBeams x newX y beamsOfPrevious
+         (equalBeams,3)
+   // FOR NOW: if they aren't in the same beat, don't beam. Later, this may change depending on certain rhythms that go past the beat
+   | _ ->
+      ([""],0)
+
+
+
+
+(* Helper to avoid rewriting code
+1) head is the current Element
+2) s is the guitar string for the current element
+3) lastLocation is the x y coords of the last element
+4) lastRhythm is the Rhythm of the last element
+5) lastStart is the start of the last element
+6) timeSignature is the time signature
+7) lastBeamed is 1 if the two previous notes were beamed and the same number of lines, 2 if the two previous notes were beamed but the first had more beams, 3 if the two previous notes were beamed but the second had more beams, and 0 else
+8) lastLastRhythm is the Rhythm from two notes ago
+RETURNS: a list of strings to be printed, and an int which is the new lastBeamed
+*)
+let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (timeSignature: int * int) (lastBeamed: int) (lastLastRhythm: Rhythm) : string List * int =
+   let dotNumber =
+      match head.Duration with
+      | R(x,n) -> n
+      | Other -> 0
+   let (x,y) = head.Location
+   // draw the stem, depending on which string it's on. If it's on string 6, the beam has to be a little shorter
+   let stem =
+      match s with
+      | 6 -> "0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 33.0) + " moveto 0 9 rlineto stroke "
+      | _ -> "0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 32.0) + " moveto 0 10 rlineto stroke "
+   // draw the dots, depending on how many
+   let dots =
+      match dotNumber with
+      | 0 -> ""
+      | 1 -> " 1 setlinecap 1.4 setlinewidth " + string (x + 4.2) + " " + string (y + 33.4) + " moveto 0 0 rlineto stroke 0 setlinecap "
+      | 2 -> " 1 setlinecap 1.4 setlinewidth " + string (x + 4.2) + " " + string (y + 33.4) + " moveto 0 0 rlineto stroke " + string (x + 5.9) + " " + string (y + 33.4) + " moveto 0 0 rlineto stroke 0 setlinecap "
+      | 3 -> " 1 setlinecap 1.4 setlinewidth " + string (x + 4.2) + " " + string (y + 33.4) + " moveto 0 0 rlineto stroke " + string (x + 5.9) + " " + string (y + 33.4) + " moveto 0 0 rlineto stroke " + string (x + 7.6) + " " + string (y + 33.4) + " moveto 0 0 rlineto stroke 0 setlinecap "
+      | _ ->
+         printfn "Error in beamHelper! Note had more than 3 dots"
+         ""
+   match lastRhythm with
+   // If the last note is a whole, half, or quarter note, just put the stem and dots on this note
+   | R(X0,n) | R(X1,n) | R(X2,n) | R(X4,n) ->
+      (([stem]@[dots]),0)
+   // same thing if the last element wasn't a note
+   | Other ->
+      (([stem]@[dots]),0)
+   // if the last note was an 8th or shorter note
+   | R(x,n) ->
+      match head.Duration with
+      // If the current note is also an 8th or shorter note
+      | R(X8,n) | R(X16,n) | R(X32,n) | R(X64,n) ->
+         // The way notes are beamed depends on the time signature
+         let key =
+            match timeSignature with
+            | (n,m) when m = 1 || m = 2 || m = 4 ->
+               let temp = [1..n]
+               List.fold (fun acc elem -> acc @ [[elem]]) [] temp
+            | (3,8) | (3,16) | (3,32) | (3,64) -> [[1;2;3]]
+            | (6,8) | (6,16) | (6,32) | (6,64) -> [[1;2;3];[4;5;6]]
+            | (9,8) | (9,16) | (9,32) | (9,64) -> [[1;2;3];[4;5;6];[7;8;9]]
+            | (12,8) | (12,16) | (12,32) | (12,64) ->    [[1;2;3];[4;5;6];[7;8;9];[10;11;12]]
+            | _ -> // NOT YET IMPLEMENTED
+               printfn "Error in beamHelper: this time signature has not yet been implemented"
+               [[0]]
+         // call beamByTime, return the strings of the beams and the int for the new lastBeamed
+         let (newText, newLastBeamed) = beamByTime key lastLocation lastRhythm lastStart head lastBeamed lastLastRhythm
+         // return
+         (([stem] @ newText @ [dots]),newLastBeamed)
+      // If the current note is quarter half or whole
+      | _ ->
+         // check to see if there's an end stub to be drawn
+         match lastBeamed with
+         | 3 ->
+            let endStubs = endingStubs lastLocation lastRhythm
+            (([stem] @ endStubs @ [dots]),0)
+         | _ ->
+            (([stem]@[dots]),0)
+
 
 
 
 (* Driver for drawing beams
 1) els is the list of Elements in this measure
 2) text is the list of strings
+3) lastLocation is the x-y coords of the last element
+4) lastRhythm is the Rhythm of the last note
+5) lastStart is the start beat of the last note
+6) timeSignature is the time signature
+7) lastBeamed is 1 if the two previous notes were beamed and the same number of lines, 2 if the two previous notes were beamed but the first had more beams, 3 if the two previous notes were beamed but the second had more beams, and 0 else
+8) lastLastRhythm is two rhythms ago
+RETURNS a list of strings
 *)
-let rec beam (els: Element List) (text: string List) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (timeSignature: int * int) : string List =
+let rec beam (els: Element List) (text: string List) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (timeSignature: int * int) (lastBeamed: int) (lastLastRhythm: Rhythm) : string List =
    match els with
-   | [] -> text
+   // Base case: no more elements
+   | [] ->
+      // need to check if there any remaining end stubs to draw
+      match lastBeamed with
+      // If the lastBeamed was 3, draw the final end stub
+      | 3 ->
+         let endStubs = endingStubs lastLocation lastRhythm
+         text @ endStubs
+      | _ ->
+         text
    | head::tail ->
       match head.NoteInfo with
+      // guitar note - beam
       | NormalGuitarNote(s,p) ->
-         let stem =
-            let (x,y) = head.Location
-            match s with
-            | 6 -> "0.8 setlinewidth " + string (x + 2.0) + " " + string (y + 33.0) + " moveto 0 9 rlineto stroke "
-            | _ -> "0.8 setlinewidth " + string (x + 2.0) + " " + string (y + 32.0) + " moveto 0 10 rlineto stroke "
-         match lastRhythm with
-         // If it's a whole, half, or quarter note, just put the stem and dots
-         | R(X0,n) | R(X1,n) | R(X2,n) | R(X4,n) ->
-            beam tail (text @ [stem]) head.Location head.Duration head.Start timeSignature
-         | Other ->
-            beam tail (text @ [stem]) head.Location head.Duration head.Start timeSignature
-         | R(x,n) ->
-            // The way notes are beamed depends on the time signature
-            match timeSignature with
-            | (n,4) ->
-               let newText : string List = beam4 lastLocation lastRhythm lastStart head
-               beam tail (text @ [stem] @ newText) head.Location head.Duration head.Start timeSignature
-            | _ -> // NOT YET IMPLEMENTED
-               beam tail (text @ [stem]) head.Location head.Duration head.Start timeSignature
-      | _ -> beam tail text (0.0,0.0) Other 0.0 timeSignature
+         let (newText, newLastBeamed) = beamHelper head s lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm
+         beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm
+      // also beam if an X
+      | X(s) ->
+         let (newText, newLastBeamed) = beamHelper head s lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm
+         beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm
+      // If it isn't a note or an x, check if there's an end stub that needs to be drawn
+      | _ ->
+         match lastBeamed with
+         | 3 ->
+            let endStubs = endingStubs lastLocation lastRhythm
+            beam tail (text @ endStubs) (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm
+         | _ -> beam tail text (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm
 
 
 
 
 
-
+// ############### DRAW THE NOTES ###################
 
 (* Given a string number and a pitch, figure out the fret number
 1) guitarString is the int of which string this note will be on
@@ -576,6 +972,9 @@ let calculateStringAndFret (guitarString: int) (pitch: Pitch) : int option =
       | CSharp | DFlat -> 9
       | D | DNat -> 10
       | DSharp | EFlat -> 11
+      | _ ->
+         printfn "Error in calculateStringAndFret. A note with Pitch type NoPitch should never enter this function"
+         -1
    // based on string number, adjust fret
    match guitarString with
    | 1 | 6 -> Some(num)
@@ -670,12 +1069,21 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
             | _ -> ""
          let newX = x + (head.Width * insideScale)
          let newList = l @ [newText]
+         // update the element with its x y coords
          let newElement = { head with Location = (x,y) }
          let newUpdatedElements = updatedElements @ [newElement]
          showElements tail newUpdatedElements measureWidth newX y newList insideScale
-      | X(string) -> // NOT YET IMPLEMENTED
-         showElements tail updatedElements measureWidth x y l insideScale
-      // TODO::: FOR OTHERS : for raster image items, like clefs, they need to be PREPENDED to the list so that when evaluated, they are printed FIRST
+      | X(guitarString) ->
+         let yCoord = (y - 2.5) + (6.0 * ((float guitarString) - 1.0))
+         let newText = string x + " " + string yCoord + " (x) guitarfretnumber "
+         // x coord of the next element
+         let newX = x + (head.Width * insideScale)
+         let newList = l @ [newText]
+         // updated element with location
+         let newElement = { head with Location = (x,y) }
+         let newUpdatedElements = updatedElements @ [newElement]
+         showElements tail newUpdatedElements measureWidth newX y newList insideScale
+
 
 
 
@@ -707,7 +1115,7 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
          // Update the measure with the new elements
          let newMeasure = { head with Elements = updatedElements }
          // Call the beam function, and return a new list of strings that describe how to draw the beams for that new measure
-         let listWithBeams = beam newMeasure.Elements li (0.0,0.0) Other 0.0 newMeasure.Time
+         let listWithBeams = beam newMeasure.Elements li (0.0,0.0) Other 0.0 newMeasure.Time 0 Other
          let newUpdatedMeasures = updatedMeasures @ [newMeasure]
          showMeasures tail newUpdatedMeasures newX y listWithBeams scale
       | None -> None

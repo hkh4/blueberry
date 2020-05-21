@@ -1,11 +1,16 @@
 -type tab
+-key f#
 -time 4-4
--key c
+
 
 1:
-   r
-   1e
-   2d8
-   4a
-   6f#
-   2bn
+   6e16
+   1f4.
+   2d32
+   3g16..
+   4a64
+   5fn32.
+   1e64
+   4d16
+   1a8..
+   r16
