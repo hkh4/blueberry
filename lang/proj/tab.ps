@@ -307,7 +307,39 @@ fill
 grestore end
 } bind def
 
+/drawFlag {
+2 dict begin gsave
+/ycoord exch def
+/xcoord exch def
+0.1 setlinewidth
+xcoord ycoord moveto
+xcoord ycoord 2.744186046511628 add lineto
+xcoord 0.20930232558139536 add ycoord 2.697674418604651 add 0.20930232558139536 170 10 arcn
+xcoord 0.6976744186046512 add ycoord 1.627906976744186 sub xcoord 4.3023255813953485 add ycoord 1.627906976744186 sub xcoord 2.744186046511628 add ycoord 7.1395348837209305 sub curveto
+xcoord 2.604651162790698 add ycoord 7.372093023255814 sub xcoord 2.2325581395348837 add ycoord 7.325581395348837 sub xcoord 2.2093023255813953 add ycoord 6.976744186046512 sub curveto
+xcoord 3.13953488372093 add ycoord 3.953488372093023 sub xcoord 2.488372093023256 add ycoord 2.7906976744186047 sub xcoord ycoord curveto
+fill
+grestore end
+} bind def
+
+/measureNumber {
+3 dict begin gsave
+/str exch def
+/ycoord exch def
+/xcoord exch def
+/Times-Roman findfont
+7 scalefont
+setfont
+newpath
+0 0 0 setrgbcolor
+xcoord ycoord moveto
+str show
+grestore end
+} bind def
+
 %%EndProlog
+
+
 
 %%print staff
 73 652 7 25.2 70 252 (images/Staves/staff.jpg) 3 printimage
@@ -316,9 +348,14 @@ grestore end
 84 656 12 timesignature
 84 665 64 timesignature
 
+
 %%staff lines
 70 650 1 guitartablines
 50 580 0 guitartablines
+
+
+
+
 
 
 %notes
@@ -344,6 +381,8 @@ grestore end
 
 225 665.5 8 guitarfretnumber
 245 671.5 3 guitarfretnumber
+255 671.5 3 guitarfretnumber
+275 671.5 3 guitarfretnumber
 
 170 650 quarterRest
 
@@ -361,6 +400,7 @@ grestore end
 117 682 moveto 0 10 rlineto stroke
 227 682 moveto 0 10 rlineto stroke
 247 682 moveto 0 10 rlineto stroke
+
 
 1 setlinecap
 1.4 setlinewidth
@@ -383,7 +423,6 @@ grestore end
 
 
 
-
 0.7 setlinewidth
 132 682 moveto 0 10 rlineto stroke
 147 683 moveto 0 9 rlineto stroke
@@ -393,7 +432,50 @@ grestore end
 
 
 
+0.7 setlinewidth
+257 682 moveto 0 10 rlineto stroke
+277 682 moveto 0 15 rlineto stroke
+297 682 moveto 0 20 rlineto stroke
+317 682 moveto 0 25 rlineto stroke
 
+
+1 setlinecap
+1.4 setlinewidth
+259.2 683.4 moveto 0 0 rlineto stroke
+260.9 683.4 moveto 0 0 rlineto stroke
+262.6 683.4 moveto 0 0 rlineto stroke
+0 setlinecap
+
+
+256.65 692 drawFlag
+
+276.65 692 drawFlag
+276.65 696 drawFlag
+
+296.65 692 drawFlag
+296.65 696 drawFlag
+296.65 700 drawFlag
+
+316.65 692 drawFlag
+316.65 696 drawFlag
+316.65 700 drawFlag
+316.65 704 drawFlag
+
+
+
+
+/Times-Roman findfont
+10 scalefont
+setfont
+newpath
+0 0 0 setrgbcolor
+72 72 moveto
+(Hello world! 1 2 3 10 25 178) show
+
+
+
+65 690 (1) measureNumber
+45 620 (45) measureNumber 
 
 
 showpage
