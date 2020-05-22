@@ -1,5 +1,5 @@
 ﻿// Learn more about F# at http://fsharp.org
-  
+
 open System
 open System.IO
 open Parser
@@ -17,9 +17,11 @@ let main argv =
       let fileText = System.IO.File.ReadAllText fileName
       match parse fileText with
       | Some ast ->
-         match (eval ast) with
-         | Some(_) -> 0
-         | None -> 1
+         printfn "%A" ast
+         0
+         //match (eval ast) with
+         //| Some(_) -> 0
+         //| None -> 1
       | None ->
          printfn "Error!"
          0

@@ -53,11 +53,15 @@ si = slide in
 type Pitch =
 | A | ASharp | AFlat | ANat | B | BSharp | BFlat | BNat | C | CSharp | CFlat | CNat | D | DSharp | DFlat | DNat | E | ESharp | EFlat | ENat | F | FSharp | FFlat | FNat | G | GSharp | GFlat | GNat | NoPitch
 
-type Property = | Gr | Sls | Sle | Stu | Std | P | Plu | Pld | Har | Sl | Si
+type MultiProperty =
+| Gra | Har | Stu | Std | Plu | Pld
 
-type simple =
-| SingleSimple of int * Pitch * Property List
-| RestSimple
+type EitherProperty =
+| Par | Sls | Sle | Sld | Sli
+
+type Property =
+| Multi of MultiProperty
+| Either of EitherProperty
 
 type RhythmNumber =
 | X0 | X1 | X2 | X4 | X8 | X16 | X32 | X64
@@ -66,13 +70,24 @@ type Rhythm =
 | R of RhythmNumber * int          //int is the number of dots
 | Other
 
+type simple =
+| SingleSimple of int * Pitch * Property List
+| RestSimple
+
 type complex =
 | SingleComplex of int * Pitch * Rhythm * Property List
 | RestComplex of Rhythm
 
+type GroupSimple = int * Pitch * EitherProperty List
+
+type group =
+| GSimple of GroupSimple List * MultiProperty List
+| GComplex of GroupSimple List * Rhythm * MultiProperty List
+
 type Note =
 | Simple of simple
 | Complex of complex
+| Group of group
 
 type Expr =
 | ScoreOption of string * string
@@ -131,20 +146,41 @@ let noPitch = pchar 'x' |>> (fun _ -> NoPitch) <!> "no pitch"
 let pitch = csharp <|> cflat <|> cnat <|> dsharp <|> dflat <|> dnat <|> esharp <|> eflat <|> enat <|> fsharp <|> fflat <|> fnat <|> gsharp <|> gflat <|> gnat <|> asharp <|> aflat <|> anat <|> bsharp <|> bflat <|> bnat <|> a <|> b <|> c <|> d <|> e <|> f <|> g <|> noPitch <!> "pitch"
 
 //properties
-let sls = pstr "sls" |>> (fun _ -> Sls) <!> "sls"
-let sle = pstr "sle" |>> (fun _ -> Sle) <!> "sle"
-let stu = pstr "stu" |>> (fun _ -> Stu) <!> "stu"
-let std = pstr "std" |>> (fun _ -> Std) <!> "std"
-let plu = pstr "plu" |>> (fun _ -> Plu) <!> "plu"
-let pld = pstr "pld" |>> (fun _ -> Pld) <!> "pld"
-let har = pstr "har" |>> (fun _ -> Har) <!> "har"
-let gr = pstr "gr" |>> (fun _ -> Gr) <!> "gr"
-let sl = pstr "sl" |>> (fun _ -> Sl) <!> "sl"
-let si = pstr "si" |>> (fun _ -> Si) <!> "si"
-let p = pstr "p" |>> (fun _ -> P) <!> "p"
+let sls = pstr "sls" |>> (fun _ -> Sls) <!> "slur stasrt"
+let sle = pstr "sle" |>> (fun _ -> Sle) <!> "slur end"
+let stu = pstr "stu" |>> (fun _ -> Stu) <!> "strum up"
+let std = pstr "std" |>> (fun _ -> Std) <!> "strum down"
+let plu = pstr "plu" |>> (fun _ -> Plu) <!> "pluck up"
+let pld = pstr "pld" |>> (fun _ -> Pld) <!> "pluck down"
+let har = pstr "har" |>> (fun _ -> Har) <!> "harmonic"
+let gra = pstr "gra" |>> (fun _ -> Gra) <!> "grace note"
+let sld = pstr "sld" |>> (fun _ -> Sld) <!> "slide"
+let sli = pstr "sli" |>> (fun _ -> Sli) <!> "slide in"
+let par = pstr "par" |>> (fun _ -> Par) <!> "parentheses"
 
-let property = pright (pchar '/') (sls <|> sle <|> stu <|> std <|> plu <|> pld <|> har <|> gr <|> sl <|> si <|> p) <!> "property"
-let properties = pmany0 property <!> "properties"
+// a property that is an EitherProperty
+// first one is for just an EitherProperty type
+let eitherProperty = pright (pchar '/') (sls <|> sle <|> par <|> sld <|> sli) <!> "eitherProperty "
+// this one turns into a Property type to be used for the anyProperties parser
+let eitherPropertyEither = pright (pchar '/') (sls <|> sle <|> par <|> sld <|> sli) |>> Either <!> "eitherPropertyEither "
+
+
+// a property that is a MultiProperty
+// first one is for just a MultiProperty type
+let multiProperty = pright (pchar '/') (stu <|> std <|> plu <|> pld <|> har <|> gra) <!> "multiProperty"
+// this one turns into a Property type to be used for the anyProperties parser
+let multiPropertyMulti = pright (pchar '/') (stu <|> std <|> plu <|> pld <|> har <|> gra) |>> Multi <!> "multiProperty"
+
+// pamny0 version for regular either or multi
+let eitherProperties = pmany0 eitherProperty <!> "eitherProperties"
+let multiProperties = pmany0 multiProperty <!> "multiProperties"
+
+// pmany0 version for Property types
+let eitherPropertiesEither = pmany0 eitherPropertyEither <!> "eitherPropertiesEither"
+let multiPropertiesMulti = pmany0 multiPropertyMulti <!> "multiPropertiesMulti"
+
+// Could be either one
+let anyProperties = pmany0 (eitherPropertyEither <|> multiPropertyMulti) <!> "anyProperties"
 
 //rhythms
 let x64 = pstr "64" |>> (fun _ -> X64) <!> "64"
@@ -163,7 +199,7 @@ let rhythm = pseq (x64 <|> x32 <|> x16 <|> x8 <|> x4 <|> x2 <|> x1 <|> x0) dot (
 ///// SIMPLE //////
 
 //SINGLESIMPLE
-let singlesimple = pseq pdigit2 (pseq pitch properties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c)) |>> SingleSimple <!> "singlesimple"
+let singlesimple = pseq pdigit2 (pseq pitch anyProperties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c)) |>> SingleSimple <!> "singlesimple"
 
 //RESTSIMPLE
 let restsimple = pchar 'r' |>> (fun _ -> RestSimple) <!> "restsimple"
@@ -174,7 +210,7 @@ let simple = singlesimple <|> restsimple |>> Simple <!> "simple"
 ///// COMPLEX //////
 
 //SINGLECOMPLEX
-let singlecomplex = pseq pdigit2 (pseq pitch (pseq rhythm properties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c))) (fun (a,(b,c,d)) -> (a,b,c,d)) |>> SingleComplex <!> "singlecomplex"
+let singlecomplex = pseq pdigit2 (pseq pitch (pseq rhythm anyProperties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c))) (fun (a,(b,c,d)) -> (a,b,c,d)) |>> SingleComplex <!> "singlecomplex"
 
 //RESTCOMPLEX
 let restcomplex = pright (pchar 'r') rhythm |>> RestComplex <!> "restcomplex"
@@ -182,8 +218,20 @@ let restcomplex = pright (pchar 'r') rhythm |>> RestComplex <!> "restcomplex"
 // Complex
 let complex = singlecomplex <|> restcomplex |>> Complex <!> "complex"
 
+//GROUP
+let gsimpleHelper = pseq pdigit2 (pseq pitch eitherProperties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c)) |>> GroupSimple <!> "one groupsimple"
+
+let gsimpleWithoutRhythm = pbetween (pchar '(') (pchar ')') (pmany1 (pleft gsimpleHelper pws0)) <!> "gsimpleWithoutRhythm"
+
+let gsimple = pseq gsimpleWithoutRhythm multiProperties (fun (a,b) -> (a,b)) |>> GSimple <!> "GSimple"
+
+let gcomplex = pseq gsimpleWithoutRhythm (pseq rhythm multiProperties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c)) |>> GComplex <!> "GComplex"
+
+// group
+let group = gcomplex <|> gsimple |>> Group <!> "group"
+
 // Note
-let note = pright pws1 (complex <|> simple) <!> "note"
+let note = pright pws1 (complex <|> simple <|> group) <!> "note"
 
 // Measure
 let measure1 = pseq measureNumber (pmany1 note) (fun (a,b) -> (a,b)) |>> Measure <!> "measure!"
@@ -194,7 +242,7 @@ let expr = pseq option (pmany0 (pleft measure1 pws1)) (fun (a,b) -> (a,b)) <!> "
 let grammar = pleft expr (pleft pws0 peof) <!> "grammar"
 
 let parse input =
-   let input' = prepare input
+   let input' = debug input
    match grammar input' with
    | Success(res,_) -> Some res
    | Failure(pos,rule) ->
