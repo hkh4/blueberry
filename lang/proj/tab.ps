@@ -323,16 +323,34 @@ grestore end
 } bind def
 
 /measureNumber {
-3 dict begin gsave
+} bind def
+
+% center text
+/centerText { dup stringwidth pop -0.5 mul 0 rmoveto show } def
+
+/title {
+1 dict begin gsave
 /str exch def
-/ycoord exch def
-/xcoord exch def
 /Times-Roman findfont
-7 scalefont
+22 scalefont
 setfont
 newpath
 0 0 0 setrgbcolor
-xcoord ycoord moveto
+306 745 moveto
+str centerText
+grestore end
+} bind def
+
+/composer {
+1 dict begin gsave
+/str exch def
+/Times-Roman findfont
+10 scalefont
+setfont
+newpath
+0 0 0 setrgbcolor
+565 720 moveto
+str stringwidth pop -1 mul 0 rmoveto
 str show
 grestore end
 } bind def
@@ -359,30 +377,30 @@ grestore end
 
 
 %notes
-100 659.5 5 guitarfretnumber
-100 665.5 10 guitarfretnumber
-100 671.5 (x) guitarfretnumber
+100 659.7 5 guitarfretnumber
+100 665.7 10 guitarfretnumber
+100 671.7 (x) guitarfretnumber
 
 
-115 659.5 5 guitarfretnumber
-115 665.5 10 guitarfretnumber
-115 671.5 (x) guitarfretnumber
+115 659.7 5 guitarfretnumber
+115 665.7 10 guitarfretnumber
+115 671.7 (x) guitarfretnumber
 
-130 659.5 3 guitarfretnumber
-130 665.5 12 guitarfretnumber
+130 659.7 3 guitarfretnumber
+130 665.7 12 guitarfretnumber
 
-145 653.5 4 guitarfretnumber
-145 677.5 19 guitarfretnumber
+145 653.7 4 guitarfretnumber
+145 677.7 19 guitarfretnumber
 
 155 650 30.4 0.7 barline
 
-160 647.5 (x) guitarfretnumber
-160 671.5 2 guitarfretnumber
+160 647.7 (x) guitarfretnumber
+160 671.7 2 guitarfretnumber
 
-225 665.5 8 guitarfretnumber
-245 671.5 3 guitarfretnumber
-255 671.5 3 guitarfretnumber
-275 671.5 3 guitarfretnumber
+225 665.7 8 guitarfretnumber
+245 671.7 3 guitarfretnumber
+255 671.7 3 guitarfretnumber
+275 671.7 3 guitarfretnumber
 
 170 650 quarterRest
 
@@ -464,18 +482,55 @@ grestore end
 
 
 
-/Times-Roman findfont
-10 scalefont
-setfont
-newpath
-0 0 0 setrgbcolor
-72 72 moveto
-(Hello world! 1 2 3 10 25 178) show
-
-
 
 65 690 (1) measureNumber
-45 620 (45) measureNumber 
+45 620 (45) measureNumber
+
+
+(Title) title
+
+(Hugowetkjwbekwebrkwer) composer
+
+
+
+/guitarfretnumbergrace { %xcoord, ycoord, filestring
+   8 dict begin
+   /str exch def
+   /ycoord exch def
+   /xcoord exch def
+   /scalex 2.7 def
+   /scaley 3.04425 def
+   /sizex 800 def
+   /sizey 902 def
+   /filestring (temp) def
+   str type /stringtype eq {
+      /xcoord xcoord 0.4 sub store
+      /filestring (images/Tab_Numbers/) str (.jpg) concatenate concatenate store
+      /scalex 3.105 store
+      /scaley 3.24 store
+      /sizex 1000 store
+      }{
+      str 9 gt {
+         /xcoord xcoord 1.7 sub store
+         /scalex 4.9275 store
+         /sizex 1460 store
+         }{} ifelse
+      /filestring (images/Tab_Numbers/) str (ffff) cvs (.jpg) concatenate concatenate store
+      } ifelse
+   xcoord ycoord scalex scaley sizex sizey filestring 1 printimage
+   end
+} bind def
+
+
+
+
+271.5 672.3 7 guitarfretnumbergrace
+
+0.5 setlinewidth
+272.75 682 moveto
+0 8 rlineto stroke
+
+
 
 
 showpage

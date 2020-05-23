@@ -17,11 +17,9 @@ let main argv =
       let fileText = System.IO.File.ReadAllText fileName
       match parse fileText with
       | Some ast ->
-         printfn "%A" ast
-         0
-         //match (eval ast) with
-         //| Some(_) -> 0
-         //| None -> 1
+         match (eval ast) with
+         | Some(_) -> 0
+         | None -> 1
       | None ->
          printfn "Error!"
          0

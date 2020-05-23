@@ -78,7 +78,7 @@ type complex =
 | SingleComplex of int * Pitch * Rhythm * Property List
 | RestComplex of Rhythm
 
-type GroupSimple = int * Pitch * EitherProperty List
+type GroupSimple = GS of int * Pitch * EitherProperty List
 
 type group =
 | GSimple of GroupSimple List * MultiProperty List
@@ -98,11 +98,13 @@ type Expr =
 let pword = pmany1 (psat (fun c -> (c <> ' ') && (c <> '\n'))) |>> stringify <!> "word"
 let pdigit2 = pmany1 pdigit |>> stringify |>> int <!> "pdigit2"
 
+
 // ****************  PARSE OPTIONS ********************
 
-// '-' then word, then space, then another word, then space
-let typeoption = pseq (pleft pword pws1 ) pword (fun (a,b) -> (a,b)) <!> "typeoption"
-let singleOption = pbetween (pchar '-') pws1 typeoption |>> ScoreOption <!> "singleOption"
+// '-' then word, then space, then multiple words. Multiple words not really allowed for all of them but eval takes care of that
+let multipleWords = pmany1 (pright pwsNoNL1 pword)
+let typeoption = pseq pword multipleWords (fun (a,b) -> (a,(List.fold (fun acc elem -> acc + " " + elem) "" b))) <!> "typeoption"
+let singleOption = pbetween (pchar '-') (pleft pwsNoNL0 pnl) typeoption |>> ScoreOption <!> "singleOption"
 let option = pleft (pmany0 singleOption) pws0 <!> "option"
 
 // **************** PARSE MEASURES ********************
@@ -219,13 +221,15 @@ let restcomplex = pright (pchar 'r') rhythm |>> RestComplex <!> "restcomplex"
 let complex = singlecomplex <|> restcomplex |>> Complex <!> "complex"
 
 //GROUP
-let gsimpleHelper = pseq pdigit2 (pseq pitch eitherProperties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c)) |>> GroupSimple <!> "one groupsimple"
+let gsimpleHelper = pseq pdigit2 (pseq pitch eitherProperties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c)) |>> GS <!> "one groupsimple"
 
-let gsimpleWithoutRhythm = pbetween (pchar '(') (pchar ')') (pmany1 (pleft gsimpleHelper pws0)) <!> "gsimpleWithoutRhythm"
+let multipleGSimple = pseq gsimpleHelper (pmany0 (pright pws1 gsimpleHelper)) (fun (a,b) -> a::b) <!> "multipleGSimple"
 
-let gsimple = pseq gsimpleWithoutRhythm multiProperties (fun (a,b) -> (a,b)) |>> GSimple <!> "GSimple"
+let multipleGSimpleParens = pbetween (pchar '(') (pchar ')') multipleGSimple <!> "multipleGSimpleParens"
 
-let gcomplex = pseq gsimpleWithoutRhythm (pseq rhythm multiProperties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c)) |>> GComplex <!> "GComplex"
+let gsimple = pseq multipleGSimpleParens multiProperties (fun (a,b) -> (a,b)) |>> GSimple <!> "GSimple"
+
+let gcomplex = pseq multipleGSimpleParens (pseq rhythm multiProperties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c)) |>> GComplex <!> "GComplex"
 
 // group
 let group = gcomplex <|> gsimple |>> Group <!> "group"
@@ -242,7 +246,7 @@ let expr = pseq option (pmany0 (pleft measure1 pws1)) (fun (a,b) -> (a,b)) <!> "
 let grammar = pleft expr (pleft pws0 peof) <!> "grammar"
 
 let parse input =
-   let input' = debug input
+   let input' = prepare input
    match grammar input' with
    | Success(res,_) -> Some res
    | Failure(pos,rule) ->

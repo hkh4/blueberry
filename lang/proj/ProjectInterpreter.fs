@@ -11,13 +11,19 @@ type optionsRecord = {
    Time: int * int
    Key: string
    Capo: int
+   Title: string
+   Composer: string
 }
+
+type singleNote =
+| NormalGuitarNote of int * Pitch * EitherProperty List
+| X of int * EitherProperty List
 
 // Types of "notes"
 type Notehead =
-| NormalGuitarNote of int * Pitch  // int is the string number
+| SingleNote of singleNote * MultiProperty List
+| GroupNote of singleNote List * MultiProperty List
 | Rest
-| X of int
 | Barline
 | Empty
 
@@ -29,6 +35,7 @@ type Element = {
    LastNote: int
    Location: float * float
    Capo: int
+   GraceNotes: Notehead List
 }
 
 type SingleMeasure = {
@@ -61,7 +68,7 @@ let arrayOfRhythms = [|X1;X2;X4;X8;X16;X32;X64|]
 // Widths of different rhythms
 let widthOfRhythms =
    Map.empty.
-      Add(R(X0,0),20.0).
+      Add(R(X0,0),25.0).
       Add(R(X1,3),70.0).
       Add(R(X1,2),60.0).
       Add(R(X1,1),50.0).
@@ -79,14 +86,14 @@ let widthOfRhythms =
       Add(R(X8,1),13.5).
       Add(R(X8,0),12.0).
       Add(R(X16,2),10.6).
-      Add(R(X16,1),9.3).
-      Add(R(X16,0),8.0).
-      Add(R(X32,2),7.3).
-      Add(R(X32,1),6.6).
-      Add(R(X32,0),6.0).
-      Add(R(X64,2),5.5).
-      Add(R(X64,1),5.0).
-      Add(R(X64,0),4.5)
+      Add(R(X16,1),9.6).
+      Add(R(X16,0),8.5).
+      Add(R(X32,2),7.5).
+      Add(R(X32,1),7.1).
+      Add(R(X32,0),6.7).
+      Add(R(X64,2),6.3).
+      Add(R(X64,1),5.9).
+      Add(R(X64,0),5.5)
 
 // Changeable default
 let mutable defaultRhythm = R(X4,0)
@@ -106,7 +113,7 @@ let emptyMeasure =
       Key = "c";
       Time = (4,4);
       MeasureNumber = 0;
-      Elements = [{ NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0); Capo = 0 };{ NoteInfo = Rest; Duration = R(X0,0); Start = 1.0; Width = 30.0; LastNote = 1; Location = (0.0,0.0); Capo = 0 };{ NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = 0 }];
+      Elements = [{ NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0); Capo = 0; GraceNotes = [] };{ NoteInfo = Rest; Duration = R(X0,0); Start = 1.0; Width = 30.0; LastNote = 1; Location = (0.0,0.0); Capo = 0; GraceNotes = [] };{ NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = 0; GraceNotes = [] }];
       Width = 35.0
    }
 
@@ -125,6 +132,16 @@ let drawFlags (x: float) (y: float) (r: Rhythm) : string List =
    | R(X64,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 43.0) + " moveto 0 15 rlineto stroke ";string (x + 1.65) + " " + string (y + 42.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 46.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 50.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 54.0) + " drawFlag "]
    | _ -> [""]
 
+// Remove duplicates from a list
+let removeDuplicates (l: 'a List) =
+   let rec helper l1 l2 =
+      match l1 with
+      | [] -> l2
+      | head::tail ->
+         match (List.exists (fun e -> e = head) l2) with
+         | true -> helper tail l2
+         | false -> helper tail (l2 @ [head])
+   helper l []
 
 
 
@@ -142,23 +159,59 @@ RETURNS an option, the bool is really just a placeholder
 let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
    match a with
    // If type
-   | ScoreOption(key: string,value: string) when key = "type" ->
-      match value with
+   | ScoreOption(key: string, value: string) when key = "type" ->
+      let valueTrim = value.Trim(' ')
+      match valueTrim with
       | "tab" ->
-         let newOption = { optionsR with Key = value }
+         let newOption = { optionsR with Key = valueTrim }
          Some(newOption)
       | _ ->
          printfn "Valid types : tab"
          None
    // If time
-   | ScoreOption(key: string,value: string) when key = "time" ->
-      let timeArray = value.Split('-')
+   | ScoreOption(key: string, value: string) when key = "time" ->
+      let valueTrim = value.Trim(' ')
+      let timeArray = valueTrim.Split('-')
+      // make sure it's length 2
       match (timeArray.Length) with
       | 2 ->
+         // try splitting up the array, turning to int, but catch exception
          try
             let timeTuple = ((int timeArray.[0]),(int timeArray.[1]))
-            let newOption = { optionsR with Time = timeTuple }
-            Some(newOption)
+            // make sure the top number is valid
+            match (int timeArray.[0]) with
+            | num when (num >= 1 && num <= 32) || num = 64 ->
+               let newOption = { optionsR with Time = timeTuple }
+               // make sure the bottom number is valid, update the defaultRhythm and optionsRecord
+               match (int timeArray.[1]) with
+               | 1 ->
+                  defaultRhythm <- R(X1,0)
+                  Some(newOption)
+               | 2 ->
+                  defaultRhythm <- R(X2,0)
+                  Some(newOption)
+               | 4 ->
+                  defaultRhythm <- R(X4,0)
+                  Some(newOption)
+               | 8 ->
+                  defaultRhythm <- R(X8,0)
+                  Some(newOption)
+               | 16 ->
+                  defaultRhythm <- R(X16,0)
+                  Some(newOption)
+               | 32 ->
+                  defaultRhythm <- R(X32,0)
+                  Some(newOption)
+               | 64 ->
+                  defaultRhythm <- R(X64,0)
+                  Some(newOption)
+               | _ ->
+                  printfn "The second number of the time signature can be 1, 2, 4, 8, 16, 32, or 64"
+                  None
+            | _ ->
+               printfn "The first number of the time signature can be 1-32 or 64"
+               None
+         // catch
          with
             | _ ->
                printfn "The time option should be of the form (int)-(int)"
@@ -167,29 +220,40 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
          printfn "The time option should be of the form (int)-(int)"
          None
    // If key
-   | ScoreOption(key: string,value: string) when key = "key" ->
-      match value with
+   | ScoreOption(key: string, value: string) when key = "key" ->
+      let valueTrim = value.Trim(' ')
+      match valueTrim with
       | "c" | "cm" | "c#" | "c#m" | "cb" | "d" | "dm" | "db" | "d#m" | "e" | "em" | "eb" | "ebm" | "f" | "fm" | "f#m" ->
-         let newOption = { optionsR with Key = value }
+         let newOption = { optionsR with Key = valueTrim }
          Some(newOption)
       | "f#" | "g" | "gm" | "g#m" | "gb" | "a" | "am" | "a#m" | "ab" | "abm" | "b" | "bm" | "bb" | "bbm" ->
-         let newOption = { optionsR with Key = value }
+         let newOption = { optionsR with Key = valueTrim }
          Some(newOption)
       | _ ->
          printfn "Invalid key. Valid options are: c cm c# c#m cb d dm db d#m e em eb ebm f fm f#m f# g gm g#m gb a am a#m ab abm b bm bb bbm"
          None
    // If capo
-   | ScoreOption(key: string,value: string) when key = "capo" ->
+   | ScoreOption(key: string, value: string) when key = "capo" ->
+      let valueTrim = value.Trim(' ')
       try
-         let capo = int value
+         let capo = int valueTrim
          let newOption = { optionsR with Capo = capo }
          Some(newOption)
       with
          | _ ->
             printfn "The capo option must be an integer"
             None
+   // Title
+   | ScoreOption(key: string, value: string) when key = "title" ->
+      let valueTrim = value.Trim(' ')
+      let newOption = { optionsR with Title = valueTrim }
+      Some(newOption)
+   | ScoreOption(key: string, value: string) when key = "composer" ->
+      let valueTrim = value.Trim(' ')
+      let newOption = { optionsR with Composer = valueTrim }
+      Some(newOption)
    | _ ->
-      printfn "Invalid option! Valid options are type, key, capo, and time"
+      printfn "Invalid option! Valid options are type, key, title, composer, capo, and time"
       None
 
 
@@ -242,7 +306,6 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
    | _ ->
       // Find the index of the given rhythm in the list of rhythms
       let indexOfRhythm = Array.findIndex (fun elem -> elem = rNumber) arrayOfRhythms
-      // TODO: figure out dotted rhythms
       // The difference in index is used to figure out how many beats are used
       let differenceOfRhythm = indexOfBeat - indexOfRhythm
       // Look into the Map of rhythms to widths
@@ -275,6 +338,23 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
 
 
 
+(* takes a Property list and divdes it into EitherProperties and MultiProperties
+1) properties is all the Property
+2) eProperties is the list of EitherProperty
+3) mProperties is the list of MultiProperty
+RETURNS eProperties * mProperties
+*)
+let rec divideProperties (properties: Property List) (eProperties: EitherProperty List) (mProperties: MultiProperty List) : EitherProperty List * MultiProperty List =
+   match properties with
+   | [] -> (eProperties,mProperties)
+   | head::tail ->
+      match head with
+      | Either(p) -> divideProperties tail (p::eProperties) mProperties
+      | Multi(p) -> divideProperties tail eProperties (p::mProperties)
+
+
+
+
 (* Evaluate a single note
 1) measureNumber is the number of the current measure
 2) baseBeat is what rhythm counts as one beat, based on bottom number of time signature
@@ -282,95 +362,185 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
 4) nextStart is the starting spot of the next note
 5) last is either 1, meaning it's the last note, or 0 otherwise
 6) optionsR is the optionsRecord
-RETURNS: an Element and a float which is the start of the next note
+7) graceBefore is the list of grace notes that precede this note. If this note isn't a grace note, then this list is added to this element
+RETURNS: an Element, a float which is the start of the next note, and the list of grace notes
 *)
-let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) : (Element * float) option =
-   let note =
+let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Notehead List) : (Element * float * Notehead List) option =
+   // this is EITHER a tuple of an Element and a bool (true means grace note, else not) or None
+   let noteOption =
       match n with // figure out the type of the note
       | Simple(p) ->
          match p with
          // Single Simple
          | SingleSimple(guitarString,pitch,properties) ->
+            // split properties
+            let (eProp, mProp) = divideProperties properties [] []
+            // remove duplicates
+            let eProperties = removeDuplicates eProp
+            let mProperties = removeDuplicates mProp
+            // Notehead
             let nInfo =
                match pitch with
                // the note is an X
                | NoPitch ->
-                  X(guitarString)
+                  SingleNote(X(guitarString,eProperties),mProperties)
                // normal note
                | _ ->
-                  NormalGuitarNote(guitarString,pitch)
-            { NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo }
+                  SingleNote(NormalGuitarNote(guitarString,pitch,eProperties),mProperties)
+            // Check to see if it's a grace note
+            match (List.exists (fun e -> e = Gra) mProperties) with
+            // not a grace note
+            | false ->
+               Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBefore }),false)
+            // grace note
+            | true ->
+               Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }),true)
          // Rest Simple
          | RestSimple ->
-            { NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo }
+            Some({ NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
       | Complex(p) ->
          match p with
          // Single Complex
          | SingleComplex(guitarString,pitch,r,properties) ->
+            // split properties
+            let (eProp, mProp) = divideProperties properties [] []
+            // remove duplicates
+            let eProperties = removeDuplicates eProp
+            let mProperties = removeDuplicates mProp
+            // Notehead
             let nInfo =
                match pitch with
                // the note is an X
                | NoPitch ->
-                  X(guitarString)
+                  SingleNote(X(guitarString,eProperties),mProperties)
                // normal note
                | _ ->
-                  NormalGuitarNote(guitarString,pitch)
+                  SingleNote(NormalGuitarNote(guitarString,pitch,eProperties),mProperties)
             defaultRhythm <- r
-            { NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo }
+            match (List.exists (fun e -> e = Gra) mProperties) with
+            // not a grace note
+            | false ->
+               Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBefore }),false)
+            // grace note
+            | true ->
+               Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }),true)
          // Rest Complex
          | RestComplex(r) ->
-            // Only update default rhythm is the rhythm is NOT X0
+            // Only update default rhythm if the rhythm is NOT X0
             match r with
             | R(X0,0) ->
-               { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo }
+               Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
             | _ ->
                defaultRhythm <- r
-               { NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo }
-   // Check to see if a note has a valid number of dots. 8th notes and longer can up to 3 dots. 16th can have 2, 32nd can have 1, 64th cannot have any
-   match note.Duration with
-   | R(x,n) when n > 3 ->
-      printfn "Notes cannot have more than 3 dots"
-      None
-   | R(x,n) when x = X0 && n > 0 ->
-      printfn "0 rhythms cannot have dots"
-      None
-   | R(x,n) when x = X64 && n > 0 ->
-      printfn "64th notes cannot have any dots"
-      None
-   | R(x,n) when x = X32 && n > 1 ->
-      printfn "32nd notes can only have up to 1 dot"
-      None
-   | R(x,n) when x = X16 && n > 2 ->
-      printfn "16th notes can only have up to 2 dots"
-      None
-   | _ ->
-      // Call widthStart to create the note element object with updated width
-      match (widthStart note (note.Duration) nextStart baseBeat numberOfBeats last) with
-      | Some(newNote,newNextStart) ->
-         match last with
-         // If it's the last note
-         | 1 ->
-            match newNextStart with
-            // If there are exactly the right number of beats in the measure, return
-            | num when num = float numberOfBeats + 1.0 -> Some({ newNote with LastNote = 1 },newNextStart)
-            // Too many beats
-            | num when num > float numberOfBeats + 1.0 ->
-               printfn "Error! Too many beats in measure %i" measureNumber
-               None
-            // Not enough beats
-            | _ ->
-               printfn "Error! Not enough beats in measure %i" measureNumber
-               None
+               Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
+      // Groups
+      | Group(g) ->
+
+         // recursive helper function to parse the notes within a group
+         let rec groupHelper (gList: GroupSimple List) (sList: singleNote List) (usedStrings: int List) : singleNote List option =
+            match gList with
+            | [] -> Some(sList)
+            | head::tail ->
+               match head with
+               | GS(guitarString,pitch,eProperties) ->
+                  // check to see if this guitar string has already been used for a previous note in the group
+                  match (List.exists (fun elem -> elem = guitarString) usedStrings) with
+                  | true ->
+                     printfn "Error! You can't specify two notes in one group that are on the same string!"
+                     None
+                  | false ->
+                     let newSingleNote =
+                        match pitch with
+                        // X note
+                        | NoPitch -> X(guitarString,eProperties)
+                        // regular note
+                        | _ -> NormalGuitarNote(guitarString,pitch,eProperties)
+                     // recurse
+                     groupHelper tail (sList @ [newSingleNote]) (guitarString::usedStrings)
+
+         match g with
+         // gsimple: group without the rhythm
+         | GSimple(gList,mProperties) ->
+            // call the helper function to parse the notes within the group
+            match (groupHelper gList [] []) with
+            | Some(singleNoteList) ->
+               // turn it into a Group type
+               let newGroup = GroupNote(singleNoteList,mProperties)
+               match (List.exists (fun e -> e = Gra) mProperties) with
+               // not a grace note
+               | false ->
+                  Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBefore },false)
+               // grace note
+               | true ->
+                  Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },true)
+            | None -> None
+         // gcomplex: group with rhythm: does the same thing but uses r instead of the default rhythm
+         | GComplex(gList,r,mProperties) ->
+            match (groupHelper gList [] []) with
+            | Some(singleNoteList) ->
+               // turn it into a Group type
+               let newGroup = GroupNote(singleNoteList,mProperties)
+               match (List.exists (fun e -> e = Gra) mProperties) with
+               // not a grace note
+               | false ->
+                  Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBefore },false)
+               // grace note
+               | true ->
+                  Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },true)
+            | None -> None
+
+
+
+   match noteOption with
+   | Some(note,b) when b = false ->
+      // Check to see if a note has a valid number of dots. 8th notes and longer can up to 3 dots. 16th can have 2, 32nd can have 1, 64th cannot have any
+      match note.Duration with
+      | R(x,n) when n > 3 ->
+         printfn "Notes cannot have more than 3 dots"
+         None
+      | R(x,n) when x = X0 && n > 0 ->
+         printfn "0 rhythms cannot have dots"
+         None
+      | R(x,n) when x = X64 && n > 0 ->
+         printfn "64th notes cannot have any dots"
+         None
+      | R(x,n) when x = X32 && n > 1 ->
+         printfn "32nd notes can only have up to 1 dot"
+         None
+      | R(x,n) when x = X16 && n > 2 ->
+         printfn "16th notes can only have up to 2 dots"
+         None
+      | _ ->
+         // Call widthStart to create the note element object with updated width
+         match (widthStart note (note.Duration) nextStart baseBeat numberOfBeats last) with
+         | Some(newNote,newNextStart) ->
+            match last with
+            // If it's the last note
+            | 1 ->
+               match newNextStart with
+               // If there are exactly the right number of beats in the measure, return
+               | num when num = float numberOfBeats + 1.0 -> Some({ newNote with LastNote = 1 },newNextStart,[])
+               // Too many beats
+               | num when num > float numberOfBeats + 1.0 ->
+                  printfn "Error! Too many beats in measure %i" measureNumber
+                  None
+               // Not enough beats
+               | _ ->
+                  printfn "Error! Not enough beats in measure %i" measureNumber
+                  None
                // If it's not the last note
-         | _ ->
-            match newNextStart with
-            // Too many beats
-            | num when num >= float numberOfBeats + 1.0 ->
-               printfn "Error! Too many beats in measure %i" measureNumber
-               None
-            // Just right
-            | _ -> Some({ newNote with LastNote = 1 },newNextStart)
-      | None -> None
+            | _ ->
+               match newNextStart with
+               // Too many beats
+               | num when num >= float numberOfBeats + 1.0 ->
+                  printfn "Error! Too many beats in measure %i" measureNumber
+                  None
+                  // Just right
+               | _ -> Some({ newNote with LastNote = 1 },newNextStart,[])
+         | None -> None
+   | Some(note,b) ->
+      Some(note,nextStart,(graceBefore @ [note.NoteInfo]))
+   | None -> None
 
 
 
@@ -385,8 +555,9 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
 7) nextStart is the start of the next element
 8) optionsR is the optionsRecord
 RETURNS: float which is the total width of the measure, and the list of elements that make up the measure
+9) graceBefore is the list of notes that are grace notes for the next element
 *)
-let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : Element List) (baseBeat: RhythmNumber) (numberOfBeats: int) (acc : float) (nextStart: float)  (optionsR: optionsRecord) : (float * Element List) option =
+let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : Element List) (baseBeat: RhythmNumber) (numberOfBeats: int) (acc : float) (nextStart: float)  (optionsR: optionsRecord) (graceBefore: Notehead List) : (float * Element List) option =
    match m with
    | [] -> Some(acc, elementList)
    | head::tail ->
@@ -394,15 +565,20 @@ let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : El
       let el =
          // if tail is empty, then this note is the last one
          match tail with
-         | [] -> evalNote measureNumber head baseBeat numberOfBeats nextStart 1 optionsR
-         | _ -> evalNote measureNumber head baseBeat numberOfBeats nextStart 0 optionsR
+         | [] -> evalNote measureNumber head baseBeat numberOfBeats nextStart 1 optionsR graceBefore
+         | _ -> evalNote measureNumber head baseBeat numberOfBeats nextStart 0 optionsR graceBefore
       match el with
-      | Some(n,newNextStart) ->
-         // keep track of the total width of the measure
-         let newAcc = n.Width + acc
-         // append new element to the end of the list
-         let newList = elementList @ [n]
-         evalMeasureHelper measureNumber tail newList baseBeat numberOfBeats newAcc newNextStart optionsR
+      | Some(n,newNextStart,newGraceBefore) ->
+         match newGraceBefore with
+         // if it's empty, then the returned note was NOT a grace note
+         | [] ->
+            // keep track of the total width of the measure
+            let newAcc = n.Width + acc
+            // append new element to the end of the list
+            let newList = elementList @ [n]
+            evalMeasureHelper measureNumber tail newList baseBeat numberOfBeats newAcc newNextStart optionsR newGraceBefore
+         | _ ->
+            evalMeasureHelper measureNumber tail elementList baseBeat numberOfBeats acc newNextStart optionsR newGraceBefore
       | None -> None
 
 
@@ -461,14 +637,14 @@ let parseKey (l: Element List) (key: string) : Element List =
       | [] -> updatedList
       | head::tail ->
          match head.NoteInfo with
-         // if it's a guitar note and thus has a pitch
-         | NormalGuitarNote(s,pitch) ->
+         // if it's a single guitar note
+         | SingleNote(NormalGuitarNote(s,pitch,eProperties),mProperties) ->
             // see if this pitch needs to be changed
             match mapOfChanges.TryFind pitch with
             // change the pitch
             | Some(newPitch) ->
                // update all the info for the new Element
-               let newNInfo = NormalGuitarNote(s,newPitch)
+               let newNInfo = SingleNote(NormalGuitarNote(s,newPitch,eProperties),mProperties)
                let newElement = { head with NoteInfo = newNInfo }
                let newList = updatedList @ [newElement]
                parseKeyHelper tail newList mapOfChanges
@@ -476,13 +652,44 @@ let parseKey (l: Element List) (key: string) : Element List =
             | None ->
                let newList = updatedList @ [head]
                parseKeyHelper tail newList mapOfChanges
-         // if it's not a guitar note, just recurse
+         // if it's a group, go through each element
+         | GroupNote(nList,mProperties) ->
+
+            //helper method to go through each element in the list
+            let rec parseKeyGroup (nList: singleNote List) (newNList: singleNote List) : singleNote List =
+               match nList with
+               | [] -> newNList
+               | head::tail ->
+                  match head with
+                  // if it's a guitar note, do the pitch change
+                  | NormalGuitarNote(guitarString,pitch,eProperties) ->
+                     match mapOfChanges.TryFind pitch with
+                     | Some(newPitch) ->
+                        let newNInfo = NormalGuitarNote(guitarString,newPitch,eProperties)
+                        parseKeyGroup tail (newNList @ [newNInfo])
+                     // doesn't need changing, just add to new list
+                     | None -> parseKeyGroup tail (newNList @ [head])
+                  // if it's an X, it has no pitch so just add it into the new list
+                  | X(guitarString,eProperties) ->
+                     parseKeyGroup tail (newNList @ [head])
+
+            // call the group helper, returns the list of singleNote
+            let newNList = parseKeyGroup nList []
+            // turn that list into a NoteHead
+            let newNInfo = GroupNote(newNList,mProperties)
+            // create the new Element
+            let newElement = { head with NoteInfo = newNInfo }
+            // new List, recurse
+            let newList = updatedList @ [newElement]
+            parseKeyHelper tail newList mapOfChanges
+         // for all other types of Notes, no pitch change needed
          | _ ->
             let newList = updatedList @ [head]
             parseKeyHelper tail newList mapOfChanges
+
+
    // call the helper, return its result
-   let emptyList : Element List = []
-   parseKeyHelper l emptyList mapOfChanges
+   parseKeyHelper l [] mapOfChanges
 
 
 
@@ -498,7 +705,6 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
    match m with
    // b is measure number, c is Note List
    | Measure(b,c) ->
-      let elementList : Element List = []
       let acc = 0.0
       let (numberOfBeats,baseNumber) = optionsR.Time
       // turn the number of the bottom of time signature into a RhythmNumber
@@ -515,15 +721,15 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
          | _ ->
             printfn "Error! The bottom of the time signature can be 1 2 4 8 16 32 or 64"
             X0
-      match (evalMeasureHelper b c elementList baseBeat numberOfBeats acc 1.0 optionsR) with
+      match (evalMeasureHelper b c [] baseBeat numberOfBeats acc 1.0 optionsR []) with
       // tuple: first element is the total width of all the elements added together, second is the list of elements
       | Some(width,list) ->
          // update the notes based on the key
          let listWithUpdatedKeys = parseKey list optionsR.Key
          // Add empty space at the beginning and barline at the end
-         let empty = { NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0); Capo = 0 }
+         let empty = { NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0); Capo = 0; GraceNotes = [] }
          // Barline at the end of the measure
-         let bar = { NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = 0 }
+         let bar = { NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = 0; GraceNotes = [] }
          let newList = [empty] @ listWithUpdatedKeys @ [bar]
          // Add 5 to the width because of the empty space at the beginning
          let newWidth = width + 5.0
@@ -534,6 +740,7 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
    | _ ->
       printfn "Something is very wrong. Given ScoreOption instead of Measure"
       None
+
 
 
 
@@ -599,9 +806,8 @@ let rec divideLines (measureList : SingleMeasure List) (lineList : Line List) (w
    | [] -> Some(lineList)
    // Recurse
    | head::tail ->
-      let measuresSoFar : SingleMeasure List = []
       // Returns a Line
-      match (divideSingleLine measureList measuresSoFar widthPerLine 0.0) with
+      match (divideSingleLine measureList [] widthPerLine 0.0) with
          | Some(l) ->
             // Figure out the index of the next element after the list returned, which is the starting index for the next line
             let nextMeasure = l.Length
@@ -663,8 +869,7 @@ let rec dividePages (lines : Line List) (pageList : Page List) (start : float * 
    // base case: return list of pages
    | [] -> Some(pageList)
    | head::tail ->
-      let linesSoFar : Line List = []
-      match (divideOnePage lines linesSoFar start) with
+      match (divideOnePage lines [] start) with
       // returns a Line List
       | Some(l) ->
          // figure out which is the next line for the start of the next page
@@ -708,7 +913,7 @@ let rec endingStubs (lastLocation: float * float) (lastRhythm: Rhythm) : string 
          printfn "Error in endingStubs: lastRhythm was of type Other, should be R(x,n)"
          X0,0 // SHOULD NEVER REACH THIS CASE
    let beamsOfPrevious = numberOfBeams.[previousRhythmNumber]
-   let emptyList : string List = []
+
    // helper function to do the actual drawing
    let rec endingStubsHelper (x: float) (y: float) (toAdd: int List) (text: string List) : string List =
       match toAdd with
@@ -726,7 +931,7 @@ let rec endingStubs (lastLocation: float * float) (lastRhythm: Rhythm) : string 
                [" 1.6 setlinewidth " + string (x - 1.5) + " " + string (y + 34.8) + " moveto " + string (x + 1.7) + " " + string (y + 34.8) + " lineto stroke "]
             | _ -> [""] //should never reach this
          endingStubsHelper x y tail (text @ stub)
-   endingStubsHelper oldX oldY [1..beamsOfPrevious] emptyList
+   endingStubsHelper oldX oldY [1..beamsOfPrevious] []
 
 
 
@@ -850,21 +1055,19 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
       // number of beams for the current note
       let beamsOfCurrent = numberOfBeams.[currentRhythmNumber]
       let (newX,newY) = head.Location
-      let emptyList: string List = []
       match beamsOfPrevious with
       // if this note and the last are the same rhythm
       | num when num = beamsOfCurrent ->
          // just draw the full beams, lastBeamed = 1
-         let equalBeams = fullBeams x newX y [1..num] emptyList
+         let equalBeams = fullBeams x newX y [1..num] []
          (equalBeams,1)
       // if the last note has more beams than the current
       | num when num > beamsOfCurrent ->
-         let equalBeams = fullBeams x newX y [1..beamsOfCurrent] emptyList
-         let emptyList : string List = []
+         let equalBeams = fullBeams x newX y [1..beamsOfCurrent] []
          match lastBeamed with
          | 0 ->
             // if the last and lastlast were not beamed, then the last note needs an initial stub since it needs more beams than the current
-            let iStubs = initialStubs x y [1..num] emptyList
+            let iStubs = initialStubs x y [1..num] []
             ((equalBeams @ iStubs),2)
          | 1 ->
             (equalBeams,2)
@@ -883,7 +1086,7 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
             match numberOfBeamsLastLast with
             // if this note has as many or more beams than last last, then last gets an initial stub
             | num when num <= beamsOfCurrent ->
-               let iStubs = initialStubs x y [1..beamsOfPrevious] emptyList
+               let iStubs = initialStubs x y [1..beamsOfPrevious] []
                ((equalBeams @ iStubs),2)
             // if this note has less beams than last last, then last note gets an end stub
             | _ ->
@@ -894,7 +1097,7 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
             ([""],0) //should never reach this case
       // if this note has more beams than the last, draw just the beams, and a future case will take care of stubs
       | _ ->
-         let equalBeams = fullBeams x newX y [1..beamsOfPrevious] emptyList
+         let equalBeams = fullBeams x newX y [1..beamsOfPrevious] []
          (equalBeams,3)
 
    let indexOfLast = findElementInKey key (int lastStart) 0
@@ -971,15 +1174,21 @@ let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhyth
          // The way notes are beamed depends on the time signature
          let key =
             match timeSignature with
+            // if quarter, half, or whole gets a beat, each beat is in its own group
             | (n,m) when m = 1 || m = 2 || m = 4 ->
                let temp = [1..n]
                List.fold (fun acc elem -> acc @ [[elem]]) [] temp
-            | (3,8) | (3,16) | (3,32) | (3,64) -> [[1;2;3]]
-            | (6,8) | (6,16) | (6,32) | (6,64) -> [[1;2;3];[4;5;6]]
-            | (9,8) | (9,16) | (9,32) | (9,64) -> [[1;2;3];[4;5;6];[7;8;9]]
-            | (12,8) | (12,16) | (12,32) | (12,64) ->    [[1;2;3];[4;5;6];[7;8;9];[10;11;12]]
-            | _ -> // NOT YET IMPLEMENTED
-               printfn "Error in beamHelper: this time signature has not yet been implemented"
+            // for the rest, if the number of beats is even but not a multiple of 3, each beat is in its own group
+            | (n,m) when (m = 8 || m = 16 || m = 32 || m = 64) && ((n % 2 = 0) && not (n % 3 = 0)) ->
+               let temp = [1..n]
+               List.fold (fun acc elem -> acc @ [[elem]]) [] temp
+            // for multiples of 3, group in 3s
+            | (n,m) when (m = 8 || m = 16 || m = 32 || m = 64) && (n % 3 = 0) ->
+               let numberOfGroups = n / 3
+               let temp = [1..numberOfGroups]
+               List.map (fun x -> [x*3-2;x*3-1;x*3]) temp
+            | _ ->
+               printfn "Error in beamHelper: this time signature has not yet been implemented. Sorry!"
                [[0]]
          // call beamByTime, return the strings of the beams and the int for the new lastBeamed
          let (newText, newLastBeamed) = beamByTime key lastLocation lastRhythm lastStart head lastBeamed lastLastRhythm
@@ -1027,15 +1236,43 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
          text
    | head::tail ->
       match head.NoteInfo with
-      // guitar note - beam
-      | NormalGuitarNote(s,p) ->
-         let (newText, newLastBeamed) = beamHelper head s lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm
-         beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm
-      // also beam if an X
-      | X(s) ->
-         let (newText, newLastBeamed) = beamHelper head s lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm
-         beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm
+      | SingleNote(n,mProperties) ->
+         match n with
+         // guitar note - beam
+         | NormalGuitarNote(guitarString,pitch,eProperties) ->
+            let (newText, newLastBeamed) = beamHelper head guitarString lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm
+            beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm
+         // also beam if an X
+         | X(guitarString,eProperties) ->
+            let (newText, newLastBeamed) = beamHelper head guitarString lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm
+            beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm
       // If it isn't a note or an x, check if there's an end stub that needs to be drawn
+      | GroupNote(nList,mProperties) ->
+
+         // helper method to find out if any of the notes in the group are on string 6 for stem purposes
+         let rec findString6 (nList: singleNote List) : bool =
+            match nList with
+            | [] -> false // random number that isn't 6
+            | head::tail ->
+               match head with
+               | NormalGuitarNote(guitarString,pitch,eProperties) ->
+                  match guitarString with
+                  // if it's 6 return, if not, check the tail of the list
+                  | 6 -> true
+                  | _ -> findString6 tail
+               | X(guitarString,eProperties) ->
+                  match guitarString with
+                  | 6 -> true
+                  | _ -> findString6 tail
+
+         let (newText, newLastBeamed) =
+            match (findString6 nList) with
+            // if there was a 6, then call beamHelper with the string set to 6
+            | true -> beamHelper head 6 lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm
+            // otherwise, not 6. 1 chosen at random
+            | _ -> beamHelper head 1 lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm
+         // recurse
+         beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm
       | _ ->
          match lastBeamed with
          | 3 ->
@@ -1093,6 +1330,38 @@ let calculateStringAndFret (guitarString: int) (pitch: Pitch) (capo: int) : int 
 
 
 
+(* Helper which returns the string to print a single NormalGuitarNote
+1) x is the xcoord
+2) y is the ycoord
+3) guitarString is the string on the guitar, used for calculateStringAndFret
+4) pitch is the Pitch of the note
+5) capo is the capo for the note
+RETURNS the string, or None
+*)
+let showNormalGuitarNote (x: float) (y: float) (guitarString: int) (pitch: Pitch) (capo: int) : string option =
+   match (calculateStringAndFret guitarString pitch capo) with
+   | Some(fret) ->
+      // sub 2.5 and add 6 times the number of strings above 1. For placement
+      let yCoord = (y - 2.3) + (6.0 * ((float guitarString) - 1.0))
+      let newText = string x + " " + string yCoord + " " + string fret + " guitarfretnumber "
+      Some(newText)
+   | None -> None
+
+
+
+
+(* Helper which returns string for an X. Doesn't return option type like showNormalGuitarNote since ideally nothing should go wrong here....
+1) x is the xcoord
+2) y is the ycoord
+3) guitarString is which string on the guitar for this note
+RETURNS the string to be printed
+*)
+let showX (x: float) (y: float) (guitarString:int) : string =
+   let yCoord = (y - 2.5) + (6.0 * ((float guitarString) - 1.0))
+   string x + " " + string yCoord + " (x) guitarfretnumber "
+
+
+
 (* Return a list of strings which are the postscript code to write each element
 1) els is the list of Elements in the measure to be displayed
 2) updatedElements is the list of elements but where the location has been updated, to be used later to draw the beams
@@ -1117,12 +1386,27 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
          let newUpdatedElements = updatedElements @ [newElement]
          showElements tail newUpdatedElements measureWidth (x + 5.0) y l insideScale
       // Guitar note: although raster image, still put at the end of the list because i want the white border
-      | NormalGuitarNote(guitarString,pitch) ->
-         match (calculateStringAndFret guitarString pitch head.Capo) with
-         | Some(fret) ->
-            // sub 2.5 and add 6 times the number of strings above 1. For placement
-            let yCoord = (y - 2.5) + (6.0 * ((float guitarString) - 1.0))
-            let newText = string x + " " + string yCoord + " " + string fret + " guitarfretnumber "
+      | SingleNote(n,mProperties) ->
+         match n with
+         // if it's a guitar note
+         | NormalGuitarNote(guitarString,pitch,eProperties) ->
+            // call the helper, which calculates the fret and returns the string to print the note
+            match (showNormalGuitarNote x y guitarString pitch head.Capo) with
+            | Some(newText) ->
+               // x coord of next element
+               let newX = x + (head.Width * insideScale)
+               // add string to the list
+               let newList = l @ [newText]
+               // updated element with location
+               let newElement = { head with Location = (x,y) }
+               // add new element into list
+               let newUpdatedElements = updatedElements @ [newElement]
+               // recurse
+               showElements tail newUpdatedElements measureWidth newX y newList insideScale
+            | None -> None
+         | X(guitarString,eProperties) ->
+            // call helper function which returns the string
+            let newText = showX x y guitarString
             // x coord of the next element
             let newX = x + (head.Width * insideScale)
             let newList = l @ [newText]
@@ -1130,7 +1414,36 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
             let newElement = { head with Location = (x,y) }
             let newUpdatedElements = updatedElements @ [newElement]
             showElements tail newUpdatedElements measureWidth newX y newList insideScale
+      // show a group
+      | GroupNote(nList,mProperties) ->
+
+         // helper method to show all the notes within a group
+         let rec groupHelper (nList: singleNote List) (stringList: string List) (capo: int) : string List option =
+            match nList with
+            | [] -> Some(stringList)
+            | head::tail ->
+               match head with
+               // if it's a note
+               | NormalGuitarNote(guitarString,pitch,eProperties) ->
+                  match (showNormalGuitarNote x y guitarString pitch capo) with
+                  | Some(newText) ->
+                     groupHelper tail (stringList @ [newText]) capo
+                  | None -> None
+               // if it's an X
+               | X(guitarString,eProperties) ->
+                  let newText = showX x y guitarString
+                  groupHelper tail (stringList @ [newText]) capo
+
+
+         match (groupHelper nList [] head.Capo) with
+         | Some(newText) ->
+            let newX = x + (head.Width * insideScale)
+            let newList = l @ newText
+            let newElement = { head with Location = (x,y) }
+            let newUpdatedElements = updatedElements @ [newElement]
+            showElements tail newUpdatedElements measureWidth newX y newList insideScale
          | None -> None
+
       // Barline : print the vertical line
       | Barline ->
          // subtract 5 because the last note of the measure looks 5 into the future for placement
@@ -1206,16 +1519,6 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
          let newElement = { head with Location = (x,y) }
          let newUpdatedElements = updatedElements @ [newElement]
          showElements tail newUpdatedElements measureWidth newX y newList insideScale
-      | X(guitarString) ->
-         let yCoord = (y - 2.5) + (6.0 * ((float guitarString) - 1.0))
-         let newText = string x + " " + string yCoord + " (x) guitarfretnumber "
-         // x coord of the next element
-         let newX = x + (head.Width * insideScale)
-         let newList = l @ [newText]
-         // updated element with location
-         let newElement = { head with Location = (x,y) }
-         let newUpdatedElements = updatedElements @ [newElement]
-         showElements tail newUpdatedElements measureWidth newX y newList insideScale
 
 
 
@@ -1240,8 +1543,7 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
       // used to scale the notes on the inside, removing the 5 units of space in the beginning
       // TODO : add -5.0 after newWidth if the last element has a width of less than 15
       let insideScale = newWidth / (head.Width - 5.0)
-      let e : Element List = []
-      match (showElements els e newWidth x y l insideScale) with
+      match (showElements els [] newWidth x y l insideScale) with
       | Some(li,updatedElements) ->
          // x coordinate of the beginning of the next measure
          let newX = x + newWidth
@@ -1310,10 +1612,8 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) : 
          | _ -> head
       // Float to tell how much to scale widths of individual elements
       let scale = (newHead.FinalWidth + staffx - newX) / newHead.OriginalWidth
-      let l : String List = []
-      let m : SingleMeasure List = []
       // Show measures of the line
-      match (showMeasures newHead.Measures m newX staffy l scale) with
+      match (showMeasures newHead.Measures [] newX staffy [] scale) with
       | Some(li,updatedMeasures) ->
          // Put all the strings together
          let allNewElements = staffline + (List.fold (fun acc elem -> acc + " " + elem) "" li)
@@ -1346,9 +1646,8 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) : (stri
    // Recursive case
    | head::tail ->
       let lines = head.Lines
-      let l : Line List = []
       // Show the lines of a page
-      match (showLines lines l text) with
+      match (showLines lines [] text) with
       | Some(t,updatedLines) ->
          let newText = t + " showpage "
          // update the Page with the new lines
@@ -1365,23 +1664,20 @@ let eval ast =
    //decompose
    let (optionsList,measuresList) = ast
    //default options
-   let optionsR = {Type = "tab"; Time = (4,4); Key = "c"; Capo = 0}
+   let optionsR = {Type = "tab"; Time = (4,4); Key = "c"; Capo = 0; Title = "untitled"; Composer = "unknown"}
    // First, parse the options
    match (evalOption optionsList optionsR) with
    // If the options are valid, parse the measures
    | Some(newOption) ->
-      let emptyList : SingleMeasure List = []
       // create SingleMeasure List
-      match (evalAllMeasures measuresList newOption emptyList) with
+      match (evalAllMeasures measuresList newOption []) with
       | Some(list) ->
          // Take SingleMeasure List and use the widths to create list of lines
-         let emptyLineList : Line List = []
          //495 is the width of the first line. The rest are 515.
-         match (divideLines list emptyLineList 495.0) with
+         match (divideLines list [] 495.0) with
          | Some(lines) ->
             // Take Line List and use heights and type to divide into pages
-            let emptyPageList : Page List = []
-            match (dividePages lines emptyPageList (70.0,720.0)) with
+            match (dividePages lines [] (70.0,720.0)) with
             | Some(pages) ->
                //printfn "%A" pages
                let text = "%!PS
@@ -1403,11 +1699,15 @@ let eval ast =
                /halfWholeRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord 0.37129898 add ycoord moveto xcoord 4.48414922 add ycoord xcoord 4.48414922 add ycoord 0.37129898 add 0.37129898 arct xcoord 4.48414922 add ycoord 2.31347826 add xcoord 4.11285024 add ycoord 2.31347826 add 0.37129898 arct xcoord ycoord 2.31347826 add xcoord ycoord 0.37129898 add 0.37129898 arct xcoord ycoord xcoord 0.37129898 add ycoord 0.37129898 arct fill grestore end } bind def
                /drawFlag { 2 dict begin gsave /ycoord exch def /xcoord exch def 0.1 setlinewidth xcoord ycoord moveto xcoord ycoord 2.744186046511628 add lineto xcoord 0.20930232558139536 add ycoord 2.697674418604651 add 0.20930232558139536 170 10 arcn xcoord 0.6976744186046512 add ycoord 1.627906976744186 sub xcoord 4.3023255813953485 add ycoord 1.627906976744186 sub xcoord 2.744186046511628 add ycoord 7.1395348837209305 sub curveto xcoord 2.604651162790698 add ycoord 7.372093023255814 sub xcoord 2.2325581395348837 add ycoord 7.325581395348837 sub xcoord 2.2093023255813953 add ycoord 6.976744186046512 sub curveto xcoord 3.13953488372093 add ycoord 3.953488372093023 sub xcoord 2.488372093023256 add ycoord 2.7906976744186047 sub xcoord ycoord curveto fill grestore end } bind def
                /measureNumber { 3 dict begin gsave /str exch def /ycoord exch def /xcoord exch def /Times-Roman findfont 7 scalefont setfont newpath 0 0 0 setrgbcolor xcoord ycoord moveto str show grestore end } bind def
+               /centerText { dup stringwidth pop -0.5 mul 0 rmoveto show } def
+               /title { 1 dict begin gsave /str exch def /Times-Roman findfont 22 scalefont setfont newpath 0 0 0 setrgbcolor 306 745 moveto str centerText grestore end } bind def
+               /composer { 1 dict begin gsave /str exch def /Times-Roman findfont 10 scalefont setfont newpath 0 0 0 setrgbcolor 565 720 moveto str stringwidth pop -1 mul 0 rmoveto str show grestore end } bind def
                %%EndProlog
                "
-               let p : Page List = []
+               // Add the title and comnposer to the text
+               let text' = text + " (" + newOption.Title + ") title " + "(" + newOption.Composer + ") composer "
                //print and show
-               match (show pages p text) with
+               match (show pages [] text') with
                | Some(updatedText, updatedPages) ->
 
                   Some(updatedText, updatedPages)
