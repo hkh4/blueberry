@@ -125,11 +125,11 @@ let dotTemplate (x: float) (y: float) : string = " 1 setlinecap 1.4 setlinewidth
 // Template for drawing flags
 let drawFlags (x: float) (y: float) (r: Rhythm) : string List =
    match r with
-   | R(X8,n) -> [string (x + 1.65) + " " + string (y + 42.0) + " drawFlag "]
+   | R(X8,n) -> ["0.9 setlinewidth 1 1 1 setrgbcolor " + string (x + 2.0) + " " + string (y + 41.0) + " moveto 0 1 rlineto stroke 0 0 0 setrgbcolor ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag "]
    // for 16th notes and shorter, need to extend the stem as well
-   | R(X16,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 43.0) + " moveto 0 5 rlineto stroke ";string (x + 1.65) + " " + string (y + 42.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 46.0) + " drawFlag "]
-   | R(X32,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 43.0) + " moveto 0 10 rlineto stroke ";string (x + 1.65) + " " + string (y + 42.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 46.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 50.0) + " drawFlag "]
-   | R(X64,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 43.0) + " moveto 0 15 rlineto stroke ";string (x + 1.65) + " " + string (y + 42.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 46.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 50.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 54.0) + " drawFlag "]
+   | R(X16,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 3 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 44.0) + " drawFlag "]
+   | R(X32,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 7 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 44.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 48.0) + " drawFlag "]
+   | R(X64,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 11 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 44.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 48.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 52.0) + " drawFlag "]
    | _ -> [""]
 
 // Remove duplicates from a list
