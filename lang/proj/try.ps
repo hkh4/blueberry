@@ -45,7 +45,7 @@
                       /sizex 1000 store
                       }{
                       str 9 gt {
-                         /xcoord xcoord 1.7 sub store
+                         /xcoord xcoord 1.1475 sub store
                          /scalex 4.9275 store
                          /sizex 1460 store
                          }{} ifelse
@@ -72,7 +72,19 @@
                 } bind def
 
 
-
+                /graceCurve {
+                4 dict begin gsave
+                0.7 setlinewidth
+                /y2 exch def
+                /x2 exch def
+                /y1 exch def
+                /x1 exch def
+                x1 y1 moveto
+                x2 x1 sub 0.13043478 mul x1 add     y1 2.5 add
+                x2 x1 sub 0.63043478 mul x1 add     y1 3 add
+                x2 y2 curveto stroke
+                grestore end
+                } bind def
 
 
 
@@ -84,12 +96,33 @@
 
 0.4 setlinewidth 504.6 613.5 moveto 4.4 4 rlineto stroke
 
-506 622 moveto
+506 622 510.5 624 graceCurve
+
+
+
+
+
+376.1 608.3 9 guitarfretnumbergrace
+0.5 setlinewidth 377.45 612.3 moveto 0 7.7 rlineto stroke
+
+377.2 617 drawFlagGrace
+377.2 619.2 drawFlagGrace
+
+377.1 622 moveto
 0.7 setlinewidth
-506.6 624.5 508.8 625 510.5 624 curveto stroke
+
+377.1 622 381.7 624 graceCurve
 
 
 
+
+
+260.1 602.5 12 guitarfretnumbergrace
+260.1 578.5 (x) guitarfretnumbergrace
+0.5 setlinewidth 261.45 612.3 moveto 0 7.7 rlineto stroke
+
+
+253.1 577.7 12 guitarfretnumber
 
 
 

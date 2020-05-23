@@ -35,7 +35,7 @@ type Element = {
    LastNote: int
    Location: float * float
    Capo: int
-   GraceNotes: Notehead List
+   GraceNotes: Element List
 }
 
 type SingleMeasure = {
@@ -67,6 +67,35 @@ let arrayOfRhythms = [|X1;X2;X4;X8;X16;X32;X64|]
 
 // Widths of different rhythms
 let widthOfRhythms =
+   Map.empty.
+      Add(R(X0,0),25.0).
+      Add(R(X1,3),70.0).
+      Add(R(X1,2),60.0).
+      Add(R(X1,1),50.0).
+      Add(R(X1,0),40.5).
+      Add(R(X2,3),37.0).
+      Add(R(X2,2),34.0).
+      Add(R(X2,1),31.0).
+      Add(R(X2,0),27.0).
+      Add(R(X4,3),25.0).
+      Add(R(X4,2),23.0).
+      Add(R(X4,1),21.0).
+      Add(R(X4,0),18.0).
+      Add(R(X8,3),16.5).
+      Add(R(X8,2),15.0).
+      Add(R(X8,1),13.5).
+      Add(R(X8,0),12.0).
+      Add(R(X16,2),10.6).
+      Add(R(X16,1),9.6).
+      Add(R(X16,0),8.5).
+      Add(R(X32,2),7.5).
+      Add(R(X32,1),7.1).
+      Add(R(X32,0),6.7).
+      Add(R(X64,2),6.3).
+      Add(R(X64,1),5.9).
+      Add(R(X64,0),5.5)
+
+let widthOfGraceRhythms =
    Map.empty.
       Add(R(X0,0),25.0).
       Add(R(X1,3),70.0).
@@ -129,7 +158,7 @@ let drawFlags (x: float) (y: float) (r: Rhythm) : string List =
    // for 16th notes and shorter, need to extend the stem as well
    | R(X16,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 3 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 44.0) + " drawFlag "]
    | R(X32,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 7 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 44.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 48.0) + " drawFlag "]
-   | R(X64,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 11 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 44.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 48.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 52.0) + " drawFlag "]
+   | R(X64,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 11 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 43.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 48.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 53.0) + " drawFlag "]
    | _ -> [""]
 
 // Remove duplicates from a list
@@ -142,6 +171,7 @@ let removeDuplicates (l: 'a List) =
          | true -> helper tail l2
          | false -> helper tail (l2 @ [head])
    helper l []
+
 
 
 
@@ -288,9 +318,10 @@ let rec evalOption (o: Expr List) (optionsR: optionsRecord) : optionsRecord opti
 4) baseBeat is the RhythmNumber of the time signature, this constitutes one beat
 5) numberOfBeats is the top number of the time signature
 6) last is an into - 1 if last note, 0 else
+7) graceNotes is the list of grace notes for this element
 RETURNS: new Element and the new nextStart for the next element
 *)
-let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: RhythmNumber) (numberOfBeats: int) (last: int) : (Element * float) option =
+let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: RhythmNumber) (numberOfBeats: int) (last: int) (graceNotes: Element List) : (Element * float) option =
    // Find the index of the baseBeat in the list of rhythms
    let indexOfBeat = Array.findIndex (fun elem -> elem = baseBeat) arrayOfRhythms
    let (rNumber,dotNumber) =
@@ -332,9 +363,29 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
             printfn "You can only have up to 3 dots on a note"
             -1.0
       let newNextStart = nextStart + startWithDotsAdded
-      // Return the new element with updated width, and the next start
-      Some({ template with Width = newWidth },newNextStart)
+      // If the note has grace notes, increase its width some more
+      match graceNotes with
+      // no grace notes
+      | [] ->
+         // Return the new element with updated width, and the next start
+         Some({ template with Width = newWidth },newNextStart)
+      // has grace notes
+      | graceList ->
+         // go through the list of grace notes, find their widths and add them
 
+         // helper function to add up the widths of all the grace notes, and also update the widths of those grace notes
+         let rec graceWidthHelper (graceToAdd: Element List) (newGrace: Element List) (acc: float) : float * Element List =
+            match graceToAdd with
+            | [] -> (acc,newGrace)
+            | head::tail ->
+               let graceWidth = widthOfGraceRhythms.[head.Duration]
+               let newHead = { head with Width = graceWidth }
+               let newList = newGrace @ [newHead]
+               graceWidthHelper tail newList (acc + graceWidth)
+
+         let (extra,newGrace) = graceWidthHelper graceList [] 0.0
+         let widthWithGrace = newWidth + extra
+         Some({ template with Width = widthWithGrace; GraceNotes = newGrace },newNextStart)
 
 
 
@@ -365,7 +416,7 @@ let rec divideProperties (properties: Property List) (eProperties: EitherPropert
 7) graceBefore is the list of grace notes that precede this note. If this note isn't a grace note, then this list is added to this element
 RETURNS: an Element, a float which is the start of the next note, and the list of grace notes
 *)
-let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Notehead List) : (Element * float * Notehead List) option =
+let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) : (Element * float * Element List) option =
    // this is EITHER a tuple of an Element and a bool (true means grace note, else not) or None
    let noteOption =
       match n with // figure out the type of the note
@@ -397,7 +448,13 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
                Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }),true)
          // Rest Simple
          | RestSimple ->
-            Some({ NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
+            // rests can't have grace notes
+            match graceBefore with
+            | [] ->
+               Some({ NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
+            | _ ->
+               printfn "Rests can't have grace notes!"
+               None
       | Complex(p) ->
          match p with
          // Single Complex
@@ -426,13 +483,18 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
                Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }),true)
          // Rest Complex
          | RestComplex(r) ->
-            // Only update default rhythm if the rhythm is NOT X0
-            match r with
-            | R(X0,0) ->
-               Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
+            match graceBefore with
+            | [] ->
+               // Only update default rhythm if the rhythm is NOT X0
+               match r with
+               | R(X0,0) ->
+                  Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
+               | _ ->
+                  defaultRhythm <- r
+                  Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
             | _ ->
-               defaultRhythm <- r
-               Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
+               printfn "Rests can't have grace notes!"
+               None
       // Groups
       | Group(g) ->
 
@@ -490,7 +552,6 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
             | None -> None
 
 
-
    match noteOption with
    | Some(note,b) when b = false ->
       // Check to see if a note has a valid number of dots. 8th notes and longer can up to 3 dots. 16th can have 2, 32nd can have 1, 64th cannot have any
@@ -512,7 +573,7 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
          None
       | _ ->
          // Call widthStart to create the note element object with updated width
-         match (widthStart note (note.Duration) nextStart baseBeat numberOfBeats last) with
+         match (widthStart note (note.Duration) nextStart baseBeat numberOfBeats last note.GraceNotes) with
          | Some(newNote,newNextStart) ->
             match last with
             // If it's the last note
@@ -539,7 +600,7 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
                | _ -> Some({ newNote with LastNote = 1 },newNextStart,[])
          | None -> None
    | Some(note,b) ->
-      Some(note,nextStart,(graceBefore @ [note.NoteInfo]))
+      Some(note,nextStart,(graceBefore @ [note]))
    | None -> None
 
 
@@ -557,7 +618,7 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
 RETURNS: float which is the total width of the measure, and the list of elements that make up the measure
 9) graceBefore is the list of notes that are grace notes for the next element
 *)
-let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : Element List) (baseBeat: RhythmNumber) (numberOfBeats: int) (acc : float) (nextStart: float)  (optionsR: optionsRecord) (graceBefore: Notehead List) : (float * Element List) option =
+let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : Element List) (baseBeat: RhythmNumber) (numberOfBeats: int) (acc : float) (nextStart: float)  (optionsR: optionsRecord) (graceBefore: Element List) : (float * Element List) option =
    match m with
    | [] -> Some(acc, elementList)
    | head::tail ->
@@ -735,6 +796,7 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
          let newWidth = width + 5.0
          // create instance of SingleMeasure
          let mes = { Time = optionsR.Time; Key = optionsR.Key; MeasureNumber = b; Elements = newList; Width = newWidth }
+
          Some(mes)
       | None -> None
    | _ ->
@@ -1290,6 +1352,9 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
 
 
 
+
+
+
 // ############### DRAW THE NOTES ###################
 
 (* Given a string number and a pitch, figure out the fret number
@@ -1362,6 +1427,43 @@ let showX (x: float) (y: float) (guitarString:int) : string =
 
 
 
+
+(* Show the numbers or x for grace notes
+1) x is the xcoord
+2) y is the ycoord
+3) els is the list of grace notes
+4) updatedElements is the elements but with location updated to x,y
+5) text is the list of strings to print
+6) insideScale is how much to scale the widths
+RETURNS the list of strings, the list of new elements, and the new x y coords for the real note that this list of grace notes is attached to
+*)
+let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElements: Element List) (text: string List) (insideScale: float) : (string List * Element List * float * float) option =
+   match els with
+   | [] ->
+      Some(text,updatedElements,x,y)
+   | head::tail ->
+      let newX = x + (head.Width * insideScale)
+      let newEl = { head with Location = (x,y) }
+
+      match head.NoteInfo with
+      | SingleNote(NormalGuitarNote(guitarString,pitch,eProperties),mProperties) ->
+         match (calculateStringAndFret guitarString pitch head.Capo) with
+         | Some(fret) ->
+            let yCoord = (y - 1.5) + (6.0 * ((float guitarString) - 1.0))
+            let newText = string x + " " + string yCoord + " " + string fret + "    guitarfretnumbergrace "
+            showGraceNotes newX y tail (updatedElements @ [newEl]) (text @ [newText]) insideScale
+         | None -> None
+      | SingleNote(X(guitarString,eProperties),mProperties) ->
+         let yCoord = (y - 1.5) + (6.0 * ((float guitarString) - 1.0))
+         let newText = string x + " " + string yCoord + " (x) guitarfretnumbergrace "
+         showGraceNotes newX y tail (updatedElements @ [newEl]) (text @ [newText]) insideScale
+      | _ -> None
+
+
+
+
+
+
 (* Return a list of strings which are the postscript code to write each element
 1) els is the list of Elements in the measure to be displayed
 2) updatedElements is the list of elements but where the location has been updated, to be used later to draw the beams
@@ -1384,41 +1486,84 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
          // update element with location
          let newElement = { head with Location = (x,y) }
          let newUpdatedElements = updatedElements @ [newElement]
+         // just add 5, since it shouldn't be scaled
          showElements tail newUpdatedElements measureWidth (x + 5.0) y l insideScale
       // Guitar note: although raster image, still put at the end of the list because i want the white border
       | SingleNote(n,mProperties) ->
-         match n with
-         // if it's a guitar note
-         | NormalGuitarNote(guitarString,pitch,eProperties) ->
-            // call the helper, which calculates the fret and returns the string to print the note
-            match (showNormalGuitarNote x y guitarString pitch head.Capo) with
-            | Some(newText) ->
-               // x coord of next element
+         match head.GraceNotes with
+         // if the element has no grace notes, just display it normally
+         | [] ->
+            match n with
+            // if it's a guitar note
+            | NormalGuitarNote(guitarString,pitch,eProperties) ->
+               // call the helper, which calculates the fret and returns the string to print the note
+               match (showNormalGuitarNote x y guitarString pitch head.Capo) with
+               | Some(newText) ->
+                  // x coord of next element
+                  let newX = x + (head.Width * insideScale)
+                  // add string to the list
+                  let newList = l @ [newText]
+                  // updated element with location
+                  let newElement = { head with Location = (x,y) }
+                  // add new element into list
+                  let newUpdatedElements = updatedElements @ [newElement]
+                  // recurse
+                  showElements tail newUpdatedElements measureWidth newX y newList insideScale
+               | None -> None
+            | X(guitarString,eProperties) ->
+               // call helper function which returns the string
+               let newText = showX x y guitarString
+               // x coord of the next element
                let newX = x + (head.Width * insideScale)
-               // add string to the list
                let newList = l @ [newText]
                // updated element with location
                let newElement = { head with Location = (x,y) }
-               // add new element into list
                let newUpdatedElements = updatedElements @ [newElement]
-               // recurse
                showElements tail newUpdatedElements measureWidth newX y newList insideScale
-            | None -> None
-         | X(guitarString,eProperties) ->
-            // call helper function which returns the string
-            let newText = showX x y guitarString
-            // x coord of the next element
-            let newX = x + (head.Width * insideScale)
-            let newList = l @ [newText]
-            // updated element with location
-            let newElement = { head with Location = (x,y) }
-            let newUpdatedElements = updatedElements @ [newElement]
-            showElements tail newUpdatedElements measureWidth newX y newList insideScale
+         // if it does have grace notes, show those first
+         | grace ->
+            match n with
+            // normal guitar note grace note
+            | NormalGuitarNote(guitarString,pitch,eProperties) ->
+               // call the grace note helper
+               match (showGraceNotes x y grace [] [] insideScale) with
+               // returns the new text, the updated grace notes, and the new x y coords
+               | Some(newText,newGraceNotes,newX,newY) ->
+                  match (showNormalGuitarNote newX newY guitarString pitch head.Capo) with
+                  | Some(newerText) ->
+                     // NOTE: adding from the original x to make the math easier and safer
+                     let newerX = x + (head.Width * insideScale)
+                     // add string to the list
+                     let newList = l @ newText @ [newerText]
+                     // updated element with location and grace notes
+                     let newElement = { head with Location = (newX,newY); GraceNotes = newGraceNotes }
+                     // add new element into list
+                     let newUpdatedElements = updatedElements @ [newElement]
+                     // recurse
+                     showElements tail newUpdatedElements measureWidth newerX y newList insideScale
+                  | None -> None
+               | None -> None
+            // x note
+            | X(guitarString,eProperties) ->
+               // still call the grace note helper in the same way
+               match (showGraceNotes x y grace [] [] insideScale) with
+               | Some(newText,newGraceNotes,newX,newY) ->
+                  // should always work so not option type
+                  let newerText = showX newX newY guitarString
+                  // x coord of the next element
+                  let newerX = x + (head.Width * insideScale)
+                  let newList = l @ newText @ [newerText]
+                  // updated element with location and grace notes
+                  let newElement = { head with Location = (newX,newY); GraceNotes = newGraceNotes }
+                  let newUpdatedElements = updatedElements @ [newElement]
+                  showElements tail newUpdatedElements measureWidth newerX y newList insideScale
+               | None -> None
+
       // show a group
       | GroupNote(nList,mProperties) ->
 
          // helper method to show all the notes within a group
-         let rec groupHelper (nList: singleNote List) (stringList: string List) (capo: int) : string List option =
+         let rec groupHelper (nList: singleNote List) (stringList: string List) (capo: int) (x:float) (y:float) : string List option =
             match nList with
             | [] -> Some(stringList)
             | head::tail ->
@@ -1427,22 +1572,40 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                | NormalGuitarNote(guitarString,pitch,eProperties) ->
                   match (showNormalGuitarNote x y guitarString pitch capo) with
                   | Some(newText) ->
-                     groupHelper tail (stringList @ [newText]) capo
+                     groupHelper tail (stringList @ [newText]) capo x y
                   | None -> None
                // if it's an X
                | X(guitarString,eProperties) ->
                   let newText = showX x y guitarString
-                  groupHelper tail (stringList @ [newText]) capo
+                  groupHelper tail (stringList @ [newText]) capo x y
 
+         // check to see if there are grace notes
+         match head.GraceNotes with
+         // no grace notes
+         | [] ->
+            match (groupHelper nList [] head.Capo x y) with
+            | Some(newText) ->
+               let newX = x + (head.Width * insideScale)
+               let newList = l @ newText
+               let newElement = { head with Location = (x,y) }
+               let newUpdatedElements = updatedElements @ [newElement]
+               showElements tail newUpdatedElements measureWidth newX y newList insideScale
+            | None -> None
+         // grace notes
+         | grace ->
+            match (showGraceNotes x y grace [] [] insideScale) with
+            | Some(newText,newGraceNotes,newX,newY) ->
+               // call the helper to get the strings for each note, using the new x and y
+               match (groupHelper nList [] head.Capo newX newY) with
+               | Some(newerText) ->
+                  let newerX = x + (head.Width * insideScale)
+                  let newList = l @ newText @ newerText
+                  let newElement = { head with Location = (newX,newY); GraceNotes = newGraceNotes }
+                  let newUpdatedElements = updatedElements @ [newElement]
+                  showElements tail newUpdatedElements measureWidth newerX y newList insideScale
+               | None -> None
+            | None -> None
 
-         match (groupHelper nList [] head.Capo) with
-         | Some(newText) ->
-            let newX = x + (head.Width * insideScale)
-            let newList = l @ newText
-            let newElement = { head with Location = (x,y) }
-            let newUpdatedElements = updatedElements @ [newElement]
-            showElements tail newUpdatedElements measureWidth newX y newList insideScale
-         | None -> None
 
       // Barline : print the vertical line
       | Barline ->
@@ -1538,10 +1701,10 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
    | head::tail ->
       // list of elements
       let els = head.Elements
+
       // new Width of the measure based on the scale
       let newWidth = head.Width * scale
       // used to scale the notes on the inside, removing the 5 units of space in the beginning
-      // TODO : add -5.0 after newWidth if the last element has a width of less than 15
       let insideScale = newWidth / (head.Width - 5.0)
       match (showElements els [] newWidth x y l insideScale) with
       | Some(li,updatedElements) ->
@@ -1679,37 +1842,400 @@ let eval ast =
             // Take Line List and use heights and type to divide into pages
             match (dividePages lines [] (70.0,720.0)) with
             | Some(pages) ->
-               //printfn "%A" pages
+
                let text = "%!PS
                %%BeginProlog
-               /concatenate { dup length 2 index length add 1 index type /arraytype eq {array}{string} ifelse dup 0 4 index putinterval dup 4 -1 roll length 4 -1 roll putinterval } bind def
-               /printimage { 8 dict begin /color exch def /pathtofile exch def /sizey exch def /sizex exch def /scaley exch def /scalex exch def /ycoord exch def /xcoord exch def gsave xcoord ycoord translate scalex scaley scale sizex sizey 8 [sizex 0 0 -1 sizey mul 0 sizey] pathtofile (r) file /DCTDecode filter false color colorimage grestore end } bind def
-               /timesignature { 7 dict begin /num exch def /ycoord exch def /xcoord exch def /str (images/Time_Signature/0.jpg) def /num2 {num 48 add} bind def num 10 ge { /str (images/Time_Signature/10.jpg) store /tens num 10 idiv 48 add def /ones num 10 mod 48 add def str 22 tens put str 23 ones put xcoord 3 sub ycoord 13.2575758 8.909 125 84 str 3 printimage }{str 22 num2 put xcoord ycoord 7 8.909 66 84 str 3 printimage } ifelse } bind def
-               /staffline { 4 dict begin /first exch def /ycoord exch def /xcoord exch def /width 515 def first 1 eq {/width 495 store} {} ifelse xcoord ycoord moveto 0.4 setlinewidth width 0 rlineto stroke end } bind def
-               /barline { 4 dict begin /linewidth exch def /height exch def /ycoord exch def /ycoord ycoord 0.2 sub store /xcoord exch def gsave linewidth setlinewidth xcoord ycoord moveto 0 height rlineto stroke grestore end } bind def
-               /guitartablines { 5 dict begin /flag exch def /ycoord exch def /xcoord exch def gsave 1.33 setlinewidth xcoord ycoord 30.4 1.33 barline stroke 0.4 setlinewidth 0 1 5 { /num exch def xcoord num 6 mul ycoord add flag staffline } for 1.33 setlinewidth /width 515 def flag 1 eq {/width 495 store}{} ifelse xcoord width add ycoord 30.4 1.33 barline stroke xcoord ycoord 40 fancyline end } bind def
-               /fancyline { 3 dict begin /height exch def /ycoord exch def /xcoord exch   def xcoord 5 sub ycoord 5 sub moveto 2.5 setlinewidth 0 height rlineto stroke newpath 0.1 setlinewidth xcoord 4 sub ycoord 5 sub moveto xcoord 2 sub ycoord 5 sub xcoord 0.5 sub ycoord 5.5 sub xcoord 2 add ycoord 8 sub curveto xcoord ycoord 4.666 sub xcoord 6 sub ycoord 3 sub 10 arct closepath fill newpath xcoord 4 sub ycoord 5 sub height add moveto xcoord 2 sub ycoord 5 sub height add xcoord 0.5 sub ycoord 4.5 sub height add xcoord 2 add ycoord 2 sub height add curveto xcoord ycoord 5.333 sub height add xcoord 6 sub ycoord 7 sub height add 10 arct closepath fill } bind def
-               /guitarfretnumber { 8 dict begin /str exch def /ycoord exch def /xcoord exch def /scalex 4 def /scaley 4.51 def /sizex 800 def /sizey 902 def /filestring (temp) def str type /stringtype eq { /xcoord xcoord 0.4 sub store /filestring (images/Tab_Numbers/) str (.jpg) concatenate concatenate store /scalex 4.6 store /scaley 4.8 store /sizex 1000 store }{ str 9 gt { /xcoord xcoord 1.7 sub store /scalex 7.3 store /sizex 1460 store }{} ifelse /filestring (images/Tab_Numbers/) str (ffff) cvs (.jpg) concatenate concatenate store } ifelse xcoord ycoord scalex scaley sizex sizey filestring 1 printimage end } bind def
-               /quarterRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def /ycoord ycoord 12 add store xcoord ycoord moveto xcoord 2.8000000000000003 add ycoord 3.857142857142857 sub lineto xcoord 0.5714285714285714 add ycoord 6.571428571428571 sub xcoord 1.1428571428571428 add ycoord 7.285714285714286 sub xcoord 3.4285714285714284 add ycoord 9.514285714285714 sub curveto xcoord 0.8571428571428571 add ycoord 8.657142857142857 sub xcoord ycoord 10.085714285714285 sub xcoord 1.657142857142857 add ycoord 12.085714285714285 sub curveto xcoord 1.657142857142857 add ycoord 12.142857142857142 sub xcoord 1.5714285714285714 add ycoord 12.200000000000001 sub xcoord 1.4857142857142858 add ycoord 12.12857142857143 sub curveto xcoord 2.142857142857143 sub ycoord 10.0 sub xcoord 0.19999999999999998 add ycoord 7.428571428571429 sub xcoord 1.7142857142857142 add ycoord 8.285714285714286 sub curveto xcoord 0.6571428571428571 sub ycoord 5.257142857142857 sub lineto xcoord 1.1428571428571428 add ycoord 3.257142857142857 sub xcoord 1.1428571428571428 add ycoord 2.2857142857142856 sub xcoord 0.24285714285714285 sub ycoord 0.19999999999999998 sub curveto xcoord 0.24285714285714285 sub ycoord 0.1142857142857143 sub xcoord 0.14285714285714285 sub ycoord xcoord ycoord curveto fill grestore end } bind def
-               /restCurl { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def newpath xcoord ycoord moveto xcoord 0.64816513755 sub ycoord 0.51853211004 sub xcoord 1.058669724665 sub ycoord 0.885825687985 sub xcoord 1.46917431178 sub ycoord 0.99385321091 sub curveto xcoord 2.46302752269 sub ycoord 1.85807339431 sub lineto xcoord 2.03091743099 sub ycoord 1.85807339431 sub xcoord 1.85807339431 sub ycoord 1.77165137597 sub xcoord 0.95064220174 sub ycoord 1.4475688071950001 sub curveto xcoord 0.8642201834000001 sub ycoord 1.42596330261 sub xcoord 0.8642201834000001 sub ycoord 1.663623853045 sub 0.08642201834 arct closepath fill newpath xcoord 2.46302752269 sub ycoord 0.8210091742300001 sub 1.03706422008 0 360 arc fill grestore end } bind def
-               /8thRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def /xcoord xcoord 1 add store xcoord ycoord moveto xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto xcoord 2.72229357771 add ycoord 6.22238532048 add lineto xcoord 2.72229357771 add ycoord 6.3520183479900005 add xcoord 2.5062385318600002 add ycoord 6.5248623846700005 add xcoord 2.37660550435 add ycoord 6.43844036633 add curveto xcoord 1.51238532095 add ycoord 4.904449540795 add lineto xcoord 1.51238532095 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct fill xcoord 2.37660550435 add ycoord 6.43844036633 add restCurl grestore end } bind def
-               /16thRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord ycoord moveto xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto xcoord 3.9322018344700003 add ycoord 10.15458715495 add lineto xcoord 3.9538073390550004 add ycoord 10.262614677875 add xcoord 3.7377522932050002 add ycoord 10.435458714555 add xcoord 3.62972477028 add ycoord 10.3706422008 add curveto xcoord 2.76550458688 add ycoord 8.836651375265001 add lineto xcoord 1.51238532095 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct fill xcoord 2.4198165135200003 add ycoord 6.43844036633 add restCurl xcoord 3.62972477028 add ycoord 10.3706422008 add restCurl grestore end } bind def
-               /32ndRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord ycoord moveto xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto xcoord 4.515550458265 add ycoord 14.151605503175 add lineto xcoord 4.53715596285 add ycoord 14.17321100776 add xcoord 4.429128439925 add ycoord 14.367660549025 add xcoord 4.23467889866 add ycoord 14.272596328851002 add curveto xcoord 3.41366972443 add ycoord 12.79045871432 add lineto xcoord 1.33954128427 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct fill xcoord 2.20376146767 add ycoord 6.43844036633 add restCurl xcoord 3.2624311923350002 add ycoord 10.3706422008 add restCurl xcoord 4.277889907830001 add ycoord 14.30284403527 add restCurl grestore end } bind def
-               /64thRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord ycoord moveto xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto xcoord 5.53100917376 add ycoord 18.1486238514 add lineto xcoord 5.48779816459 add ycoord 18.27825687891 add xcoord 5.44458715542 add ycoord 18.32146788808 add xcoord 5.250137614155 add ycoord 18.269614677076 add curveto xcoord 4.40752293534 add ycoord 16.76587155796 add lineto xcoord 1.33954128427 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct fill xcoord 2.20376146767 add ycoord 6.43844036633 add restCurl xcoord 3.24082568775 add ycoord 10.3706422008 add restCurl xcoord 4.277889907830001 add ycoord 14.30284403527 add restCurl xcoord 5.27174311874 add ycoord 18.27825687891 add restCurl grestore end } bind def
-               /halfWholeRest { 2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def xcoord 0.37129898 add ycoord moveto xcoord 4.48414922 add ycoord xcoord 4.48414922 add ycoord 0.37129898 add 0.37129898 arct xcoord 4.48414922 add ycoord 2.31347826 add xcoord 4.11285024 add ycoord 2.31347826 add 0.37129898 arct xcoord ycoord 2.31347826 add xcoord ycoord 0.37129898 add 0.37129898 arct xcoord ycoord xcoord 0.37129898 add ycoord 0.37129898 arct fill grestore end } bind def
-               /drawFlag { 2 dict begin gsave /ycoord exch def /xcoord exch def 0.1 setlinewidth xcoord ycoord moveto xcoord ycoord 2.744186046511628 add lineto xcoord 0.20930232558139536 add ycoord 2.697674418604651 add 0.20930232558139536 170 10 arcn xcoord 0.6976744186046512 add ycoord 1.627906976744186 sub xcoord 4.3023255813953485 add ycoord 1.627906976744186 sub xcoord 2.744186046511628 add ycoord 7.1395348837209305 sub curveto xcoord 2.604651162790698 add ycoord 7.372093023255814 sub xcoord 2.2325581395348837 add ycoord 7.325581395348837 sub xcoord 2.2093023255813953 add ycoord 6.976744186046512 sub curveto xcoord 3.13953488372093 add ycoord 3.953488372093023 sub xcoord 2.488372093023256 add ycoord 2.7906976744186047 sub xcoord ycoord curveto fill grestore end } bind def
-               /measureNumber { 3 dict begin gsave /str exch def /ycoord exch def /xcoord exch def /Times-Roman findfont 7 scalefont setfont newpath 0 0 0 setrgbcolor xcoord ycoord moveto str show grestore end } bind def
-               /centerText { dup stringwidth pop -0.5 mul 0 rmoveto show } def
-               /title { 1 dict begin gsave /str exch def /Times-Roman findfont 22 scalefont setfont newpath 0 0 0 setrgbcolor 306 745 moveto str centerText grestore end } bind def
-               /composer { 1 dict begin gsave /str exch def /Times-Roman findfont 10 scalefont setfont newpath 0 0 0 setrgbcolor 565 720 moveto str stringwidth pop -1 mul 0 rmoveto str show grestore end } bind def
+               /concatenate { %given string1 and string2
+                  dup length 2 index length add 1 index type
+                  /arraytype eq {array}{string} ifelse
+                  dup 0 4 index putinterval
+                  dup 4 -1 roll length 4 -1 roll putinterval
+               } bind def
+
+               /printimage {
+               %% stack: xcoord, ycoord, scalex, scaley, sizex, sizey, pathtofile, color
+                  8 dict begin
+                  /color exch def
+                  /pathtofile exch def
+                  /sizey exch def
+                  /sizex exch def
+                  /scaley exch def
+                  /scalex exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  gsave
+                  xcoord ycoord translate
+                  scalex scaley scale
+                  sizex sizey
+                  8
+                  [sizex 0 0 -1 sizey mul 0 sizey]
+                  pathtofile (r) file /DCTDecode filter
+                  false
+                  color
+                  colorimage
+                  grestore
+                  end
+               } bind def
+
+               % Create one number of the time signature.
+               /timesignature { % stack: x-coord, y-coord, number
+                  7 dict begin
+                  /num exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  /str (images/Time_Signature/0.jpg) def
+                  /num2 {num 48 add} bind def
+                  num 10 ge {
+                  /str (images/Time_Signature/10.jpg) store
+                  /tens num 10 idiv 48 add def
+                  /ones num 10 mod 48 add def
+                  str 22 tens put
+                  str 23 ones put
+                  xcoord 3 sub ycoord 13.2575758 8.909 125 84 str 3 printimage
+                  }{str 22 num2 put
+                  xcoord ycoord 7 8.909 66 84 str 3 printimage
+                  } ifelse
+               } bind def
+
+               %HELPER: draw single horizontal staff line
+               /staffline { % xcoord, ycoord, int - 1 means first line, else 0
+                  4 dict begin
+                  /first exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  /width 515 def
+                  first 1 eq {/width 495 store} {} ifelse
+                  xcoord ycoord moveto
+                  0.4 setlinewidth
+                  width 0 rlineto
+                  stroke
+                  end
+               } bind def
+
+               %Bar line
+               /barline { %xcoord, ycoord, height, linewidth
+                  4 dict begin
+                  /linewidth exch def
+                  /height exch def
+                  /ycoord exch def
+                  /ycoord ycoord 0.2 sub store
+                  /xcoord exch def
+                  gsave
+                  linewidth setlinewidth
+                  xcoord ycoord moveto
+                  0 height rlineto
+                  stroke
+                  grestore
+                  end
+               } bind def
+
+               %Create the lines
+               /guitartablines { % x-coord and y-coord of the first measure line bottom left corner, so NOT the extra fancy line, and an int 1 or 0 to say if first line
+                  5 dict begin
+                  /flag exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  gsave
+                  %first vertical line
+                  1.33 setlinewidth
+                  xcoord ycoord 30.4 1.33 barline
+                  stroke
+                  % horizontal lines
+                  0.4 setlinewidth
+                  0 1 5 {
+                     /num exch def
+                     xcoord num 6 mul ycoord add flag staffline
+                  } for
+                  1.33 setlinewidth
+                  /width 515 def
+                  flag 1 eq {/width 495 store}{} ifelse
+                  xcoord width add ycoord 30.4 1.33 barline
+                  stroke
+                  xcoord ycoord 40 fancyline
+                  end
+               } bind def
+
+               %create fancy line at the beginning of staff
+               /fancyline { % given x coord, y coord, height
+                  3 dict begin
+                  /height exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  xcoord 5 sub ycoord 5 sub moveto
+                  2.5 setlinewidth
+                  0 height rlineto
+                  stroke
+                  newpath %bottom curl
+                  0.1 setlinewidth
+                  xcoord 4 sub ycoord 5 sub moveto
+                  xcoord 2 sub ycoord 5 sub xcoord 0.5 sub ycoord 5.5 sub xcoord 2 add ycoord 8 sub curveto
+                  xcoord ycoord 4.666 sub xcoord 6 sub ycoord 3 sub 10 arct
+                  closepath
+                  fill
+                  newpath %top curl
+                  xcoord 4 sub ycoord 5 sub height add moveto
+                  xcoord 2 sub ycoord 5 sub height add xcoord 0.5 sub ycoord 4.5 sub height add xcoord 2 add ycoord 2 sub height add curveto
+                  xcoord ycoord 5.333 sub height add xcoord 6 sub ycoord 7 sub height add 10 arct
+                  closepath
+                  fill
+               } bind def
+
+               /guitarfretnumber { %xcoord, ycoord, filestring
+                  8 dict begin
+                  /str exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  /scalex 4 def
+                  /scaley 4.51 def
+                  /sizex 800 def
+                  /sizey 902 def
+                  /filestring (temp) def
+                  str type /stringtype eq {
+                     /xcoord xcoord 0.4 sub store
+                     /filestring (images/Tab_Numbers/) str (.jpg) concatenate concatenate store
+                     /scalex 4.6 store
+                     /scaley 4.8 store
+                     /sizex 1000 store
+                     }{
+                     str 9 gt {
+                        /xcoord xcoord 1.7 sub store
+                        /scalex 7.3 store
+                        /sizex 1460 store
+                        }{} ifelse
+                     /filestring (images/Tab_Numbers/) str (ffff) cvs (.jpg) concatenate concatenate store
+                     } ifelse
+                  xcoord ycoord scalex scaley sizex sizey filestring 1 printimage
+                  end
+               } bind def
+
+               /quarterRest { %x,y
+               2 dict begin
+               gsave
+               0.1 setlinewidth
+               /ycoord exch def
+               /xcoord exch def
+               /ycoord ycoord 12 add store
+               xcoord ycoord moveto
+               xcoord 2.8000000000000003 add ycoord 3.857142857142857 sub lineto
+               xcoord 0.5714285714285714 add ycoord 6.571428571428571 sub xcoord 1.1428571428571428 add ycoord 7.285714285714286 sub xcoord 3.4285714285714284 add ycoord 9.514285714285714 sub curveto
+               xcoord 0.8571428571428571 add ycoord 8.657142857142857 sub xcoord ycoord 10.085714285714285 sub xcoord 1.657142857142857 add ycoord 12.085714285714285 sub curveto
+               xcoord 1.657142857142857 add ycoord 12.142857142857142 sub xcoord 1.5714285714285714 add ycoord 12.200000000000001 sub xcoord 1.4857142857142858 add ycoord 12.12857142857143 sub curveto
+               xcoord 2.142857142857143 sub ycoord 10.0 sub xcoord 0.19999999999999998 add ycoord 7.428571428571429 sub xcoord 1.7142857142857142 add ycoord 8.285714285714286 sub curveto
+               xcoord 0.6571428571428571 sub ycoord 5.257142857142857 sub lineto
+               xcoord 1.1428571428571428 add ycoord 3.257142857142857 sub xcoord 1.1428571428571428 add ycoord 2.2857142857142856 sub xcoord 0.24285714285714285 sub ycoord 0.19999999999999998 sub curveto
+               xcoord 0.24285714285714285 sub ycoord 0.1142857142857143 sub xcoord 0.14285714285714285 sub ycoord xcoord ycoord curveto
+               fill
+               grestore
+               end
+               } bind def
+
+               /restCurl { %given x and y coord
+                  2 dict begin
+                  gsave
+                  0.1 setlinewidth
+                  /ycoord exch def
+                  /xcoord exch def
+                  newpath
+                  xcoord ycoord moveto
+                  xcoord 0.64816513755 sub ycoord 0.51853211004 sub xcoord 1.058669724665 sub ycoord 0.885825687985 sub xcoord 1.46917431178 sub ycoord 0.99385321091 sub curveto
+                  xcoord 2.46302752269 sub ycoord 1.85807339431 sub lineto
+                  xcoord 2.03091743099 sub ycoord 1.85807339431 sub xcoord 1.85807339431 sub ycoord 1.77165137597 sub xcoord 0.95064220174 sub ycoord 1.4475688071950001 sub curveto
+                  xcoord 0.8642201834000001 sub ycoord 1.42596330261 sub xcoord 0.8642201834000001 sub ycoord 1.663623853045 sub 0.08642201834 arct
+                  closepath
+                  fill
+                  newpath xcoord 2.46302752269 sub ycoord 0.8210091742300001 sub 1.03706422008 0 360 arc fill
+                  grestore
+                  end
+               } bind def
+
+               /8thRest { %given x and y coord
+                  2 dict begin
+                  gsave
+                  0.1 setlinewidth
+                  /ycoord exch def
+                  /xcoord exch def
+                  /xcoord xcoord 1 add store
+                  xcoord ycoord moveto
+                  xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto
+                  xcoord 2.72229357771 add ycoord 6.22238532048 add lineto
+                  xcoord 2.72229357771 add ycoord 6.3520183479900005 add xcoord 2.5062385318600002 add ycoord 6.5248623846700005 add xcoord 2.37660550435 add ycoord 6.43844036633 add curveto
+                  xcoord 1.51238532095 add ycoord 4.904449540795 add lineto
+                  xcoord 1.51238532095 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto
+                  xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct
+                  fill
+                  xcoord 2.37660550435 add ycoord 6.43844036633 add restCurl
+                  grestore
+                  end
+               } bind def
+
+               /16thRest { %given x and y coord
+                  2 dict begin
+                  gsave
+                  0.1 setlinewidth
+                  /ycoord exch def
+                  /xcoord exch def
+                  xcoord ycoord moveto
+                  xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto
+                  xcoord 3.9322018344700003 add ycoord 10.15458715495 add lineto
+                  xcoord 3.9538073390550004 add ycoord 10.262614677875 add xcoord 3.7377522932050002 add ycoord 10.435458714555 add xcoord 3.62972477028 add ycoord 10.3706422008 add curveto
+                  xcoord 2.76550458688 add ycoord 8.836651375265001 add lineto
+                  xcoord 1.51238532095 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto
+                  xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct
+                  fill
+                  xcoord 2.4198165135200003 add ycoord 6.43844036633 add restCurl
+                  xcoord 3.62972477028 add ycoord 10.3706422008 add restCurl
+                  grestore
+                  end
+               } bind def
+
+               /32ndRest { %given x and y coord
+                  2 dict begin
+                  gsave
+                  0.1 setlinewidth
+                  /ycoord exch def
+                  /xcoord exch def
+                  xcoord ycoord moveto
+                  xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto
+                  xcoord 4.515550458265 add ycoord 14.151605503175 add lineto
+                  xcoord 4.53715596285 add ycoord 14.17321100776 add xcoord 4.429128439925 add ycoord 14.367660549025 add xcoord 4.23467889866 add ycoord 14.272596328851002 add curveto
+                  xcoord 3.41366972443 add ycoord 12.79045871432 add lineto
+                  xcoord 1.33954128427 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto
+                  xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct
+                  fill
+                  xcoord 2.20376146767 add ycoord 6.43844036633 add restCurl
+                  xcoord 3.2624311923350002 add ycoord 10.3706422008 add restCurl
+                  xcoord 4.277889907830001 add ycoord 14.30284403527 add restCurl
+                  grestore
+                  end
+               } bind def
+
+               /64thRest { %given x and y coord
+                  2 dict begin
+                  gsave
+                  0.1 setlinewidth
+                  /ycoord exch def
+                  /xcoord exch def
+                  xcoord ycoord moveto
+                  xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto
+                  xcoord 5.53100917376 add ycoord 18.1486238514 add lineto
+                  xcoord 5.48779816459 add ycoord 18.27825687891 add xcoord 5.44458715542 add ycoord 18.32146788808 add xcoord 5.250137614155 add ycoord 18.269614677076 add curveto
+                  xcoord 4.40752293534 add ycoord 16.76587155796 add lineto
+                  xcoord 1.33954128427 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto
+                  xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct
+                  fill
+                  xcoord 2.20376146767 add ycoord 6.43844036633 add restCurl
+                  xcoord 3.24082568775 add ycoord 10.3706422008 add restCurl
+                  xcoord 4.277889907830001 add ycoord 14.30284403527 add restCurl
+                  xcoord 5.27174311874 add ycoord 18.27825687891 add restCurl
+                  grestore
+                  end
+               } bind def
+
+               /halfWholeRest { %given x and y coord
+               2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def
+               xcoord 0.37129898 add ycoord moveto
+               xcoord 4.48414922 add ycoord xcoord 4.48414922 add ycoord 0.37129898 add 0.37129898 arct
+               xcoord 4.48414922 add ycoord 2.31347826 add xcoord 4.11285024 add ycoord 2.31347826 add 0.37129898 arct
+               xcoord ycoord 2.31347826 add xcoord ycoord 0.37129898 add 0.37129898 arct
+               xcoord ycoord xcoord 0.37129898 add ycoord 0.37129898 arct
+               fill
+               grestore end
+               } bind def
+
+               /drawFlag {
+               2 dict begin gsave
+               /ycoord exch def
+               /xcoord exch def
+               0.1 setlinewidth
+               xcoord ycoord moveto
+               xcoord ycoord 2.744186046511628 add lineto
+               xcoord 0.20930232558139536 add ycoord 2.697674418604651 add 0.20930232558139536 170 10 arcn
+               xcoord 0.6976744186046512 add ycoord 1.627906976744186 sub xcoord 4.3023255813953485 add ycoord 1.627906976744186 sub xcoord 2.744186046511628 add ycoord 7.1395348837209305 sub curveto
+               xcoord 2.604651162790698 add ycoord 7.372093023255814 sub xcoord 2.2325581395348837 add ycoord 7.325581395348837 sub xcoord 2.2093023255813953 add ycoord 6.976744186046512 sub curveto
+               xcoord 3.13953488372093 add ycoord 3.953488372093023 sub xcoord 2.488372093023256 add ycoord 2.7906976744186047 sub xcoord ycoord curveto
+               fill
+               grestore end
+               } bind def
+
+               /measureNumber {
+                  3 dict begin gsave
+                  /str exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  /Times-Roman findfont
+                  7 scalefont setfont
+                  newpath
+                  0 0 0 setrgbcolor
+                  xcoord ycoord moveto
+                  str show
+                  grestore end
+               } bind def
+
+               /centerText {
+                  dup stringwidth pop -0.5 mul 0 rmoveto show } def
+
+               /title {
+                  1 dict begin gsave
+                  /str exch def
+                  /Times-Roman findfont
+                  22 scalefont setfont
+                  newpath
+                  0 0 0 setrgbcolor
+                  306 745 moveto
+                  str centerText
+                  grestore end
+               } bind def
+
+               /composer {
+               1 dict begin gsave
+               /str exch def
+               /Times-Roman findfont
+               10 scalefont
+               setfont
+               newpath
+               0 0 0 setrgbcolor
+               565 720 moveto
+               str stringwidth pop -1 mul 0 rmoveto
+               str show
+               grestore end
+               } bind def
+
+               /guitarfretnumbergrace { %xcoord, ycoord, filestring
+                  8 dict begin
+                  /str exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  /scalex 2.7 def
+                  /scaley 3.04425 def
+                  /sizex 800 def
+                  /sizey 902 def
+                  /filestring (temp) def
+                  str type /stringtype eq {
+                     /xcoord xcoord 0.4 sub store
+                     /filestring (images/Tab_Numbers/) str (.jpg) concatenate concatenate store
+                     /scalex 3.105 store
+                     /scaley 3.24 store
+                     /sizex 1000 store
+                     }{
+                     str 9 gt {
+                        /xcoord xcoord 1.1475 sub store
+                        /scalex 4.9275 store
+                        /sizex 1460 store
+                        }{} ifelse
+                     /filestring (images/Tab_Numbers/) str (ffff) cvs (.jpg) concatenate concatenate store
+                     } ifelse
+                  xcoord ycoord scalex scaley sizex sizey filestring 1 printimage
+                  end
+               } bind def
                %%EndProlog
+
                "
                // Add the title and comnposer to the text
                let text' = text + " (" + newOption.Title + ") title " + "(" + newOption.Composer + ") composer "
                //print and show
                match (show pages [] text') with
                | Some(updatedText, updatedPages) ->
-
+                  
                   Some(updatedText, updatedPages)
                | None -> None
             | None -> None
