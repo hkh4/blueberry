@@ -6,11 +6,65 @@
 -capo 2
 
 1:
-   1e/par/sls/har
-   1e/gra
-   1e/gra
-   1e/gra
-   (1e 2d)4
-   1e
-   6d#32/gra
+   1e16
+   1e64
+   1e8
+   1e64
+   1e32
+   1e2
    1e4
+2:
+   1e16/gra
+   1e64/gra
+   1e8/gra
+   1e64/gra
+   1e32/gra
+   1e2/gra
+   1e4/gra
+   1e1
+3:
+   1e32
+   1e16
+   1e16
+   r32
+   r16
+   r4
+   1e8
+   1e16
+   1e32
+   1e8
+   r32
+   r8
+4:
+   1e32/gra
+   1e16/gra
+   1e16/gra
+   2e32/gra
+   3e16/gra
+   4e4/gra
+   1e8/gra
+   1e16/gra
+   1e32/gra
+   1e8/gra
+   1e32/gra
+   1e8/gra
+   1e1
+5:
+   6e8
+   5e
+   2dn64
+   1f8
+   r16
+   r32
+   r64
+   1e2
+6:
+   6e8/gra
+   5e/gra
+   2dn64/gra
+   1f8/gra
+   1e16/gra
+   2e32/gra
+   6fn64/gra
+   1e2/gra
+   1e1/har/sli

@@ -26,6 +26,7 @@ type Notehead =
 | Rest
 | Barline
 | Empty
+| Buffer
 
 type Element = {
    NoteInfo: Notehead
@@ -95,34 +96,36 @@ let widthOfRhythms =
       Add(R(X64,1),5.9).
       Add(R(X64,0),5.5)
 
+// widths of grace notes
 let widthOfGraceRhythms =
    Map.empty.
-      Add(R(X0,0),25.0).
-      Add(R(X1,3),70.0).
-      Add(R(X1,2),60.0).
-      Add(R(X1,1),50.0).
-      Add(R(X1,0),40.5).
-      Add(R(X2,3),37.0).
-      Add(R(X2,2),34.0).
-      Add(R(X2,1),31.0).
-      Add(R(X2,0),27.0).
-      Add(R(X4,3),25.0).
-      Add(R(X4,2),23.0).
-      Add(R(X4,1),21.0).
-      Add(R(X4,0),18.0).
-      Add(R(X8,3),16.5).
-      Add(R(X8,2),15.0).
-      Add(R(X8,1),13.5).
-      Add(R(X8,0),12.0).
-      Add(R(X16,2),10.6).
-      Add(R(X16,1),9.6).
-      Add(R(X16,0),8.5).
-      Add(R(X32,2),7.5).
-      Add(R(X32,1),7.1).
-      Add(R(X32,0),6.7).
-      Add(R(X64,2),6.3).
-      Add(R(X64,1),5.9).
-      Add(R(X64,0),5.5)
+      Add(Other,0.0).
+      Add(R(X0,0),0.0). // should never happen
+      Add(R(X1,3),21.0).
+      Add(R(X1,2),18.0).
+      Add(R(X1,1),16.0).
+      Add(R(X1,0),14.0).
+      Add(R(X2,3),12.0).
+      Add(R(X2,2),11.0).
+      Add(R(X2,1),10.0).
+      Add(R(X2,0),9.0).
+      Add(R(X4,3),8.0).
+      Add(R(X4,2),7.5).
+      Add(R(X4,1),7.0).
+      Add(R(X4,0),6.5).
+      Add(R(X8,3),6.0).
+      Add(R(X8,2),5.6).
+      Add(R(X8,1),5.3).
+      Add(R(X8,0),5.0).
+      Add(R(X16,2),4.7).
+      Add(R(X16,1),4.5).
+      Add(R(X16,0),4.3).
+      Add(R(X32,2),4.2).
+      Add(R(X32,1),4.1).
+      Add(R(X32,0),4.0).
+      Add(R(X64,2),4.0).
+      Add(R(X64,1),4.0).
+      Add(R(X64,0),4.0)
 
 // Changeable default
 let mutable defaultRhythm = R(X4,0)
@@ -148,18 +151,38 @@ let emptyMeasure =
 
 
 // Template for drawing dots
-let dotTemplate (x: float) (y: float) : string = " 1 setlinecap 1.4 setlinewidth " + string x + " " + string y + " moveto 0 0 rlineto stroke 0 setlinecap "
+let dotTemplate (x: float) (y: float) (isGrace: bool) : string =
+   match isGrace with
+   // not a grace note
+   | false ->
+      " 1 setlinecap 1.4 setlinewidth " + string x + " " + string y + " moveto 0 0 rlineto stroke 0 setlinecap "
+   // grace note
+   | true ->
+      " 1 setlinecap 1.1 setlinewidth " + string x + " " + string y + " moveto 0 0 rlineto stroke 0 setlinecap "
 
 
 // Template for drawing flags
-let drawFlags (x: float) (y: float) (r: Rhythm) : string List =
-   match r with
-   | R(X8,n) -> ["0.9 setlinewidth 1 1 1 setrgbcolor " + string (x + 2.0) + " " + string (y + 41.0) + " moveto 0 1 rlineto stroke 0 0 0 setrgbcolor ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag "]
-   // for 16th notes and shorter, need to extend the stem as well
-   | R(X16,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 3 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 44.0) + " drawFlag "]
-   | R(X32,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 7 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 44.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 48.0) + " drawFlag "]
-   | R(X64,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 11 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 43.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 48.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 53.0) + " drawFlag "]
-   | _ -> [""]
+let drawFlags (x: float) (y: float) (r: Rhythm) (isGrace: bool) : string List =
+   match isGrace with
+   // not a grace note
+   | false ->
+      match r with
+      | R(X8,n) -> ["0.9 setlinewidth 1 1 1 setrgbcolor " + string (x + 2.0) + " " + string (y + 41.0) + " moveto 0 1 rlineto stroke 0 0 0 setrgbcolor ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag "]
+      // for 16th notes and shorter, need to extend the stem as well
+      | R(X16,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 3 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 44.0) + " drawFlag "]
+      | R(X32,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 7 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 44.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 48.0) + " drawFlag "]
+      | R(X64,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 11 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 43.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 48.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 53.0) + " drawFlag "]
+      | _ -> [""]
+   // grace note
+   | true ->
+      match r with
+      | R(X8,n) -> ["0.5 setlinewidth 1 1 1 setrgbcolor " + string (x + 1.25) + " " + string (y + 39.0) + " moveto 0 1 rlineto stroke 0 0 0 setrgbcolor ";string (x + 1.0) + " " + string (y + 38.5) + " drawFlagGrace "]
+      // for 16th notes and shorter, need to extend the stem as well
+      | R(X16,n) -> [string (x + 1.0) + " " + string (y + 37.0) + " drawFlagGrace ";string (x + 1.0) + " " + string (y + 39.2) + " drawFlagGrace "]
+      | R(X32,n) -> ["0.5 setlinewidth " + string (x + 1.25) + " " + string (y + 39.0) + " moveto 0 0 rlineto stroke ";string (x + 1.0) + " " + string (y + 37.0) + " drawFlagGrace ";string (x + 1.0) + " " + string (y + 39.2) + " drawFlagGrace ";string (x + 1.0) + " " + string (y + 41.4) + " drawFlagGrace "]
+      | R(X64,n) -> ["0.5 setlinewidth " + string (x + 1.25) + " " + string (y + 39.0) + " moveto 0 0 rlineto stroke ";string (x + 1.0) + " " + string (y + 37.0) + " drawFlagGrace ";string (x + 1.0) + " " + string (y + 39.2) + " drawFlagGrace ";string (x + 1.0) + " " + string (y + 41.4) + " drawFlagGrace ";string (x + 1.0) + " " + string (y + 43.3) + " drawFlagGrace "]
+      | _ -> [""]
+
 
 // Remove duplicates from a list
 let removeDuplicates (l: 'a List) =
@@ -173,8 +196,8 @@ let removeDuplicates (l: 'a List) =
    helper l []
 
 
-
-
+// Buffer for beaming grace notes
+let bufferElement = { NoteInfo = Buffer; Duration = Other; Start = 0.0; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = 0; GraceNotes = [] }
 
 
 
@@ -188,6 +211,7 @@ RETURNS an option, the bool is really just a placeholder
 *)
 let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
    match a with
+
    // If type
    | ScoreOption(key: string, value: string) when key = "type" ->
       let valueTrim = value.Trim(' ')
@@ -198,6 +222,7 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
       | _ ->
          printfn "Valid types : tab"
          None
+
    // If time
    | ScoreOption(key: string, value: string) when key = "time" ->
       let valueTrim = value.Trim(' ')
@@ -249,6 +274,7 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
       | _ ->
          printfn "The time option should be of the form (int)-(int)"
          None
+
    // If key
    | ScoreOption(key: string, value: string) when key = "key" ->
       let valueTrim = value.Trim(' ')
@@ -262,6 +288,7 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
       | _ ->
          printfn "Invalid key. Valid options are: c cm c# c#m cb d dm db d#m e em eb ebm f fm f#m f# g gm g#m gb a am a#m ab abm b bm bb bbm"
          None
+
    // If capo
    | ScoreOption(key: string, value: string) when key = "capo" ->
       let valueTrim = value.Trim(' ')
@@ -273,11 +300,14 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
          | _ ->
             printfn "The capo option must be an integer"
             None
+
    // Title
    | ScoreOption(key: string, value: string) when key = "title" ->
       let valueTrim = value.Trim(' ')
       let newOption = { optionsR with Title = valueTrim }
       Some(newOption)
+
+   // Composer
    | ScoreOption(key: string, value: string) when key = "composer" ->
       let valueTrim = value.Trim(' ')
       let newOption = { optionsR with Composer = valueTrim }
@@ -285,6 +315,7 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
    | _ ->
       printfn "Invalid option! Valid options are type, key, title, composer, capo, and time"
       None
+
 
 
 
@@ -330,7 +361,9 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
       | Other ->
          printfn "Error in widthStart. The note had a rhythm of type Other"
          X4,0 // Should never reach this
+
    match rNumber with
+   // If it's X0, which should be a rest, its number of beats is the whole measure
    | X0 ->
       let newWidth = widthOfRhythms.[r]
       Some({ template with Width = newWidth }, (float numberOfBeats + 1.0))
@@ -363,6 +396,7 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
             printfn "You can only have up to 3 dots on a note"
             -1.0
       let newNextStart = nextStart + startWithDotsAdded
+
       // If the note has grace notes, increase its width some more
       match graceNotes with
       // no grace notes
@@ -373,7 +407,7 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
       | graceList ->
          // go through the list of grace notes, find their widths and add them
 
-         // helper function to add up the widths of all the grace notes, and also update the widths of those grace notes
+         // helper function to add up the widths of all the grace notes, and also update the widths of those grace notes. Returns the total width and the new list of grace notes with updated widths
          let rec graceWidthHelper (graceToAdd: Element List) (newGrace: Element List) (acc: float) : float * Element List =
             match graceToAdd with
             | [] -> (acc,newGrace)
@@ -383,9 +417,13 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
                let newList = newGrace @ [newHead]
                graceWidthHelper tail newList (acc + graceWidth)
 
+         // call the helper
          let (extra,newGrace) = graceWidthHelper graceList [] 0.0
+         // add this extra width to the existing width of the actual note
          let widthWithGrace = newWidth + extra
+         // modify the note to have the larger width and the updated grace notes
          Some({ template with Width = widthWithGrace; GraceNotes = newGrace },newNextStart)
+
 
 
 
@@ -408,18 +446,20 @@ let rec divideProperties (properties: Property List) (eProperties: EitherPropert
 
 (* Evaluate a single note
 1) measureNumber is the number of the current measure
-2) baseBeat is what rhythm counts as one beat, based on bottom number of time signature
-3) numberOfBeats is top number of time signature - number of beats in a measure
-4) nextStart is the starting spot of the next note
-5) last is either 1, meaning it's the last note, or 0 otherwise
-6) optionsR is the optionsRecord
-7) graceBefore is the list of grace notes that precede this note. If this note isn't a grace note, then this list is added to this element
+2) n is the current Note
+3) baseBeat is what rhythm counts as one beat, based on bottom number of time signature
+4) numberOfBeats is top number of time signature - number of beats in a measure
+5) nextStart is the starting spot of the next note
+6) last is either 1, meaning it's the last note, or 0 otherwise
+7) optionsR is the optionsRecord
+8) graceBefore is the list of grace notes that precede this note. If this note isn't a grace note, then this list is added to this element. Otherwise, add this note to the list and return it
 RETURNS: an Element, a float which is the start of the next note, and the list of grace notes
 *)
 let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) : (Element * float * Element List) option =
    // this is EITHER a tuple of an Element and a bool (true means grace note, else not) or None
    let noteOption =
       match n with // figure out the type of the note
+
       | Simple(p) ->
          match p with
          // Single Simple
@@ -442,7 +482,8 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
             match (List.exists (fun e -> e = Gra) mProperties) with
             // not a grace note
             | false ->
-               Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBefore }),false)
+               let graceBeforeBuffer = graceBefore @ [bufferElement]
+               Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer }),false)
             // grace note
             | true ->
                Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }),true)
@@ -455,6 +496,7 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
             | _ ->
                printfn "Rests can't have grace notes!"
                None
+
       | Complex(p) ->
          match p with
          // Single Complex
@@ -477,7 +519,8 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
             match (List.exists (fun e -> e = Gra) mProperties) with
             // not a grace note
             | false ->
-               Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBefore }),false)
+               let graceBeforeBuffer = graceBefore @ [bufferElement]
+               Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer }),false)
             // grace note
             | true ->
                Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }),true)
@@ -495,6 +538,7 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
             | _ ->
                printfn "Rests can't have grace notes!"
                None
+
       // Groups
       | Group(g) ->
 
@@ -531,13 +575,15 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
                match (List.exists (fun e -> e = Gra) mProperties) with
                // not a grace note
                | false ->
-                  Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBefore },false)
+                  let graceBeforeBuffer = graceBefore @ [bufferElement]
+                  Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer },false)
                // grace note
                | true ->
                   Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },true)
             | None -> None
          // gcomplex: group with rhythm: does the same thing but uses r instead of the default rhythm
          | GComplex(gList,r,mProperties) ->
+            defaultRhythm <- r
             match (groupHelper gList [] []) with
             | Some(singleNoteList) ->
                // turn it into a Group type
@@ -545,7 +591,8 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
                match (List.exists (fun e -> e = Gra) mProperties) with
                // not a grace note
                | false ->
-                  Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBefore },false)
+                  let graceBeforeBuffer = graceBefore @ [bufferElement]
+                  Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer },false)
                // grace note
                | true ->
                   Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },true)
@@ -553,6 +600,7 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
 
 
    match noteOption with
+   // if it's not a grace note
    | Some(note,b) when b = false ->
       // Check to see if a note has a valid number of dots. 8th notes and longer can up to 3 dots. 16th can have 2, 32nd can have 1, 64th cannot have any
       match note.Duration with
@@ -615,8 +663,8 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
 6) acc is the accumulator to keep track of the total width of all the elements in the measure
 7) nextStart is the start of the next element
 8) optionsR is the optionsRecord
-RETURNS: float which is the total width of the measure, and the list of elements that make up the measure
 9) graceBefore is the list of notes that are grace notes for the next element
+RETURNS: float which is the total width of the measure, and the list of elements that make up the measure
 *)
 let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : Element List) (baseBeat: RhythmNumber) (numberOfBeats: int) (acc : float) (nextStart: float)  (optionsR: optionsRecord) (graceBefore: Element List) : (float * Element List) option =
    match m with
@@ -697,7 +745,15 @@ let parseKey (l: Element List) (key: string) : Element List =
       match l with
       | [] -> updatedList
       | head::tail ->
-         match head.NoteInfo with
+         // parse the key of the grace notes
+         let updatedGraceNotes =
+            match head.GraceNotes with
+            | [] -> head.GraceNotes
+            | gList -> parseKeyHelper head.GraceNotes [] mapOfChanges
+         // update head using the new grace notes
+         let newHead = { head with GraceNotes = updatedGraceNotes }
+
+         match newHead.NoteInfo with
          // if it's a single guitar note
          | SingleNote(NormalGuitarNote(s,pitch,eProperties),mProperties) ->
             // see if this pitch needs to be changed
@@ -706,12 +762,12 @@ let parseKey (l: Element List) (key: string) : Element List =
             | Some(newPitch) ->
                // update all the info for the new Element
                let newNInfo = SingleNote(NormalGuitarNote(s,newPitch,eProperties),mProperties)
-               let newElement = { head with NoteInfo = newNInfo }
+               let newElement = { newHead with NoteInfo = newNInfo }
                let newList = updatedList @ [newElement]
                parseKeyHelper tail newList mapOfChanges
             // don't change this pitch, recurse
             | None ->
-               let newList = updatedList @ [head]
+               let newList = updatedList @ [newHead]
                parseKeyHelper tail newList mapOfChanges
          // if it's a group, go through each element
          | GroupNote(nList,mProperties) ->
@@ -739,13 +795,13 @@ let parseKey (l: Element List) (key: string) : Element List =
             // turn that list into a NoteHead
             let newNInfo = GroupNote(newNList,mProperties)
             // create the new Element
-            let newElement = { head with NoteInfo = newNInfo }
+            let newElement = { newHead with NoteInfo = newNInfo }
             // new List, recurse
             let newList = updatedList @ [newElement]
             parseKeyHelper tail newList mapOfChanges
          // for all other types of Notes, no pitch change needed
          | _ ->
-            let newList = updatedList @ [head]
+            let newList = updatedList @ [newHead]
             parseKeyHelper tail newList mapOfChanges
 
 
@@ -963,10 +1019,11 @@ let rec dividePages (lines : Line List) (pageList : Page List) (start : float * 
 (* used to draw stubs at the end of a note
 1) lastLocation is the x and y coords
 2) lastRhythm is the Rhythm of the last note
+3) isGrace is true if these notes are grace notes, false else
 note: does similar thing as initialStubs but the required info is figured out within the method, for simplicity
 RETURNS list of strings to be printed
 *)
-let rec endingStubs (lastLocation: float * float) (lastRhythm: Rhythm) : string List =
+let endingStubs (lastLocation: float * float) (lastRhythm: Rhythm) (isGrace: bool) : string List =
    let (oldX,oldY) = lastLocation
    let (previousRhythmNumber,previousDots) =
       match lastRhythm with
@@ -977,23 +1034,39 @@ let rec endingStubs (lastLocation: float * float) (lastRhythm: Rhythm) : string 
    let beamsOfPrevious = numberOfBeams.[previousRhythmNumber]
 
    // helper function to do the actual drawing
-   let rec endingStubsHelper (x: float) (y: float) (toAdd: int List) (text: string List) : string List =
+   let rec endingStubsHelper (x: float) (y: float) (toAdd: int List) (text: string List) (isGrace: bool) : string List =
       match toAdd with
       | [] -> text
       | head::tail ->
          let stub =
-            match head with
-            | 1 ->
-               [" 1.6 setlinewidth " + string (x - 1.5) + " " + string (y + 42.0) + " moveto " + string (x + 1.7) + " " + string (y + 42.0) + " lineto stroke "]
-            | 2 ->
-               [" 1.6 setlinewidth " + string (x - 1.5) + " " + string (y + 39.6) + " moveto " + string (x + 1.7) + " " + string (y + 39.6) + " lineto stroke "]
-            | 3 ->
-               [" 1.6 setlinewidth " + string (x - 1.5) + " " + string (y + 37.2) + " moveto " + string (x + 1.7) + " " + string (y + 37.2) + " lineto stroke "]
-            | 4 ->
-               [" 1.6 setlinewidth " + string (x - 1.5) + " " + string (y + 34.8) + " moveto " + string (x + 1.7) + " " + string (y + 34.8) + " lineto stroke "]
-            | _ -> [""] //should never reach this
-         endingStubsHelper x y tail (text @ stub)
-   endingStubsHelper oldX oldY [1..beamsOfPrevious] []
+            match isGrace with
+            // not a grace note
+            | false ->
+               match head with
+               | 1 ->
+                  [" 1.6 setlinewidth " + string (x - 1.5) + " " + string (y + 42.0) + " moveto " + string (x + 1.7) + " " + string (y + 42.0) + " lineto stroke "]
+               | 2 ->
+                  [" 1.6 setlinewidth " + string (x - 1.5) + " " + string (y + 39.6) + " moveto " + string (x + 1.7) + " " + string (y + 39.6) + " lineto stroke "]
+               | 3 ->
+                  [" 1.6 setlinewidth " + string (x - 1.5) + " " + string (y + 37.2) + " moveto " + string (x + 1.7) + " " + string (y + 37.2) + " lineto stroke "]
+               | 4 ->
+                  [" 1.6 setlinewidth " + string (x - 1.5) + " " + string (y + 34.8) + " moveto " + string (x + 1.7) + " " + string (y + 34.8) + " lineto stroke "]
+               | _ -> [""] //should never reach this
+            // grace note
+            | true ->
+               match head with
+               | 1 ->
+                  [" 1.1 setlinewidth " + string (x - 0.9) + " " + string (y + 40.0) + " moveto " + string (x + 1.4) + " " + string (y + 40.0) + " lineto stroke "]
+               | 2 ->
+                  [" 1.1 setlinewidth " + string (x - 0.9) + " " + string (y + 38.5) + " moveto " + string (x + 1.4) + " " + string (y + 38.5) + " lineto stroke "]
+               | 3 ->
+                  [" 1.1 setlinewidth " + string (x - 0.9) + " " + string (y + 37.0) + " moveto " + string (x + 1.4) + " " + string (y + 37.0) + " lineto stroke "]
+               | 4 ->
+                  [" 1.1 setlinewidth " + string (x - 0.9) + " " + string (y + 35.5) + " moveto " + string (x + 1.4) + " " + string (y + 35.5) + " lineto stroke "]
+               | _ -> [""] //should never reach this
+         endingStubsHelper x y tail (text @ stub) isGrace
+
+   endingStubsHelper oldX oldY [1..beamsOfPrevious] [] isGrace
 
 
 
@@ -1003,26 +1076,44 @@ let rec endingStubs (lastLocation: float * float) (lastRhythm: Rhythm) : string 
 2) y is the y coord
 3) toAdd is the list of ints which is the beams to draw
 4) text is a string list that is composed as the function recurses
+5) isGrace is true if these notes are grace notes, false else
 RETURNS the list of strings
 *)
-let rec initialStubs (x: float) (y: float) (toAdd: int List) (text: string List) : string List =
+let rec initialStubs (x: float) (y: float) (toAdd: int List) (text: string List) (isGrace: bool) : string List =
    match toAdd with
    | [] -> text
    | head::tail ->
       let stub =
-         match head with
-         | 1 ->
-            [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 42.0) + " moveto " + string (x + 5.65) + " " + string (y + 42.0) + " lineto stroke "]
-         | 2 ->
-            [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 39.6) + " moveto " + string (x + 5.65) + " " + string (y + 39.6) + " lineto stroke "]
-         | 3 ->
-            [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 37.2) + " moveto " + string (x + 5.65) + " " + string (y + 37.2) + " lineto stroke "]
-         | 4 ->
-            [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 34.8) + " moveto " + string (x + 5.65) + " " + string (y + 34.8) + " lineto stroke "]
-         | _ ->
-            printfn "Error in initialStubs: more than 4 beams to be drawn"
-            [""] //should never reach this
-      initialStubs x y tail (text @ stub)
+         match isGrace with
+         // not a grace note
+         | false ->
+            match head with
+            | 1 ->
+               [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 42.0) + " moveto " + string (x + 5.65) + " " + string (y + 42.0) + " lineto stroke "]
+            | 2 ->
+               [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 39.6) + " moveto " + string (x + 5.65) + " " + string (y + 39.6) + " lineto stroke "]
+            | 3 ->
+               [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 37.2) + " moveto " + string (x + 5.65) + " " + string (y + 37.2) + " lineto stroke "]
+            | 4 ->
+               [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 34.8) + " moveto " + string (x + 5.65) + " " + string (y + 34.8) + " lineto stroke "]
+            | _ ->
+               printfn "Error in initialStubs: more than 4 beams to be drawn"
+               [""] //should never reach this
+         // grace note
+         | true ->
+            match head with
+            | 1 ->
+               [" 1.1 setlinewidth " + string (x + 1.1) + " " + string (y + 40.0) + " moveto " + string (x + 3.6) + " " + string (y + 40.0) + " lineto stroke "]
+            | 2 ->
+               [" 1.1 setlinewidth " + string (x + 1.1) + " " + string (y + 38.5) + " moveto " + string (x + 3.6) + " " + string (y + 38.5) + " lineto stroke "]
+            | 3 ->
+               [" 1.1 setlinewidth " + string (x + 1.1) + " " + string (y + 37.0) + " moveto " + string (x + 3.6) + " " + string (y + 37.0) + " lineto stroke "]
+            | 4 ->
+               [" 1.1 setlinewidth " + string (x + 1.1) + " " + string (y + 35.5) + " moveto " + string (x + 3.6) + " " + string (y + 35.5) + " lineto stroke "]
+            | _ ->
+               printfn "Error in initialStubs: more than 4 beams to be drawn"
+               [""] //should never reach this
+      initialStubs x y tail (text @ stub) isGrace
 
 
 
@@ -1033,26 +1124,45 @@ let rec initialStubs (x: float) (y: float) (toAdd: int List) (text: string List)
 3) y is the y coord
 4) beamsToAdd is the list of ints which are the beams to be drawn
 5) text is the string list
+6) isGrace is true if these notes are grace notes, false else
 RETURNS a string list to be printed
 *)
-let rec fullBeams (x: float) (newX: float) (y: float) (beamsToAdd: int List) (text: string List) : string List =
+let rec fullBeams (x: float) (newX: float) (y: float) (beamsToAdd: int List) (text: string List) (isGrace: bool) : string List =
    match beamsToAdd with
    | [] -> text
    | head::tail ->
       let stub =
-         match head with
-         | 1 ->
-            [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 42.0) + " moveto " + string (newX + 2.35) + " " + string (y + 42.0) + " lineto stroke "]
-         | 2 ->
-            [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 39.6) + " moveto " + string (newX + 2.35) + " " + string (y + 39.6) + " lineto stroke "]
-         | 3 ->
-            [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 37.2) + " moveto " + string (newX + 2.35) + " " + string (y + 37.2) + " lineto stroke "]
-         | 4 ->
-            [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 34.8) + " moveto " + string (newX + 2.35) + " " + string (y + 34.8) + " lineto stroke "]
-         | _ ->
-            printfn "Error in fullBeams: a note can only have 1 2 3 or 4 beams"
-            [""] //should never reach this
-      fullBeams x newX y tail (text @ stub)
+         match isGrace with
+         // not a grace note
+         | false ->
+            match head with
+            | 1 ->
+               [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 42.0) + " moveto " + string (newX + 2.35) + " " + string (y + 42.0) + " lineto stroke "]
+            | 2 ->
+               [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 39.6) + " moveto " + string (newX + 2.35) + " " + string (y + 39.6) + " lineto stroke "]
+            | 3 ->
+               [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 37.2) + " moveto " + string (newX + 2.35) + " " + string (y + 37.2) + " lineto stroke "]
+            | 4 ->
+               [" 1.6 setlinewidth " + string (x + 1.65) + " " + string (y + 34.8) + " moveto " + string (newX + 2.35) + " " + string (y + 34.8) + " lineto stroke "]
+            | _ ->
+               printfn "Error in fullBeams: a note can only have 1 2 3 or 4 beams"
+               [""] //should never reach this
+         // grace note
+         | true ->
+            match head with
+            | 1 ->
+               [" 1.1 setlinewidth " + string (x + 1.0) + " " + string (y + 40.0) + " moveto " + string (newX + 1.5) + " " + string (y + 40.0) + " lineto stroke "]
+            | 2 ->
+               [" 1.1 setlinewidth " + string (x + 1.0) + " " + string (y + 38.5) + " moveto " + string (newX + 1.5) + " " + string (y + 38.5) + " lineto stroke "]
+            | 3 ->
+               [" 1.1 setlinewidth " + string (x + 1.0) + " " + string (y + 37.0) + " moveto " + string (newX + 1.5) + " " + string (y + 37.0) + " lineto stroke "]
+            | 4 ->
+               [" 1.1 setlinewidth " + string (x + 1.0) + " " + string (y + 35.5) + " moveto " + string (newX + 1.5) + " " + string (y + 35.5) + " lineto stroke "]
+            | _ ->
+               printfn "Error in fullBeams: a note can only have 1 2 3 or 4 beams"
+               [""] //should never reach this
+
+      fullBeams x newX y tail (text @ stub) isGrace
 
 
 
@@ -1083,9 +1193,10 @@ let rec findElementInKey (key: int list list) (baseStart: int) (i: int) : int op
 5) head is the current element
 6) lastBeamed is 1 if the two previous notes were beamed and the same number of lines, 2 if the two previous notes were beamed but the first had more beams, 3 if the two previous notes were beamed but the second had more beams, and 0 else
 7) lastLastRhythm is two rhythms ago
+8) isGrace is true if these notes are grace notes, false else
 RETURNS a list of strings and an int which is the next lastBeamed
 *)
-let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (head: Element) (lastBeamed: int) (lastLastRhythm: Rhythm) : string List * int =
+let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (head: Element) (lastBeamed: int) (lastLastRhythm: Rhythm) (isGrace: bool) : string List * int =
    let (x,y) = lastLocation
    // decompose lastRhythm into its rhythmNumber and dots
    let (previousRhythmNumber,previousDots) =
@@ -1109,9 +1220,10 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
    4) head is the current element
    5) lastBeamed is 1 if the two previous notes were beamed and the same number of lines, 2 if the two previous notes were beamed but the first had more beams, 3 if the two previous notes were beamed but the second had more beams, and 0 else
    6) lastLastRhythm is two rhythms ago
+   7) isGrace is true if these notes are grace notes, false else
    RETURNS a list of strings and an int which is the next lastBeamed
    *)
-   let beamByTimeHelper (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (head: Element) (lastBeamed: int) (lastLastRhythm: Rhythm) : string List * int =
+   let beamByTimeHelper (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (head: Element) (lastBeamed: int) (lastLastRhythm: Rhythm) (isGrace: bool) : string List * int =
       // number of beams for the previous note
       let beamsOfPrevious = numberOfBeams.[previousRhythmNumber]
       // number of beams for the current note
@@ -1121,15 +1233,15 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
       // if this note and the last are the same rhythm
       | num when num = beamsOfCurrent ->
          // just draw the full beams, lastBeamed = 1
-         let equalBeams = fullBeams x newX y [1..num] []
+         let equalBeams = fullBeams x newX y [1..num] [] isGrace
          (equalBeams,1)
       // if the last note has more beams than the current
       | num when num > beamsOfCurrent ->
-         let equalBeams = fullBeams x newX y [1..beamsOfCurrent] []
+         let equalBeams = fullBeams x newX y [1..beamsOfCurrent] [] isGrace
          match lastBeamed with
          | 0 ->
             // if the last and lastlast were not beamed, then the last note needs an initial stub since it needs more beams than the current
-            let iStubs = initialStubs x y [1..num] []
+            let iStubs = initialStubs x y [1..num] [] isGrace
             ((equalBeams @ iStubs),2)
          | 1 ->
             (equalBeams,2)
@@ -1148,18 +1260,18 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
             match numberOfBeamsLastLast with
             // if this note has as many or more beams than last last, then last gets an initial stub
             | num when num <= beamsOfCurrent ->
-               let iStubs = initialStubs x y [1..beamsOfPrevious] []
+               let iStubs = initialStubs x y [1..beamsOfPrevious] [] isGrace
                ((equalBeams @ iStubs),2)
             // if this note has less beams than last last, then last note gets an end stub
             | _ ->
-               let endStubs = endingStubs lastLocation lastRhythm
+               let endStubs = endingStubs lastLocation lastRhythm isGrace
                ((equalBeams @ endStubs),2)
          | _ ->
             printfn "Error in beam4: lastBeamed can only be 0 1 2 or 3"
             ([""],0) //should never reach this case
       // if this note has more beams than the last, draw just the beams, and a future case will take care of stubs
       | _ ->
-         let equalBeams = fullBeams x newX y [1..beamsOfPrevious] []
+         let equalBeams = fullBeams x newX y [1..beamsOfPrevious] [] isGrace
          (equalBeams,3)
 
    let indexOfLast = findElementInKey key (int lastStart) 0
@@ -1167,7 +1279,7 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
    match (indexOfLast) with
    // if they're in the same group, beam
    | num when num = indexOfCurrent ->
-      beamByTimeHelper lastLocation lastRhythm lastStart head lastBeamed lastLastRhythm
+      beamByTimeHelper lastLocation lastRhythm lastStart head lastBeamed lastLastRhythm isGrace
    | _ ->
       // if they're not in the same group, beam if the previous element went PAST the exact start of the current beat. e.g. last start was 2.9, current start is 3.1, not exactly 3.0, so beam
       // float int would turn 1.xxx into 1.0
@@ -1175,12 +1287,12 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
       let difference = head.Start - wholeNumber
       match difference with
       | num when num > 0.0 ->
-         beamByTimeHelper lastLocation lastRhythm lastStart head lastBeamed lastLastRhythm
+         beamByTimeHelper lastLocation lastRhythm lastStart head lastBeamed lastLastRhythm isGrace
       | _ ->
          // may need to add a flag to the last note
          match lastBeamed with
          | 0 ->
-            let flag = drawFlags x y lastRhythm
+            let flag = drawFlags x y lastRhythm isGrace
             (flag,0)
          | _ ->
             ([""],0)
@@ -1197,9 +1309,10 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
 6) timeSignature is the time signature
 7) lastBeamed is 1 if the two previous notes were beamed and the same number of lines, 2 if the two previous notes were beamed but the first had more beams, 3 if the two previous notes were beamed but the second had more beams, and 0 else
 8) lastLastRhythm is the Rhythm from two notes ago
+9) isGrace is true if these notes are grace notes, false else
 RETURNS: a list of strings to be printed, and an int which is the new lastBeamed
 *)
-let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (timeSignature: int * int) (lastBeamed: int) (lastLastRhythm: Rhythm) : string List * int =
+let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (timeSignature: int * int) (lastBeamed: int) (lastLastRhythm: Rhythm) (isGrace: bool) : string List * int =
    let dotNumber =
       match head.Duration with
       | R(x,n) -> n
@@ -1208,19 +1321,41 @@ let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhyth
    let (oldX,oldY) = lastLocation
    // draw the stem, depending on which string it's on. If it's on string 6, the beam has to be a little shorter
    let stem =
-      match s with
-      | 6 -> "0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 33.0) + " moveto 0 9 rlineto stroke "
-      | _ -> "0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 32.0) + " moveto 0 10 rlineto stroke "
+      match isGrace with
+      // not a grace note
+      | false ->
+         match s with
+         | 6 -> "0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 33.0) + " moveto 0 9 rlineto stroke "
+         | _ -> "0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 32.0) + " moveto 0 10 rlineto stroke "
+      // grace note
+      | true ->
+         match s with
+         | 6 -> "0.5 setlinewidth " + string (x + 1.25) + " " + string (y + 32.3) + " moveto 0 7.7 rlineto stroke "
+         | _ -> "0.5 setlinewidth " + string (x + 1.25) + " " + string (y + 32.0) + " moveto 0 8 rlineto stroke "
+
    // draw the dots, depending on how many
    let dots =
-      match dotNumber with
-      | 0 -> ""
-      | 1 -> dotTemplate (x + 4.2) (y + 33.4)
-      | 2 -> dotTemplate (x + 4.2) (y + 33.4) + dotTemplate (x + 5.9) (y + 33.4)
-      | 3 -> dotTemplate (x + 4.2) (y + 33.4) + dotTemplate (x + 5.9) (y + 33.4) + dotTemplate (x + 7.6) (y + 33.4)
-      | _ ->
-         printfn "Error in beamHelper! Note had more than 3 dots"
-         ""
+      match isGrace with
+      // not a grace note
+      | false ->
+         match dotNumber with
+         | 0 -> ""
+         | 1 -> dotTemplate (x + 4.2) (y + 33.4) isGrace
+         | 2 -> dotTemplate (x + 4.2) (y + 33.4) isGrace + dotTemplate (x + 5.9) (y + 33.4) isGrace
+         | 3 -> dotTemplate (x + 4.2) (y + 33.4) isGrace + dotTemplate (x + 5.9) (y + 33.4) isGrace + dotTemplate (x + 7.6) (y + 33.4) isGrace
+         | _ ->
+            printfn "Error in beamHelper! Note had more than 3 dots"
+            ""
+      // grace note
+      | true ->
+         match dotNumber with
+         | 0 -> ""
+         | 1 -> dotTemplate (x + 3.0) (y + 33.0) isGrace
+         | 2 -> dotTemplate (x + 3.0) (y + 33.0) isGrace + dotTemplate (x + 4.4) (y + 33.0) isGrace
+         | 3 -> dotTemplate (x + 3.0) (y + 33.0) isGrace + dotTemplate (x + 4.4) (y + 33.0) isGrace + dotTemplate (x + 5.8) (y + 33.0) isGrace
+         | _ ->
+            printfn "Error in beamHelper! Note had more than 3 dots"
+            ""
    match lastRhythm with
    // If the last note is a whole, half, or quarter note, just put the stem and dots on this note
    | R(X0,n) | R(X1,n) | R(X2,n) | R(X4,n) ->
@@ -1253,7 +1388,7 @@ let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhyth
                printfn "Error in beamHelper: this time signature has not yet been implemented. Sorry!"
                [[0]]
          // call beamByTime, return the strings of the beams and the int for the new lastBeamed
-         let (newText, newLastBeamed) = beamByTime key lastLocation lastRhythm lastStart head lastBeamed lastLastRhythm
+         let (newText, newLastBeamed) = beamByTime key lastLocation lastRhythm lastStart head lastBeamed lastLastRhythm isGrace
          // return
          (([stem] @ newText @ [dots]),newLastBeamed)
       // If the current note is quarter half or whole
@@ -1261,11 +1396,11 @@ let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhyth
          // check to see if there's an end stub to be drawn
          match lastBeamed with
          | 3 ->
-            let endStubs = endingStubs lastLocation lastRhythm
+            let endStubs = endingStubs lastLocation lastRhythm isGrace
             (([stem] @ endStubs @ [dots]),0)
          | 0 ->
             // check to see if flags are needed on the previous note
-            let flag = drawFlags oldX oldY lastRhythm
+            let flag = drawFlags oldX oldY lastRhythm isGrace
             (([stem] @ [dots] @ flag),0)
          | _ ->
             (([stem]@[dots]),0)
@@ -1282,9 +1417,10 @@ let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhyth
 6) timeSignature is the time signature
 7) lastBeamed is 1 if the two previous notes were beamed and the same number of lines, 2 if the two previous notes were beamed but the first had more beams, 3 if the two previous notes were beamed but the second had more beams, and 0 else
 8) lastLastRhythm is two rhythms ago
+9) isGrace is true if these notes are grace notes, false else
 RETURNS a list of strings
 *)
-let rec beam (els: Element List) (text: string List) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (timeSignature: int * int) (lastBeamed: int) (lastLastRhythm: Rhythm) : string List =
+let rec beam (els: Element List) (text: string List) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (timeSignature: int * int) (lastBeamed: int) (lastLastRhythm: Rhythm) (isGrace: bool) : string List =
    match els with
    // Base case: no more elements
    | [] ->
@@ -1292,7 +1428,7 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
       match lastBeamed with
       // If the lastBeamed was 3, draw the final end stub
       | 3 ->
-         let endStubs = endingStubs lastLocation lastRhythm
+         let endStubs = endingStubs lastLocation lastRhythm isGrace
          text @ endStubs
       | _ ->
          text
@@ -1302,12 +1438,12 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
          match n with
          // guitar note - beam
          | NormalGuitarNote(guitarString,pitch,eProperties) ->
-            let (newText, newLastBeamed) = beamHelper head guitarString lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm
-            beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm
+            let (newText, newLastBeamed) = beamHelper head guitarString lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm isGrace
+            beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm isGrace
          // also beam if an X
          | X(guitarString,eProperties) ->
-            let (newText, newLastBeamed) = beamHelper head guitarString lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm
-            beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm
+            let (newText, newLastBeamed) = beamHelper head guitarString lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm isGrace
+            beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm isGrace
       // If it isn't a note or an x, check if there's an end stub that needs to be drawn
       | GroupNote(nList,mProperties) ->
 
@@ -1330,24 +1466,25 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
          let (newText, newLastBeamed) =
             match (findString6 nList) with
             // if there was a 6, then call beamHelper with the string set to 6
-            | true -> beamHelper head 6 lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm
+            | true -> beamHelper head 6 lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm isGrace
             // otherwise, not 6. 1 chosen at random
-            | _ -> beamHelper head 1 lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm
+            | _ -> beamHelper head 1 lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm isGrace
          // recurse
-         beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm
+         beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm isGrace
+
       | _ ->
          match lastBeamed with
          | 3 ->
             // check if end stubs are needed if this note is not a note but the last note might need a stub
-            let endStubs = endingStubs lastLocation lastRhythm
-            beam tail (text @ endStubs) (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm
+            let endStubs = endingStubs lastLocation lastRhythm isGrace
+            beam tail (text @ endStubs) (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm isGrace
          | 0 ->
             // last note might need flags
             let (oldX,oldY) = lastLocation
-            let flag = drawFlags oldX oldY lastRhythm
-            beam tail (text @ flag) (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm
+            let flag = drawFlags oldX oldY lastRhythm isGrace
+            beam tail (text @ flag) (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm isGrace
          | _ ->
-            beam tail text (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm
+            beam tail text (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm isGrace
 
 
 
@@ -1457,7 +1594,7 @@ let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElement
          let yCoord = (y - 1.5) + (6.0 * ((float guitarString) - 1.0))
          let newText = string x + " " + string yCoord + " (x) guitarfretnumbergrace "
          showGraceNotes newX y tail (updatedElements @ [newEl]) (text @ [newText]) insideScale
-      | _ -> None
+      | _ -> showGraceNotes x y tail (updatedElements @ [newEl]) text insideScale
 
 
 
@@ -1479,8 +1616,18 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
    match els with
    | [] -> Some(l,updatedElements)
    | head::tail ->
+
       // Depending on what type of element is to be written
       match head.NoteInfo with
+
+      // Do nothing
+      | Buffer ->
+         // update element with location
+         let newElement = { head with Location = (x,y) }
+         let newUpdatedElements = updatedElements @ [newElement]
+         // just add 5, since it shouldn't be scaled
+         showElements tail newUpdatedElements measureWidth x y l insideScale
+
       // Do nothing, just move forward 5 units
       | Empty ->
          // update element with location
@@ -1489,11 +1636,13 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
          // just add 5, since it shouldn't be scaled
          showElements tail newUpdatedElements measureWidth (x + 5.0) y l insideScale
       // Guitar note: although raster image, still put at the end of the list because i want the white border
+
       | SingleNote(n,mProperties) ->
          match head.GraceNotes with
          // if the element has no grace notes, just display it normally
          | [] ->
             match n with
+
             // if it's a guitar note
             | NormalGuitarNote(guitarString,pitch,eProperties) ->
                // call the helper, which calculates the fret and returns the string to print the note
@@ -1510,6 +1659,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                   // recurse
                   showElements tail newUpdatedElements measureWidth newX y newList insideScale
                | None -> None
+
             | X(guitarString,eProperties) ->
                // call helper function which returns the string
                let newText = showX x y guitarString
@@ -1520,6 +1670,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                let newElement = { head with Location = (x,y) }
                let newUpdatedElements = updatedElements @ [newElement]
                showElements tail newUpdatedElements measureWidth newX y newList insideScale
+
          // if it does have grace notes, show those first
          | grace ->
             match n with
@@ -1543,6 +1694,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                      showElements tail newUpdatedElements measureWidth newerX y newList insideScale
                   | None -> None
                | None -> None
+
             // x note
             | X(guitarString,eProperties) ->
                // still call the grace note helper in the same way
@@ -1632,46 +1784,46 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                let rest = string x + " " + string yCoord + " halfWholeRest "
                match n with
                | 0 -> rest
-               | 1 -> dotTemplate (x + 6.3) (y + 20.0) + rest
-               | 2 -> dotTemplate (x + 6.3) (y + 20.0) + dotTemplate (x + 8.0) (y + 20.0) + rest
-               | _ -> dotTemplate (x + 6.3) (y + 20.0) + dotTemplate (x + 8.0) (y + 20.0) + dotTemplate (x + 9.7) (y + 20.0) + rest
+               | 1 -> dotTemplate (x + 6.3) (y + 20.0) false + rest
+               | 2 -> dotTemplate (x + 6.3) (y + 20.0) false + dotTemplate (x + 8.0) (y + 20.0) false + rest
+               | _ -> dotTemplate (x + 6.3) (y + 20.0) false + dotTemplate (x + 8.0) (y + 20.0) false + dotTemplate (x + 9.7) (y + 20.0) false + rest
             | R(X2,n) ->
                let yCoord = y + 11.9
                let rest = string x + " " + string yCoord + " halfWholeRest "
                match n with
                | 0 -> rest
-               | 1 -> dotTemplate (x + 6.3) (y + 14.5) + rest
-               | 2 -> dotTemplate (x + 6.3) (y + 14.5) + dotTemplate (x + 8.0) (y + 14.5) + rest
-               | _ -> dotTemplate (x + 6.3) (y + 14.5) + dotTemplate (x + 8.0) (y + 14.5) + dotTemplate (x + 9.7) (y + 14.5) + rest
+               | 1 -> dotTemplate (x + 6.3) (y + 14.5) false + rest
+               | 2 -> dotTemplate (x + 6.3) (y + 14.5) false + dotTemplate (x + 8.0) (y + 14.5) false + rest
+               | _ -> dotTemplate (x + 6.3) (y + 14.5) false + dotTemplate (x + 8.0) (y + 14.5) false + dotTemplate (x + 9.7) (y + 14.5) false + rest
             | R(X4,n) ->
                let yCoord = y + 9.0
                let rest = string x + " " + string yCoord + " quarterRest "
                match n with
                | 0 -> rest
-               | 1 -> dotTemplate (x + 4.7) (y + 15.7) + rest
-               | 2 -> dotTemplate (x + 4.7) (y + 15.7) + dotTemplate (x + 6.4) (y + 15.7) + rest
-               | _ -> dotTemplate (x + 4.7) (y + 15.7) + dotTemplate (x + 6.4) (y + 15.7) + dotTemplate (x + 8.1) (y + 15.7) + rest
+               | 1 -> dotTemplate (x + 4.7) (y + 15.7) false + rest
+               | 2 -> dotTemplate (x + 4.7) (y + 15.7) false + dotTemplate (x + 6.4) (y + 15.7) false + rest
+               | _ -> dotTemplate (x + 4.7) (y + 15.7) false + dotTemplate (x + 6.4) (y + 15.7) false + dotTemplate (x + 8.1) (y + 15.7) false + rest
             | R(X8,n) ->
                let yCoord = y + 11.0
                let rest = string x + " " + string yCoord + " 8thRest "
                match n with
                | 0 -> rest
-               | 1 -> dotTemplate (x + 5.3) (y + 16.0) + rest
-               | 2 -> dotTemplate (x + 5.3) (y + 16.0) + dotTemplate (x + 7.0) (y + 16.0) + rest
-               | _ -> dotTemplate (x + 5.3) (y + 16.0) + dotTemplate (x + 7.0) (y + 16.0) + dotTemplate (x + 8.7) (y + 16.0) + rest
+               | 1 -> dotTemplate (x + 5.3) (y + 16.0) false + rest
+               | 2 -> dotTemplate (x + 5.3) (y + 16.0) false + dotTemplate (x + 7.0) (y + 16.0) false + rest
+               | _ -> dotTemplate (x + 5.3) (y + 16.0) false + dotTemplate (x + 7.0) (y + 16.0) false + dotTemplate (x + 8.7) (y + 16.0) false + rest
             | R(X16,n) ->
                let yCoord = y + 7.0
                let rest = string x + " " + string yCoord + " 16thRest "
                match n with
                | 0 -> rest
-               | 1 -> dotTemplate (x + 5.6) (y + 16.0) + rest
-               | _ -> dotTemplate (x + 5.6) (y + 16.0) + dotTemplate (x + 7.3) (y + 16.0) + rest
+               | 1 -> dotTemplate (x + 5.6) (y + 16.0) false + rest
+               | _ -> dotTemplate (x + 5.6) (y + 16.0) false + dotTemplate (x + 7.3) (y + 16.0) false + rest
             | R(X32,n) ->
                let yCoord = y + 7.0
                let rest = string x + " " + string yCoord + " 32ndRest "
                match n with
                | 0 -> rest
-               | _ -> dotTemplate (x + 6.2) (y + 20.0) + rest
+               | _ -> dotTemplate (x + 6.2) (y + 20.0) false + rest
             | R(X64,n) ->
                let yCoord = y + 3.0
                string x + " " + string yCoord + " 64thRest "
@@ -1682,6 +1834,22 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
          let newElement = { head with Location = (x,y) }
          let newUpdatedElements = updatedElements @ [newElement]
          showElements tail newUpdatedElements measureWidth newX y newList insideScale
+
+
+
+(* used to beam grace notes, calls the beam method used for all beaming
+1) els is the list of elements of the measure
+2) text is the list of strings to print
+3) time is the time signature
+RETURNS list of strings
+*)
+let rec beamGraceNotes (els: Element List) (text: String List) (time: int * int) =
+   match els with
+   | [] -> text
+   | head::tail ->
+      // beam the grace notes, if there any
+      let graceNoteBeams = beam head.GraceNotes [] (0.0,0.0) Other 0.0 time 0 Other true
+      beamGraceNotes tail (text @ graceNoteBeams) time
 
 
 
@@ -1712,10 +1880,12 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
          let newX = x + newWidth
          // Update the measure with the new elements
          let newMeasure = { head with Elements = updatedElements }
+         // call a helper method to traverse the elements again and beam the grace notes
+         let listWithGraceBeams = beamGraceNotes newMeasure.Elements [] newMeasure.Time
          // Call the beam function, and return a new list of strings that describe how to draw the beams for that new measure
-         let listWithBeams = beam newMeasure.Elements li (0.0,0.0) Other 0.0 newMeasure.Time 0 Other
+         let listWithBeams = beam newMeasure.Elements li (0.0,0.0) Other 0.0 newMeasure.Time 0 Other false
          let newUpdatedMeasures = updatedMeasures @ [newMeasure]
-         showMeasures tail newUpdatedMeasures newX y listWithBeams scale
+         showMeasures tail newUpdatedMeasures newX y (listWithBeams @ listWithGraceBeams) scale
       | None -> None
 
 
@@ -1817,7 +1987,8 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) : (stri
          let newPage = { head with Lines = updatedLines }
          let newUpdatedPages = updatedPages @ [newPage]
          show tail newUpdatedPages newText
-      | None -> None
+      | None ->
+         None
 
 
 
@@ -2227,6 +2398,35 @@ let eval ast =
                   xcoord ycoord scalex scaley sizex sizey filestring 1 printimage
                   end
                } bind def
+
+               /drawFlagGrace {
+               2 dict begin gsave
+               /ycoord exch def
+               /xcoord exch def
+               0.1 setlinewidth
+               xcoord ycoord moveto
+               xcoord ycoord 2.1953488372093024 add lineto
+               xcoord 0.1674418604651163 add ycoord 2.158139534883721 add 0.1674418604651163 170 10 arcn
+               xcoord 0.5581395348837209 add ycoord 1.302325581395349 sub xcoord 3.441860465116279 add ycoord 1.302325581395349 sub xcoord 2.1953488372093024 add ycoord 5.711627906976744 sub curveto
+               xcoord 2.0837209302325586 add ycoord 5.897674418604652 sub xcoord 1.786046511627907 add ycoord 5.8604651162790695 sub xcoord 1.7674418604651163 add ycoord 5.5813953488372094 sub curveto
+               xcoord 2.511627906976744 add ycoord 3.162790697674419 sub xcoord 1.9906976744186047 add ycoord 2.2325581395348837 sub xcoord ycoord curveto
+               fill
+               grestore end
+               } bind def
+
+               /graceCurve {
+               4 dict begin gsave
+               0.7 setlinewidth
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               x1 y1 moveto
+               x2 x1 sub 0.13043478 mul x1 add     y1 2.5 add
+               x2 x1 sub 0.63043478 mul x1 add     y1 3 add
+               x2 y2 curveto stroke
+               grestore end
+               } bind def
                %%EndProlog
 
                "
@@ -2235,7 +2435,7 @@ let eval ast =
                //print and show
                match (show pages [] text') with
                | Some(updatedText, updatedPages) ->
-                  
+
                   Some(updatedText, updatedPages)
                | None -> None
             | None -> None
