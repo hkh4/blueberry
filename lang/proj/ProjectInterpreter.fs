@@ -61,6 +61,11 @@ type Page = {
    Lines: Line List
 }
 
+type PropertyList = {
+   SlurStart: (float * float) * bool
+   TieStart: (float * float) * int * Pitch * bool
+}
+
 ///////// Useful Global Variables And Functions /////////
 
 // Rhythms ordered in an array in order to be used to do rhythm math
@@ -381,7 +386,7 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
          | _ ->
             // If it is the last note, and the width is less than 10, set it to 10 so that there's sufficient space before the next bar line
             match newWidthTemp with
-            | num when num < 10.0 -> 10.0
+            | num when num < 13.0 -> 13.0
             | _ -> newWidthTemp
       // The start of the next note is 2 ^ the difference between beat and given rhythm. e.g. if the beat is 4 and the given is 8, the difference in index is -1, and 2 ^ -1 is half a beat. If there's a dot, multiply by 1.5. 2 dots, 1.75.
       let fullNextStart = (2.0**(float differenceOfRhythm))
@@ -972,8 +977,8 @@ let rec divideOnePage (lines : Line List) (linesSoFar : Line List) (start : floa
       let (x,y) = start
       match (head.Type) with
       | "tab" ->
-         // subtract 70 to be the start of the next line
-         let newY = y - 70.0
+         // subtract 75 to be the start of the next line
+         let newY = y - 75.0
          match newY with
          // 60 is the lowest a line can start at the bottom of a page
          | num when num >= 60.0 ->
@@ -1875,8 +1880,14 @@ let rec beamGraceNotes (els: Element List) (text: string List) (time: int * int)
 
 
 
-
-let drawSlur (slurStart: (float * float) * bool) (currentX: float) (currentY: float) (mProperties: MultiProperty List) : (String List * ((float * float) * bool)) option =
+(* Draw a slur
+1) currentX is the x coord for this element
+2) currentY is the y coord for this element
+3) mProperties is the multi property list for this element
+4) propertyList describes the properties to be drawn
+RETURNS the list of strings and the new slurStart
+*)
+let drawSlur (currentX: float) (currentY: float) (mProperties: MultiProperty List) (propertyList: PropertyList) : (String List * PropertyList) option =
 
    // does this element have Sls
    let hasSls = List.exists (fun e -> e = Sls) mProperties
@@ -1890,32 +1901,117 @@ let drawSlur (slurStart: (float * float) * bool) (currentX: float) (currentY: fl
       None
    // if a note has sls but not sle
    | (true,false) ->
-      match slurStart with
+      match propertyList.SlurStart with
       // there was already a slur started
       | ((x,y),b) when b = true ->
          printfn "Error! Overlapping slurs detected"
          None
       // return an empty list, and the new slurStart for recursion
-      | ((x,y),b) -> Some([""],((currentX,currentY),true))
+      | ((x,y),b) ->
+         let newPropertyList = { propertyList with SlurStart = ((currentX,currentY),true) }
+         Some([""],newPropertyList)
    // has the end slur
    | (false,true) ->
-      match slurStart with
+      match propertyList.SlurStart with
       // there was a slur started
       | ((x,y),b) when b = true ->
-         let slurString = string x + " " + string y + " " + string currentX + " " + string currentY + " slur"
-         Some([slurString],((0.0,0.0),false))
+         let diff = currentX - x
+         let slurCommand =
+            match diff with
+            | num when num > 150.0 -> " slurverylong "
+            | num when num > 80.0 -> " slurlong "
+            | num when num < 20.0 -> " slurshort "
+            | _ -> " slur "
+
+         let slurString = string x + " " + string y + " " + string currentX + " " + string currentY + slurCommand
+         let newPropertyList = { propertyList with SlurStart = ((0.0,0.0),false) }
+         Some([slurString],newPropertyList)
       // no slur started, error
       | ((x,y),b) ->
          printfn "Error! A slur was marked as ended but there was no beginning slur"
          None
    // doesn't have start or end slur
-   | (false,false) -> Some([""],slurStart)
+   | (false,false) -> Some([""],propertyList)
 
 
 
-let rec drawPropertiesMeasures (els: Element List) (text: string List) (isGrace: bool) (slurStart: (float * float) * bool) : (String List * ((float * float) * bool)) option =
+
+
+(* draw ties
+1) currentX is the x coord for this element
+2) currentY is the y coord for this element
+3) pitch is the pitch of this note
+4) currentString is which string the current note is on
+5) eProperties is the multi property list for this element
+6) propertyList describes the properties to be drawn
+RETURNS the string list and the new property list
+*)
+let drawTie (currentX: float) (currentY: float) (pitch: Pitch) (currentString: int) (eProperties: EitherProperty List) (propertyList: PropertyList) : (String List * PropertyList) option =
+
+   // check if this note has the tie property
+   let hasTie = List.exists (fun e -> e = Tie) eProperties
+
+   match propertyList.TieStart with
+   // no tie from a previous note
+   | ((x,y),s,p,b) when b = false ->
+      match hasTie with
+      // this note wants to be tied with the next
+      | true ->
+         // new propertyList
+         let newPropertyList = { propertyList with TieStart = ((currentX,currentY),currentString,pitch,true) }
+         Some([""],newPropertyList)
+      // nothing
+      | false ->
+         Some([""],propertyList)
+
+   // last note wanted a tie
+   | ((x,y),s,p,b) ->
+      match hasTie with
+      // this note also wants a tie
+      | true ->
+         // check to see if this note has the same pitch and y coord. If it does have the same, tie them. If they are different, error
+         match pitch with
+         // match
+         | pi when pi = p && s = currentString ->
+            let tieText = string x + " " + string y + " " + string currentX + " " + string currentY + " tie "
+            // new propertyList
+            let newPropertyList = { propertyList with TieStart = ((currentX,currentY),currentString,pitch,true) }
+            Some([tieText],newPropertyList)
+         // not a match
+         | pi ->
+            printfn "Error! A tie was called but the note after the tied note doesn't match the first note"
+            None
+
+      | false ->
+         // check to see if this note has the same pitch and y coord. If it does have the same, tie them. If they are different, error
+         match pitch with
+         // match
+         | pi when pi = p && s = currentString ->
+            let tieText = string x + " " + string y + " " + string currentX + " " + string currentY + " tie "
+            // new propertyList
+            let newPropertyList = { propertyList with TieStart = ((0.0,0.0),0,NoPitch,false) }
+            Some([tieText],newPropertyList)
+         // not a match
+         | pi ->
+            printfn "Error! A tie was called but the note after the tied note doesn't match the first note"
+            None
+
+
+
+
+
+
+
+(* helper for drawing properties of one measure
+1) els is the Element list
+2) text is the string list
+3) isGrace is true if it's a grace note, false otherwise
+4) propertyList is the record that describes the state of properties to be drawn
+RETURNS the string list and the new property list
+*)
+let rec drawPropertiesMeasures (els: Element List) (text: string List) (isGrace: bool) (propertyList: PropertyList) : (String List * PropertyList) option =
    match els with
-   | [] -> Some(text,slurStart)
+   | [] -> Some(text,propertyList)
    | head::tail ->
       // not a grace note
       match isGrace with
@@ -1925,42 +2021,54 @@ let rec drawPropertiesMeasures (els: Element List) (text: string List) (isGrace:
             // x y
             let (currentX,currentY) = head.Location
             // list of either property
-            let eProperties =
+            let (currentString,eProperties,pitchOfNote) =
                match n with
-               | NormalGuitarNote(guitarString,pitch,eList) -> eList
-               | X(guitarString,eList) -> eList
+               | NormalGuitarNote(guitarString,pitch,eList) -> guitarString,eList,pitch
+               | X(guitarString,eList) -> guitarString,eList,NoPitch
 
             // draw slurs
-            match (drawSlur slurStart currentX currentY mProperties) with
+            match (drawSlur currentX currentY mProperties propertyList) with
             // successful slur drawing
-            | Some(slurList,newSlurStart) ->
+            | Some(slurList,propertyList') ->
 
-               drawPropertiesMeasures tail (text @ slurList) isGrace newSlurStart
+               // draw ties
+               let yCoord = (currentY - 2.3) + (6.0 * ((float currentString) - 1.0))
+               match (drawTie currentX yCoord pitchOfNote currentString eProperties propertyList') with
+               | Some(tieList,propertyList'') ->
+
+                  drawPropertiesMeasures tail (text @ slurList @ tieList) isGrace propertyList''
+               | None -> None
 
             | None -> None
 
 
          // not a note
          | _ ->
-            drawPropertiesMeasures tail text isGrace slurStart
+            drawPropertiesMeasures tail text isGrace propertyList
       // grace note TODO
-      | true -> Some([""],slurStart)
+      | true -> Some([""],propertyList)
 
 
 
 
-let rec drawProperties (ms: SingleMeasure List) (text: string List) (slurStart: (float * float) * bool) : String option =
+(* driver for properties
+1) ms is the list of SingleMeasures
+2) text is the string list
+3) propertyList is the record that describes the state of properties to be drawn
+RETURNS the flattened string and the new property list
+*)
+let rec drawProperties (ms: SingleMeasure List) (text: string List) (propertyList: PropertyList) : (String * PropertyList) option =
+
    match ms with
    | [] ->
       let flattenedText = List.fold (fun acc elem -> acc + " " + elem) " " text
-      Some(flattenedText)
+      Some(flattenedText,propertyList)
    | head::tail ->
       // properties for regular notes
-      match (drawPropertiesMeasures head.Elements text false slurStart) with
-      | Some(newText,newSlurStart) ->
-         drawProperties tail newText newSlurStart
+      match (drawPropertiesMeasures head.Elements text false propertyList) with
+      | Some(newText,newPropertyList) ->
+         drawProperties tail newText newPropertyList
       | None -> None
-
 
 
 
@@ -2012,13 +2120,80 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
 
 
 
+
+(* add a tie at the end of a line if needed, and update the PropertyList
+1) restOfLines is the rest of the lines after the current. Need it to check the next line
+2) propertyList describes how to draw certain properties that depend on previous notes
+*)
+let checkEndTie (restOfLines: Line List) (propertyList: PropertyList) =
+
+   // check to see if there's a tie that needs to be drawn across lines
+   match propertyList.TieStart with
+   // need an tie stub
+   | ((x,y),s,p,b) when x <> 0.0 && y <> 0.0 && b = true ->
+      let lastX = 565.0
+      let tieStub = string x + " " + string y + " " + string lastX + " " + string y + " tie "
+
+      // try and set the new SlurStart, but if there are no more lines, error
+      try
+         // figure out the start of the next line
+         let nextHead = restOfLines.Head
+         let (nextStartX,nextStartY) = nextHead.Start
+         // shift the x and y
+         let newPropertyList = { propertyList with TieStart = ((nextStartX + 8.0,(nextStartY - 2.3) + (6.0 * ((float s) - 1.0))),s,p,true) }
+         Some(tieStub,newPropertyList)
+      with
+      | _ ->
+         printfn "Unended tie detected."
+         None
+   | _ ->
+      Some("",propertyList)
+
+
+
+(* add a slur at the end of a line if needed, and update the PropertyList
+1) restOfLines is the rest of the lines after the current. Need it to check the next line
+2) propertyList describes how to draw certain properties that depend on previous notes
+*)
+let checkEndSlur (restOfLines: Line List) (propertyList: PropertyList) =
+   match propertyList.SlurStart with
+   // this means a slur ended in a previous line and needs to be extended
+   | ((x,y),b) when x <> 0.0 && y <> 0.0 && b = true ->
+      // draw a slur stub from where it began to the last barline
+      let lastX = 565.0 //565 is where a line ends
+      let slurCommand =
+         match (lastX - x) with
+         | num when num > 80.0 -> " slurlong "
+         | num when num < 20.0 -> " slurshort "
+         | _ -> " slur "
+      let slurStub = string x + " " + string y + " " + string lastX + " " + string y + " " + slurCommand
+
+      // try and set the new SlurStart, but if there are no more lines, error
+      try
+         // figure out the start of the next line
+         let nextHead = restOfLines.Head
+         let (nextStartX,nextStartY) = nextHead.Start
+         let newPropertyList = { propertyList with SlurStart = ((nextStartX,nextStartY),true) }
+         Some(slurStub,newPropertyList)
+
+      with
+      | _ ->
+         printfn "Unended slur detected."
+         None
+   | _ ->
+      Some("",propertyList)
+
+
+
+
 (* Show all lines of one page
 1) lines is the list of Lines to be evaluated and printed
 2) updatedLines is the list of new lines with the new measures and elements
 3) text is all the postscript text to be written
+4) propertyList is the record that describes the properties to be drawn
 RETURNS: new updated text and new Line List
 *)
-let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) : (string * Line List) option =
+let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (propertyList: PropertyList) : (string * Line List) option =
    match lines with
    // Base case: return the text when all lines have been processed
    | [] -> Some(text,updatedLines)
@@ -2026,13 +2201,15 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) : 
    | head::tail ->
       // Get x and y coordinates of the beginning of the line
       let (staffx,staffy) = head.Start
+
       // Call guitartablines to create lines, based on start position
       let staffline =
          match staffx with
          // If first line, pass "1" to the function to specify length
          | 70.0 -> string staffx + " " + string staffy + " 1 guitartablines"
          | _ -> string staffx + " " + string staffy + " 0 guitartablines"
-      // Creat clef and/or time signature
+
+      // Create clef and/or time signature
       let (clef, timeSig, newX) =
          match head.LineNumber with
          // If it's the first line, add a clef AND time signature
@@ -2046,6 +2223,7 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) : 
          | _ ->
             let clefString = string (staffx + 3.0) + " " + string (staffy + 2.0) + " 7 25.2 70 252 (images/Staves/staff.jpg) 3 printimage "
             (clefString, "", staffx + 20.0)
+
       let newHead : Line =
          // If the line isn't very full, add some empty measures
          match head.OriginalWidth with
@@ -2065,9 +2243,11 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) : 
             let newMeasures = oldMeasures @ [emptyMeasure]
             { head with Measures = newMeasures; OriginalWidth = num + 35.0 }
          | _ -> head
+
       // Float to tell how much to scale widths of individual elements
       let scale = (newHead.FinalWidth + staffx - newX) / newHead.OriginalWidth
       // Show measures of the line
+
       match (showMeasures newHead.Measures [] newX staffy [] scale) with
       | Some(li,updatedMeasures) ->
          // Put all the strings together
@@ -2083,9 +2263,20 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) : 
          let newUpdatedLines = updatedLines @ [newLine]
 
          // draw the properties. This is done from lines because slurs and ties can extend across lines
-         match (drawProperties newLine.Measures [] ((0.0,0.0),false)) with
-         | Some(propertyText) ->
-            showLines tail newUpdatedLines (newText + propertyText)
+         match (drawProperties newLine.Measures [] propertyList) with
+         | Some(propertyText,newPropertyList) ->
+
+            // check for ending slurs
+            match (checkEndSlur tail newPropertyList) with
+            | Some(slurText,newPropertyList') ->
+               // check for ending ties
+               match (checkEndTie tail newPropertyList') with
+               | Some(tieText,newPropertyList'') ->
+                  showLines tail newUpdatedLines (newText + propertyText + slurText + tieText) newPropertyList''
+               | None -> None
+            | None -> None
+
+
          | None -> None
       | None -> None
 
@@ -2107,7 +2298,9 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) : (stri
    | head::tail ->
       let lines = head.Lines
       // Show the lines of a page
-      match (showLines lines [] text) with
+      // property list for showing properties
+      let defaultPropertyList = { SlurStart = ((0.0,0.0),false); TieStart = ((0.0,0.0),0,NoPitch,false) }
+      match (showLines lines [] text defaultPropertyList) with
       | Some(t,updatedLines) ->
          let newText = t + " showpage "
          // update the Page with the new lines
@@ -2555,6 +2748,23 @@ let eval ast =
                grestore end
                } bind def
 
+               /slurshort {
+               5 dict begin gsave
+               0.7 setlinewidth
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /x1 x1 3 add store
+               /x2 x2 1 add store
+               x1 y1 44 add moveto
+               /temp x2 x1 sub 0.3 mul def
+               x1 temp add y1 47 add x2 temp sub y2 47 add
+               x2 y2 44 add curveto
+               stroke
+               grestore end
+               } bind def
+
                /slur {
                5 dict begin gsave
                0.7 setlinewidth
@@ -2566,11 +2776,65 @@ let eval ast =
                /x2 x2 1 add store
                x1 y1 44 add moveto
                /temp x2 x1 sub 0.3 mul def
-               x1 temp add y1 50 add x2 temp sub y2 50 add
+               x1 temp add y1 48.5 add x2 temp sub y2 48.5 add
                x2 y2 44 add curveto
                stroke
                grestore end
                } bind def
+
+               /slurlong {
+               5 dict begin gsave
+               0.7 setlinewidth
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /x1 x1 3 add store
+               /x2 x2 1 add store
+               x1 y1 44 add moveto
+               /temp x2 x1 sub 0.3 mul def
+               x1 temp add y1 51.5 add x2 temp sub y2 51.5 add
+               x2 y2 44 add curveto
+               stroke
+               grestore end
+               } bind def
+
+               /slurverylong {
+               5 dict begin gsave
+               0.7 setlinewidth
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /x1 x1 3 add store
+               /x2 x2 1 add store
+               x1 y1 44 add moveto
+               /temp x2 x1 sub 0.3 mul def
+               x1 temp add y1 55 add x2 temp sub y2 55 add
+               x2 y2 44 add curveto
+               stroke
+               grestore end
+               } bind def
+
+               /tie {
+               5 dict begin gsave
+              0.6 setlinewidth
+              /y2 exch def
+              /x2 exch def
+              /y1 exch def
+              /x1 exch def
+              /x1 x1 4.2 add store
+              /x2 x2 0.2 sub store
+              /y2 y2 2.5 add store
+              /y1 y1 2.5 add store
+              x1 y1 1 add moveto
+              /temp x2 x1 sub 0.3 mul def
+              x1 temp add y1 3 add x2 temp sub y2 3 add
+              x2 y2 1 add curveto
+              stroke
+              grestore end
+               } bind def
+
                %%EndProlog
 
                "
