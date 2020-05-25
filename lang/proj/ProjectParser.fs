@@ -41,23 +41,24 @@ sls = slur start
 sle = slur end
 stu = strum up
 std = strum down
-p = parens
+par = parens
 plu = pluck up
 pld = pluck down
-gr = grace note
+gra = grace note
 har = harmonic
-sl = slide
-si = slide in
+sld = slide
+sli = slide in
+tie = tie
 
 *)
 type Pitch =
 | A | ASharp | AFlat | ANat | B | BSharp | BFlat | BNat | C | CSharp | CFlat | CNat | D | DSharp | DFlat | DNat | E | ESharp | EFlat | ENat | F | FSharp | FFlat | FNat | G | GSharp | GFlat | GNat | NoPitch
 
 type MultiProperty =
-| Gra | Har | Stu | Std | Plu | Pld
+| Gra | Har | Stu | Std | Plu | Pld | Sls | Sle
 
 type EitherProperty =
-| Par | Sls | Sle | Sld | Sli
+| Par | Sld | Sli | Tie
 
 type Property =
 | Multi of MultiProperty
@@ -159,19 +160,20 @@ let gra = pstr "gra" |>> (fun _ -> Gra) <!> "grace note"
 let sld = pstr "sld" |>> (fun _ -> Sld) <!> "slide"
 let sli = pstr "sli" |>> (fun _ -> Sli) <!> "slide in"
 let par = pstr "par" |>> (fun _ -> Par) <!> "parentheses"
+let tie = pstr "tie" |>> (fun _ -> Tie) <!> "tie"
 
 // a property that is an EitherProperty
 // first one is for just an EitherProperty type
-let eitherProperty = pright (pchar '/') (sls <|> sle <|> par <|> sld <|> sli) <!> "eitherProperty "
+let eitherProperty = pright (pchar '/') (par <|> sld <|> sli <|> tie) <!> "eitherProperty "
 // this one turns into a Property type to be used for the anyProperties parser
-let eitherPropertyEither = pright (pchar '/') (sls <|> sle <|> par <|> sld <|> sli) |>> Either <!> "eitherPropertyEither "
+let eitherPropertyEither = pright (pchar '/') (par <|> sld <|> sli <|> tie) |>> Either <!> "eitherPropertyEither "
 
 
 // a property that is a MultiProperty
 // first one is for just a MultiProperty type
-let multiProperty = pright (pchar '/') (stu <|> std <|> plu <|> pld <|> har <|> gra) <!> "multiProperty"
+let multiProperty = pright (pchar '/') (stu <|> std <|> plu <|> pld <|> har <|> gra  <|> sls <|> sle) <!> "multiProperty"
 // this one turns into a Property type to be used for the anyProperties parser
-let multiPropertyMulti = pright (pchar '/') (stu <|> std <|> plu <|> pld <|> har <|> gra) |>> Multi <!> "multiProperty"
+let multiPropertyMulti = pright (pchar '/') (stu <|> std <|> plu <|> pld <|> har <|> gra <|> sls <|> sle) |>> Multi <!> "multiProperty"
 
 // pamny0 version for regular either or multi
 let eitherProperties = pmany0 eitherProperty <!> "eitherProperties"
@@ -248,7 +250,9 @@ let grammar = pleft expr (pleft pws0 peof) <!> "grammar"
 let parse input =
    let input' = prepare input
    match grammar input' with
-   | Success(res,_) -> Some res
+   | Success(res,_) ->
+
+      Some res
    | Failure(pos,rule) ->
       printfn "Invalid expression"
       let msg = sprintf "Cannot parse input at pos %d in rule '%s':" pos rule

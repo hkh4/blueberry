@@ -101,31 +101,31 @@ let widthOfGraceRhythms =
    Map.empty.
       Add(Other,0.0).
       Add(R(X0,0),0.0). // should never happen
-      Add(R(X1,3),21.0).
-      Add(R(X1,2),18.0).
-      Add(R(X1,1),16.0).
-      Add(R(X1,0),14.0).
-      Add(R(X2,3),12.0).
-      Add(R(X2,2),11.0).
-      Add(R(X2,1),10.0).
-      Add(R(X2,0),9.0).
-      Add(R(X4,3),8.0).
-      Add(R(X4,2),7.5).
-      Add(R(X4,1),7.0).
-      Add(R(X4,0),6.5).
-      Add(R(X8,3),6.0).
-      Add(R(X8,2),5.6).
-      Add(R(X8,1),5.3).
-      Add(R(X8,0),5.0).
-      Add(R(X16,2),4.7).
-      Add(R(X16,1),4.5).
-      Add(R(X16,0),4.3).
-      Add(R(X32,2),4.2).
-      Add(R(X32,1),4.1).
-      Add(R(X32,0),4.0).
-      Add(R(X64,2),4.0).
-      Add(R(X64,1),4.0).
-      Add(R(X64,0),4.0)
+      Add(R(X1,3),22.0).
+      Add(R(X1,2),19.0).
+      Add(R(X1,1),17.0).
+      Add(R(X1,0),15.0).
+      Add(R(X2,3),13.0).
+      Add(R(X2,2),12.0).
+      Add(R(X2,1),11.0).
+      Add(R(X2,0),10.0).
+      Add(R(X4,3),9.0).
+      Add(R(X4,2),8.5).
+      Add(R(X4,1),8.0).
+      Add(R(X4,0),7.5).
+      Add(R(X8,3),7.0).
+      Add(R(X8,2),6.6).
+      Add(R(X8,1),6.3).
+      Add(R(X8,0),6.0).
+      Add(R(X16,2),5.7).
+      Add(R(X16,1),5.5).
+      Add(R(X16,0),5.3).
+      Add(R(X32,2),5.2).
+      Add(R(X32,1),5.1).
+      Add(R(X32,0),5.0).
+      Add(R(X64,2),5.0).
+      Add(R(X64,1),5.0).
+      Add(R(X64,0),5.0)
 
 // Changeable default
 let mutable defaultRhythm = R(X4,0)
@@ -482,7 +482,10 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
             match (List.exists (fun e -> e = Gra) mProperties) with
             // not a grace note
             | false ->
-               let graceBeforeBuffer = graceBefore @ [bufferElement]
+               let graceBeforeBuffer =
+                  match graceBefore with
+                  | [] -> graceBefore
+                  | _ -> graceBefore @ [bufferElement]
                Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer }),false)
             // grace note
             | true ->
@@ -519,7 +522,10 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
             match (List.exists (fun e -> e = Gra) mProperties) with
             // not a grace note
             | false ->
-               let graceBeforeBuffer = graceBefore @ [bufferElement]
+               let graceBeforeBuffer =
+                  match graceBefore with
+                  | [] -> graceBefore
+                  | _ -> graceBefore @ [bufferElement]
                Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer }),false)
             // grace note
             | true ->
@@ -575,7 +581,10 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
                match (List.exists (fun e -> e = Gra) mProperties) with
                // not a grace note
                | false ->
-                  let graceBeforeBuffer = graceBefore @ [bufferElement]
+                  let graceBeforeBuffer =
+                     match graceBefore with
+                     | [] -> graceBefore
+                     | _ -> graceBefore @ [bufferElement]
                   Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer },false)
                // grace note
                | true ->
@@ -1424,14 +1433,8 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
    match els with
    // Base case: no more elements
    | [] ->
-      // need to check if there any remaining end stubs to draw
-      match lastBeamed with
-      // If the lastBeamed was 3, draw the final end stub
-      | 3 ->
-         let endStubs = endingStubs lastLocation lastRhythm isGrace
-         text @ endStubs
-      | _ ->
-         text
+      // since the last element is always a barline, or a buffer in the case of the grace notes, nothing should have to be done at the end
+      text
    | head::tail ->
       match head.NoteInfo with
       | SingleNote(n,mProperties) ->
@@ -1473,18 +1476,27 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
          beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm isGrace
 
       | _ ->
+         // add the end slur for grace notes
+         let endCurve =
+            let (oldX,oldY) = lastLocation
+            let (newX,newY) = head.Location
+            match isGrace with
+            | true -> [ string (oldX + 2.0) + " " + string (oldY + 42.0) + " " + string (newX + 1.0) + " " + string (newY + 44.0) + " graceCurve " ]
+            | false -> [""]
+
          match lastBeamed with
          | 3 ->
             // check if end stubs are needed if this note is not a note but the last note might need a stub
             let endStubs = endingStubs lastLocation lastRhythm isGrace
-            beam tail (text @ endStubs) (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm isGrace
+            beam tail (text @ endStubs @ endCurve) (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm isGrace
          | 0 ->
             // last note might need flags
             let (oldX,oldY) = lastLocation
             let flag = drawFlags oldX oldY lastRhythm isGrace
-            beam tail (text @ flag) (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm isGrace
+            beam tail (text @ flag @ endCurve) (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm isGrace
          | _ ->
-            beam tail text (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm isGrace
+            beam tail (text @ endCurve) (0.0,0.0) Other 0.0 timeSignature 0 lastRhythm isGrace
+
 
 
 
@@ -1622,6 +1634,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
 
       // Do nothing
       | Buffer ->
+         let newText = " "
          // update element with location
          let newElement = { head with Location = (x,y) }
          let newUpdatedElements = updatedElements @ [newElement]
@@ -1843,13 +1856,113 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
 3) time is the time signature
 RETURNS list of strings
 *)
-let rec beamGraceNotes (els: Element List) (text: String List) (time: int * int) =
+let rec beamGraceNotes (els: Element List) (text: string List) (time: int * int) : string List =
    match els with
    | [] -> text
    | head::tail ->
+      // draw the slash at the beginning of the grace note
+      let slash =
+         match head.GraceNotes with
+         // if there are no grace notes, do nothing
+         | [] -> [""]
+         // otherwise, draw it
+         | h::t ->
+            let (x,y) = h.Location
+            [" 0.4 setlinewidth " + string (x - 0.5) + " " + string (y + 33.0) + " moveto 4 4.4 rlineto stroke"]
       // beam the grace notes, if there any
       let graceNoteBeams = beam head.GraceNotes [] (0.0,0.0) Other 0.0 time 0 Other true
-      beamGraceNotes tail (text @ graceNoteBeams) time
+      beamGraceNotes tail (text @ graceNoteBeams @ slash) time
+
+
+
+
+let drawSlur (slurStart: (float * float) * bool) (currentX: float) (currentY: float) (mProperties: MultiProperty List) : (String List * ((float * float) * bool)) option =
+
+   // does this element have Sls
+   let hasSls = List.exists (fun e -> e = Sls) mProperties
+   // does this element have Sle
+   let hasSle = List.exists (fun e -> e = Sle) mProperties
+
+   match (hasSls,hasSle) with
+   // if a note has both sls and sle, error
+   | (true,true) ->
+      printfn "A note can't have both slur start and slur end!"
+      None
+   // if a note has sls but not sle
+   | (true,false) ->
+      match slurStart with
+      // there was already a slur started
+      | ((x,y),b) when b = true ->
+         printfn "Error! Overlapping slurs detected"
+         None
+      // return an empty list, and the new slurStart for recursion
+      | ((x,y),b) -> Some([""],((currentX,currentY),true))
+   // has the end slur
+   | (false,true) ->
+      match slurStart with
+      // there was a slur started
+      | ((x,y),b) when b = true ->
+         let slurString = string x + " " + string y + " " + string currentX + " " + string currentY + " slur"
+         Some([slurString],((0.0,0.0),false))
+      // no slur started, error
+      | ((x,y),b) ->
+         printfn "Error! A slur was marked as ended but there was no beginning slur"
+         None
+   // doesn't have start or end slur
+   | (false,false) -> Some([""],slurStart)
+
+
+
+let rec drawPropertiesMeasures (els: Element List) (text: string List) (isGrace: bool) (slurStart: (float * float) * bool) : (String List * ((float * float) * bool)) option =
+   match els with
+   | [] -> Some(text,slurStart)
+   | head::tail ->
+      // not a grace note
+      match isGrace with
+      | false ->
+         match head.NoteInfo with
+         | SingleNote(n,mProperties) ->
+            // x y
+            let (currentX,currentY) = head.Location
+            // list of either property
+            let eProperties =
+               match n with
+               | NormalGuitarNote(guitarString,pitch,eList) -> eList
+               | X(guitarString,eList) -> eList
+
+            // draw slurs
+            match (drawSlur slurStart currentX currentY mProperties) with
+            // successful slur drawing
+            | Some(slurList,newSlurStart) ->
+
+               drawPropertiesMeasures tail (text @ slurList) isGrace newSlurStart
+
+            | None -> None
+
+
+         // not a note
+         | _ ->
+            drawPropertiesMeasures tail text isGrace slurStart
+      // grace note TODO
+      | true -> Some([""],slurStart)
+
+
+
+
+let rec drawProperties (ms: SingleMeasure List) (text: string List) (slurStart: (float * float) * bool) : String option =
+   match ms with
+   | [] ->
+      let flattenedText = List.fold (fun acc elem -> acc + " " + elem) " " text
+      Some(flattenedText)
+   | head::tail ->
+      // properties for regular notes
+      match (drawPropertiesMeasures head.Elements text false slurStart) with
+      | Some(newText,newSlurStart) ->
+         drawProperties tail newText newSlurStart
+      | None -> None
+
+
+
 
 
 
@@ -1874,18 +1987,27 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
       let newWidth = head.Width * scale
       // used to scale the notes on the inside, removing the 5 units of space in the beginning
       let insideScale = newWidth / (head.Width - 5.0)
+
       match (showElements els [] newWidth x y l insideScale) with
       | Some(li,updatedElements) ->
+
          // x coordinate of the beginning of the next measure
          let newX = x + newWidth
          // Update the measure with the new elements
          let newMeasure = { head with Elements = updatedElements }
+
+         // DRAW BEAMS AND PROPERTIES
+
          // call a helper method to traverse the elements again and beam the grace notes
          let listWithGraceBeams = beamGraceNotes newMeasure.Elements [] newMeasure.Time
          // Call the beam function, and return a new list of strings that describe how to draw the beams for that new measure
          let listWithBeams = beam newMeasure.Elements li (0.0,0.0) Other 0.0 newMeasure.Time 0 Other false
+
          let newUpdatedMeasures = updatedMeasures @ [newMeasure]
+
+
          showMeasures tail newUpdatedMeasures newX y (listWithBeams @ listWithGraceBeams) scale
+
       | None -> None
 
 
@@ -1959,7 +2081,12 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) : 
          // Update the line with the new measures
          let newLine = { head with Measures = updatedMeasures }
          let newUpdatedLines = updatedLines @ [newLine]
-         showLines tail newUpdatedLines newText
+
+         // draw the properties. This is done from lines because slurs and ties can extend across lines
+         match (drawProperties newLine.Measures [] ((0.0,0.0),false)) with
+         | Some(propertyText) ->
+            showLines tail newUpdatedLines (newText + propertyText)
+         | None -> None
       | None -> None
 
 
@@ -2425,6 +2552,23 @@ let eval ast =
                x2 x1 sub 0.13043478 mul x1 add     y1 2.5 add
                x2 x1 sub 0.63043478 mul x1 add     y1 3 add
                x2 y2 curveto stroke
+               grestore end
+               } bind def
+
+               /slur {
+               5 dict begin gsave
+               0.7 setlinewidth
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /x1 x1 3 add store
+               /x2 x2 1 add store
+               x1 y1 44 add moveto
+               /temp x2 x1 sub 0.3 mul def
+               x1 temp add y1 50 add x2 temp sub y2 50 add
+               x2 y2 44 add curveto
+               stroke
                grestore end
                } bind def
                %%EndProlog
