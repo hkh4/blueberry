@@ -63,7 +63,7 @@ type Page = {
 
 type PropertyList = {
    SlurStart: (float * float) * bool
-   TieStart: (float * float) * int * Pitch * bool
+   TieStart: Map<int,(float * float) * Pitch * bool>
 }
 
 ///////// Useful Global Variables And Functions /////////
@@ -605,7 +605,10 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
                match (List.exists (fun e -> e = Gra) mProperties) with
                // not a grace note
                | false ->
-                  let graceBeforeBuffer = graceBefore @ [bufferElement]
+                  let graceBeforeBuffer =
+                     match graceBefore with
+                     | [] -> graceBefore
+                     | _ -> graceBefore @ [bufferElement]
                   Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer },false)
                // grace note
                | true ->
@@ -668,6 +671,7 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
 
 
 
+
 (* Recursive helper for measure evaluator, calls the note evaluator and composes the list of Elements, returns a SingleMeasure
 1) measureNumber is the number of the current measure
 2) m is the list of Notes remaining to be evaluated
@@ -703,6 +707,7 @@ let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : El
          | _ ->
             evalMeasureHelper measureNumber tail elementList baseBeat numberOfBeats acc newNextStart optionsR newGraceBefore
       | None -> None
+
 
 
 
@@ -876,6 +881,7 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
 
 
 
+
 (* Goes through each measure one at a time, gives to evalMeasure, returns list of SingleMeasure
 1) measureList is the list of Expr's, should be a list of Measures
 2) optionsR is the record of options evaluated earlier
@@ -923,6 +929,8 @@ let rec divideSingleLine (measureList : SingleMeasure List) (measuresSoFar : Sin
          divideSingleLine tail newList widthPerLine newTotal
       // If full, return
       | _ -> Some(measuresSoFar)
+
+
 
 
 
@@ -1482,6 +1490,7 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
 
       | _ ->
          // add the end slur for grace notes
+
          let endCurve =
             let (oldX,oldY) = lastLocation
             let (newX,newY) = head.Location
@@ -1867,6 +1876,7 @@ let rec beamGraceNotes (els: Element List) (text: string List) (time: int * int)
    | head::tail ->
       // draw the slash at the beginning of the grace note
       let slash =
+         
          match head.GraceNotes with
          // if there are no grace notes, do nothing
          | [] -> [""]
@@ -1941,60 +1951,68 @@ let drawSlur (currentX: float) (currentY: float) (mProperties: MultiProperty Lis
 1) currentX is the x coord for this element
 2) currentY is the y coord for this element
 3) pitch is the pitch of this note
-4) currentString is which string the current note is on
+4) currentString is the guitar string of the current note
 5) eProperties is the multi property list for this element
 6) propertyList describes the properties to be drawn
 RETURNS the string list and the new property list
 *)
-let drawTie (currentX: float) (currentY: float) (pitch: Pitch) (currentString: int) (eProperties: EitherProperty List) (propertyList: PropertyList) : (String List * PropertyList) option =
+let drawTie (currentX: float) (currentY: float) (pitch: Pitch) (currentString: int) (eProperties: EitherProperty List) (propertyList: PropertyList) : (string List * PropertyList) option =
 
-   // check if this note has the tie property
-   let hasTie = List.exists (fun e -> e = Tie) eProperties
-
-   match propertyList.TieStart with
-   // no tie from a previous note
-   | ((x,y),s,p,b) when b = false ->
-      match hasTie with
-      // this note wants to be tied with the next
-      | true ->
-         // new propertyList
-         let newPropertyList = { propertyList with TieStart = ((currentX,currentY),currentString,pitch,true) }
-         Some([""],newPropertyList)
-      // nothing
-      | false ->
-         Some([""],propertyList)
-
-   // last note wanted a tie
-   | ((x,y),s,p,b) ->
-      match hasTie with
-      // this note also wants a tie
-      | true ->
-         // check to see if this note has the same pitch and y coord. If it does have the same, tie them. If they are different, error
-         match pitch with
-         // match
-         | pi when pi = p && s = currentString ->
-            let tieText = string x + " " + string y + " " + string currentX + " " + string currentY + " tie "
-            // new propertyList
-            let newPropertyList = { propertyList with TieStart = ((currentX,currentY),currentString,pitch,true) }
-            Some([tieText],newPropertyList)
-         // not a match
-         | pi ->
-            printfn "Error! A tie was called but the note after the tied note doesn't match the first note"
+   let temp = [1..6]
+   // go through each item in the map
+   let results =
+      List.map (fun e ->
+      let thisTie = propertyList.TieStart.[e]
+      match e with
+      // if this one matches the guitarstring, see if it wanted a tie
+      | num when num = currentString ->
+         match thisTie with
+         // no tie needed
+         | ((x,y),p,b) when b = false -> Some("")
+         // tie needed
+         | ((x,y),p,b) ->
+            match pitch with
+            | pi when pi = p ->
+               let tieText = string x + " " + string y + " " + string currentX + " " + string currentY + " tie "
+               Some(tieText)
+            | _ ->
+               printfn "Error! There's a tie to a note that doesn't match"
+               None
+      // for all other strings
+      | _ ->
+         match thisTie with
+         // if the bool is false, then move on
+         | ((x,y),p,b) when b = false -> Some("")
+         // if it's true, then a previous note request a tie which won't work
+         | ((x,y),p,b) ->
+            printfn "Error! There's a tie requested where there is no second note on that line"
             None
+      ) temp
 
+   // see if anything in results is none
+   match (List.exists (fun e -> e = None) results) with
+   | true -> None
+   | false ->
+      // get the text
+      let newText =
+         match (results.Item(currentString - 1)) with
+         | Some(x) -> x
+         | None -> ""
+      //check to see if this note wants a tie
+      let hasTie = List.exists (fun e -> e = Tie) eProperties
+
+      match hasTie with
       | false ->
-         // check to see if this note has the same pitch and y coord. If it does have the same, tie them. If they are different, error
-         match pitch with
-         // match
-         | pi when pi = p && s = currentString ->
-            let tieText = string x + " " + string y + " " + string currentX + " " + string currentY + " tie "
-            // new propertyList
-            let newPropertyList = { propertyList with TieStart = ((0.0,0.0),0,NoPitch,false) }
-            Some([tieText],newPropertyList)
-         // not a match
-         | pi ->
-            printfn "Error! A tie was called but the note after the tied note doesn't match the first note"
-            None
+         // update the PropertyList where the map index of this string is set to nothing
+         let newTieList = propertyList.TieStart.Remove(currentString).Add(currentString,((0.0,0.0),NoPitch,false))
+         let newPropertyList = { propertyList with TieStart = newTieList }
+         Some([newText],newPropertyList)
+      | true ->
+         // update the PropertyList with this element's info
+         let newTieList = propertyList.TieStart.Remove(currentString).Add(currentString,((currentX,currentY),pitch,true))
+         let newPropertyList = { propertyList with TieStart = newTieList }
+         Some([newText],newPropertyList)
+
 
 
 
@@ -2040,7 +2058,6 @@ let rec drawPropertiesMeasures (els: Element List) (text: string List) (isGrace:
                | None -> None
 
             | None -> None
-
 
          // not a note
          | _ ->
@@ -2127,28 +2144,36 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
 *)
 let checkEndTie (restOfLines: Line List) (propertyList: PropertyList) =
 
-   // check to see if there's a tie that needs to be drawn across lines
-   match propertyList.TieStart with
-   // need an tie stub
-   | ((x,y),s,p,b) when x <> 0.0 && y <> 0.0 && b = true ->
-      let lastX = 565.0
-      let tieStub = string x + " " + string y + " " + string lastX + " " + string y + " tie "
+   let mapToList = propertyList.TieStart |> Map.toList
 
-      // try and set the new SlurStart, but if there are no more lines, error
-      try
-         // figure out the start of the next line
-         let nextHead = restOfLines.Head
-         let (nextStartX,nextStartY) = nextHead.Start
-         // shift the x and y
-         let newPropertyList = { propertyList with TieStart = ((nextStartX + 8.0,(nextStartY - 2.3) + (6.0 * ((float s) - 1.0))),s,p,true) }
-         Some(tieStub,newPropertyList)
-      with
-      | _ ->
-         printfn "Unended tie detected."
-         None
-   | _ ->
-      Some("",propertyList)
+   let rec checkEndTieHelper l newPList text =
+      match l with
+      | [] -> Some(text,newPList)
+      | head::tail ->
+         match head with
+         | (n,((x,y),p,b)) when x <> 0.0 && y <> 0.0 && b = true ->
 
+            let lastX = 565.0
+            let tieStub = string x + " " + string y + " " + string lastX + " " + string y + " tie "
+
+            // try and set the new SlurStart, but if there are no more lines, error
+            try
+               // figure out the start of the next line
+               let nextHead = restOfLines.Head
+               let (nextStartX,nextStartY) = nextHead.Start
+               // shift the x and y
+               let newP = newPList.TieStart.Remove(n).Add(n,((nextStartX + 8.0,(nextStartY - 2.3) + (6.0 * ((float n) - 1.0))),p,true))
+               let newPropertyList = { newPList with TieStart = newP }
+               checkEndTieHelper tail newPropertyList (text + tieStub)
+            with
+            | _ ->
+               printfn "Unended tie detected."
+               None
+
+         | _ ->
+            checkEndTieHelper tail newPList text
+
+   checkEndTieHelper mapToList propertyList ""
 
 
 (* add a slur at the end of a line if needed, and update the PropertyList
@@ -2299,7 +2324,17 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) : (stri
       let lines = head.Lines
       // Show the lines of a page
       // property list for showing properties
-      let defaultPropertyList = { SlurStart = ((0.0,0.0),false); TieStart = ((0.0,0.0),0,NoPitch,false) }
+      let defaultPropertyList =
+         {
+            SlurStart = ((0.0,0.0),false);
+            TieStart = Map.empty.
+               Add(1,((0.0,0.0),NoPitch,false)).
+               Add(2,((0.0,0.0),NoPitch,false)).
+               Add(3,((0.0,0.0),NoPitch,false)).
+               Add(4,((0.0,0.0),NoPitch,false)).
+               Add(5,((0.0,0.0),NoPitch,false)).
+               Add(6,((0.0,0.0),NoPitch,false))
+         }
       match (showLines lines [] text defaultPropertyList) with
       | Some(t,updatedLines) ->
          let newText = t + " showpage "
