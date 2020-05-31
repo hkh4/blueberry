@@ -1,16 +1,84 @@
--title croissandwich
--composer hugz
 -type tab
--key f#
+-key e
+-capo 2
+-title hello
+-composer hugo
 -time 4-4
--capo 0
 
 1:
-   (1e 2e)1
-2:
-   6e8/gra
-   6e4/sls/tie
-   6e8.
-   2fn8
-   1d8./sle
+   1e4
    2f4
+   3d
+   5g#
+2:
+   4e8
+   2f8
+   6d8.
+   2d16
+   1e4..
+   6d16
+3:
+   1e4
+   2f4
+   3d
+   5g#
+4:
+   4e8
+   2f8
+   6d8.
+   2d16
+   1e4..
+   6d16
+
+5:
+   1e4
+   2f4
+   3d
+   5g#
+6:
+   4e8
+   2f8
+   6d8.
+   2d16
+   1e4..
+   6d16/sls/tie
+7:
+   6d4
+   2f4
+   3d/sle
+   5g#
+8:
+   5f32/gra
+   6d16/gra
+   2e8./gra
+   4e8
+   (2f 3e)
+   6d8.
+   2d16
+   1e4..
+   6d16
+9:
+   1e4/sls
+   2f4
+   3d
+   5g#
+10:
+   4e8/sle
+   2f8/tie
+   2f8.
+   2d16
+   1e4..
+   6d16
+
+1:
+   1e4
+   2f4
+   3d
+   5g#
+2:
+   4e8
+   2f8
+   6d8.
+   2d16
+   1e4..
+   6d16

@@ -1876,7 +1876,7 @@ let rec beamGraceNotes (els: Element List) (text: string List) (time: int * int)
    | head::tail ->
       // draw the slash at the beginning of the grace note
       let slash =
-         
+
          match head.GraceNotes with
          // if there are no grace notes, do nothing
          | [] -> [""]
@@ -1959,6 +1959,9 @@ RETURNS the string list and the new property list
 let drawTie (currentX: float) (currentY: float) (pitch: Pitch) (currentString: int) (eProperties: EitherProperty List) (propertyList: PropertyList) : (string List * PropertyList) option =
 
    let temp = [1..6]
+   printfn "%A" pitch
+   printfn "%A" propertyList.TieStart
+   printfn ""
    // go through each item in the map
    let results =
       List.map (fun e ->
