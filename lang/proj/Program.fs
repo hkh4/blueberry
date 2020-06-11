@@ -18,7 +18,6 @@ let main argv =
       let fileText = System.IO.File.ReadAllText fileName
       match run grammar fileText with
       | Success(result, _, _) ->
-         printfn "Success: %A" result
          let (optionsList, measuresList) = result
          match eval optionsList measuresList outFile with
          | Some(text,pages) -> 0

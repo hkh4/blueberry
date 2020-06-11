@@ -833,7 +833,7 @@ let parseKey (l: Element List) (key: string) : Element List =
 
 
 (* Evaluate a single measure
-1) m is an Expression, which should be a Measure
+1) m is an Expr, which should be a Measure
 2) optionsR is the options evaluated earlier, which will be added into the metadata of the measure
 RETURNS: a SingleMeasure
 *)
@@ -843,6 +843,7 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
    | Measure(b,c) ->
       let acc = 0.0
       let (numberOfBeats,baseNumber) = optionsR.Time
+
       // turn the number of the bottom of time signature into a RhythmNumber
       // (assuming that the bottom number will only ever be 1 2 4 8 etc)
       let baseBeat =
@@ -857,6 +858,7 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
          | _ ->
             printfn "Error! The bottom of the time signature can be 1 2 4 8 16 32 or 64"
             X0
+            
       match (evalMeasureHelper b c [] baseBeat numberOfBeats acc 1.0 optionsR []) with
       // tuple: first element is the total width of all the elements added together, second is the list of elements
       | Some(width,list) ->
@@ -2351,7 +2353,7 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) (outFil
 
 // ********************* DRIVER **************************
 let eval optionsList measuresList outFile =
-   //default options
+   // default options
    let optionsR = {Type = "tab"; Time = (4,4); Key = "c"; Capo = 0; Title = "untitled"; Composer = "unknown"}
    // First, parse the options
    match (evalOption optionsList optionsR) with
