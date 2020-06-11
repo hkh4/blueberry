@@ -176,7 +176,7 @@ let drawFlags (x: float) (y: float) (r: Rhythm) (isGrace: bool) : string List =
       // for 16th notes and shorter, need to extend the stem as well
       | R(X16,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 3 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 44.0) + " drawFlag "]
       | R(X32,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 7 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 44.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 48.0) + " drawFlag "]
-      | R(X64,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 11 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 43.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 48.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 53.0) + " drawFlag "]
+      | R(X64,n) -> ["0.7 setlinewidth " + string (x + 2.0) + " " + string (y + 42.0) + " moveto 0 11 rlineto stroke ";string (x + 1.65) + " " + string (y + 40.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 44.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 48.0) + " drawFlag ";string (x + 1.65) + " " + string (y + 52.0) + " drawFlag "]
       | _ -> [""]
    // grace note
    | true ->
@@ -1959,9 +1959,6 @@ RETURNS the string list and the new property list
 let drawTie (currentX: float) (currentY: float) (pitch: Pitch) (currentString: int) (eProperties: EitherProperty List) (propertyList: PropertyList) : (string List * PropertyList) option =
 
    let temp = [1..6]
-   printfn "%A" pitch
-   printfn "%A" propertyList.TieStart
-   printfn ""
    // go through each item in the map
    let results =
       List.map (fun e ->
@@ -2242,14 +2239,14 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
          match head.LineNumber with
          // If it's the first line, add a clef AND time signature
          | 1 ->
-            let clefString = string (staffx + 3.0) + " " + string (staffy + 2.0) + " 7 25.2 70 252 (images/Staves/staff.jpg) 3 printimage "
+            let clefString = string (staffx + 3.0) + " " + string (staffy + 2.0) + " 7 25.2 70 252 (images/Staves/Staff.jpg) 3 printimage "
             // Time signature depends on the time sig of the first measure of that line
             let (currentTime1, currentTime2) = head.Measures.Head.Time
             let timeSigString = string (staffx + 14.0) + " " + string (staffy + 15.0) + " " + string currentTime1 + " timesignature " + string (staffx + 14.0) + " " + string (staffy + 6.0) + " " + string currentTime2 + " timesignature "
             (clefString, timeSigString, staffx + 30.0)
          // For all other lines, just add the clef
          | _ ->
-            let clefString = string (staffx + 3.0) + " " + string (staffy + 2.0) + " 7 25.2 70 252 (images/Staves/staff.jpg) 3 printimage "
+            let clefString = string (staffx + 3.0) + " " + string (staffy + 2.0) + " 7 25.2 70 252 (images/Staves/Staff.jpg) 3 printimage "
             (clefString, "", staffx + 20.0)
 
       let newHead : Line =
@@ -2314,13 +2311,14 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
 1) pages is list of Pages to be evaluated
 2) updatedPages is the list of new pages that have been updated
 3) text is the text that will be updated then printed to postscript file
+4) outFile is the name of the file to be printed to
 RETURNS string to be printed and the new Page List
 *)
-let rec show (pages: Page List) (updatedPages: Page List) (text: string) : (string * Page List) option =
+let rec show (pages: Page List) (updatedPages: Page List) (text: string) (outFile: string) : (string * Page List) option =
    match pages with
    // Base: no more pages, print the text to a file called score.ps
    | [] ->
-      File.WriteAllText("score.ps",text)
+      File.WriteAllText(outFile+".ps",text)
       Some(text,updatedPages)
    // Recursive case
    | head::tail ->
@@ -2344,7 +2342,7 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) : (stri
          // update the Page with the new lines
          let newPage = { head with Lines = updatedLines }
          let newUpdatedPages = updatedPages @ [newPage]
-         show tail newUpdatedPages newText
+         show tail newUpdatedPages newText outFile
       | None ->
          None
 
@@ -2352,9 +2350,7 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) : (stri
 
 
 // ********************* DRIVER **************************
-let eval ast =
-   //decompose
-   let (optionsList,measuresList) = ast
+let eval optionsList measuresList outFile =
    //default options
    let optionsR = {Type = "tab"; Time = (4,4); Key = "c"; Capo = 0; Title = "untitled"; Composer = "unknown"}
    // First, parse the options
@@ -2879,7 +2875,7 @@ let eval ast =
                // Add the title and comnposer to the text
                let text' = text + " (" + newOption.Title + ") title " + "(" + newOption.Composer + ") composer "
                //print and show
-               match (show pages [] text') with
+               match (show pages [] text' outFile) with
                | Some(updatedText, updatedPages) ->
 
                   Some(updatedText, updatedPages)

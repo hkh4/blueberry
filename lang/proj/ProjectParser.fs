@@ -1,41 +1,8 @@
 module ProjectParser
 
 open System
-open Parser
+open FParsec
 (*
-<expr>             ::= <option>
-                     | <measure>
-<option>           ::= <type>
-                     | <time>
-                     | <key>
-<key>              ::= c | cm | c# | c#m| cb | d | dm | db | d#m | e | em | eb | ebm | f | fm | f# | f#m | g | gm | g#m | gb | a | am | a#m | ab | abm | b | bm | bb | bbm
-<time>             ::= <num> / <num>
-<num>              ::= x ∈ ℕ
-<type>             ::= tab
-<measure>          ::= <note>+
-<note>             ::= <simple>
-                     | <complex>
-                     | <group>
-                     | <tuplet>
-<simple>           ::= <singlesimple>
-                     | <restsimple>
-<complex>          ::= <singlecomplex>
-                     | <restcomplex>
-<singlesimple>     ::= <string><pitch><property>*
-<restsimple>       ::= r
-<singlecomplex>    ::= <string><pitch><rhythm><property>*
-<restcomplex>      ::= r<rhythm>
-<group>            ::= (<singlesimple>+)
-                     | (<singlesimple>+)<rhythm>
-<tuplet>           ::= t<num>o<num> {<simple>+}
-<string>           ::= 1 | 2 | 3 | 4 | 5 | 6
-<pitch>            ::= c | c# | cb | d | d# | db | e | e# | eb | f | f# | fb | g | g# | gb | a | a# | ab | b | b# | bb
-<rhythm>           ::= <rhythmnumber><dot>*
-<rhythmnumber      ::= 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256
-<dot>              ::= .
-<property>         ::= /sls | /sle | /stu | /std | /p | /plu | /pld | /g | /har | /sl | /si
-
-
 Notes:
 sls = slur start
 sle = slur end
@@ -49,8 +16,8 @@ har = harmonic
 sld = slide
 sli = slide in
 tie = tie
-
 *)
+
 type Pitch =
 | A | ASharp | AFlat | ANat | B | BSharp | BFlat | BNat | C | CSharp | CFlat | CNat | D | DSharp | DFlat | DNat | E | ESharp | EFlat | ENat | F | FSharp | FFlat | FNat | G | GSharp | GFlat | GNat | NoPitch
 
@@ -95,170 +62,179 @@ type Expr =
 | Measure of int * Note List
 
 
-// Helpers
-let pword = pmany1 (psat (fun c -> (c <> ' ') && (c <> '\n'))) |>> stringify <!> "word"
-let pdigit2 = pmany1 pdigit |>> stringify |>> int <!> "pdigit2"
+// Generic types to avoid Value Restriction error
+type UserState = unit // doesn't have to be unit, of course
+type Parser<'t> = Parser<'t, UserState>
 
 
-// ****************  PARSE OPTIONS ********************
+// HELPERS
+let pstr s = pstring s
+// Helper parse that parses one word
+let word : Parser<_> = many1Satisfy (fun c -> c <> ' ' && c <> '\n' && c <> '\r' && c <> '\t') <??> "Expecting a word"
+// Single space
+let regularSpace : Parser<_> = pchar ' ' <??> "Expecting a space"
+// Multiple spaces
+let multipleSpaces : Parser<_> = manySatisfy (fun c -> c = ' ') <??> "Expecting whitespace"
+let multipleSpaces1 = many1Satisfy (fun c -> c = ' ') <??> "Expecting whitespace"
+// debugging
+let (<!>) (p: Parser<_,_>) label : Parser<_,_> =
+   fun stream ->
+      printfn "%A: Entering %s" stream.Position label
+      let reply = p stream
+      printfn "%A: Leaving %s (%A)" stream.Position label reply.Status
+      reply
 
-// '-' then word, then space, then multiple words. Multiple words not really allowed for all of them but eval takes care of that
-let multipleWords = pmany1 (pright pwsNoNL1 pword)
-let typeoption = pseq pword multipleWords (fun (a,b) -> (a,(List.fold (fun acc elem -> acc + " " + elem) "" b))) <!> "typeoption"
-let singleOption = pbetween (pchar '-') (pleft pwsNoNL0 pnl) typeoption |>> ScoreOption <!> "singleOption"
-let option = pleft (pmany0 singleOption) pws0 <!> "option"
 
-// **************** PARSE MEASURES ********************
 
-// start with a measure number and then :
-let measureNumber = pleft pdigit2 (pchar ':') <!> "Measure number"
+//**************** PARSE OPTIONS *******************
 
-///////////// NOTE ///////////////
+// After the '-', there needs to be a word followed
+let optionWord_spaces1 = (word .>> multipleSpaces1) <??> "Option identifier followed by whitespace"
+
+let optionIdentifier = pstr "-" >>. optionWord_spaces1 <??> "'-' followed by the option identifier. No spaces in between."
+let singleOption = (optionIdentifier .>>. ((restOfLine false) .>> newline)) |>> ScoreOption
+let option = (many singleOption) .>> spaces
+
+
+
+//**************** PARSE MEASURES ******************
 
 //pitches
-let csharp = pstr "c#" |>> (fun _ -> CSharp) <!> "csharp"
-let cflat = pstr "cb" |>> (fun _ -> CFlat) <!> "cflat"
-let cnat = pstr "cn" |>> (fun _ -> CNat) <!> "cnat"
-let dsharp = pstr "d#" |>> (fun _ -> DSharp) <!> "dsharp"
-let dflat = pstr "db" |>> (fun _ -> DFlat) <!> "dflat"
-let dnat = pstr "dn" |>> (fun _ -> DNat) <!> "dnat"
-let esharp = pstr "e#" |>> (fun _ -> ESharp) <!> "esharp"
-let eflat = pstr "eb" |>> (fun _ -> EFlat) <!> "eflat"
-let enat = pstr "en" |>> (fun _ -> ENat) <!> "enat"
-let fsharp = pstr "f#" |>> (fun _ -> FSharp) <!> "fsharp"
-let fflat = pstr "fb" |>> (fun _ -> FFlat) <!> "fflat"
-let fnat = pstr "fn" |>> (fun _ -> FNat) <!> "fnat"
-let gsharp = pstr "g#" |>> (fun _ -> GSharp) <!> "gsharp"
-let gflat = pstr "gb" |>> (fun _ -> GFlat) <!> "gflat"
-let gnat = pstr "gn" |>> (fun _ -> GNat) <!> "gnat"
-let asharp = pstr "a#" |>> (fun _ -> ASharp) <!> "asharp"
-let aflat = pstr "ab" |>> (fun _ -> AFlat) <!> "aflat"
-let anat = pstr "an" |>> (fun _ -> ANat) <!> "anat"
-let bsharp = pstr "b#" |>> (fun _ -> BSharp) <!> "bsharp"
-let bflat = pstr "bb" |>> (fun _ -> BFlat) <!> "bflat"
-let bnat = pstr "bn" |>> (fun _ -> BNat) <!> "bnat"
-let a = pchar 'a' |>> (fun _ -> A) <!> "a"
-let b = pchar 'b' |>> (fun _ -> B) <!> "b"
-let c = pchar 'c' |>> (fun _ -> C) <!> "c"
-let d = pchar 'd' |>> (fun _ -> D) <!> "d"
-let e = pchar 'e' |>> (fun _ -> E) <!> "e"
-let f = pchar 'f' |>> (fun _ -> F) <!> "f"
-let g = pchar 'g' |>> (fun _ -> G) <!> "g"
-let noPitch = pchar 'x' |>> (fun _ -> NoPitch) <!> "no pitch"
+let csharp = pstr "c#" >>% CSharp
+let cflat = pstr "cb" >>% CFlat
+let cnat = pstr "cn" >>% CNat
+let dsharp = pstr "d#" >>% DSharp
+let dflat = pstr "db" >>% DFlat
+let dnat = pstr "dn" >>% DNat
+let esharp = pstr "e#" >>% ESharp
+let eflat = pstr "eb" >>% EFlat
+let enat = pstr "en" >>% ENat
+let fsharp = pstr "f#" >>% FSharp
+let fflat = pstr "fb" >>% FFlat
+let fnat = pstr "fn" >>% FNat
+let gsharp = pstr "g#" >>% GSharp
+let gflat = pstr "gb" >>% GFlat
+let gnat = pstr "gn" >>% GNat
+let asharp = pstr "a#" >>% ASharp
+let aflat = pstr "ab" >>% AFlat
+let anat = pstr "an" >>% ANat
+let bsharp = pstr "b#" >>% BSharp
+let bflat = pstr "bb" >>% BFlat
+let bnat = pstr "bn" >>% BNat
+let a = pchar 'a' >>% A
+let b = pchar 'b' >>% B
+let c = pchar 'c' >>% C
+let d = pchar 'd' >>% D
+let e = pchar 'e' >>% E
+let f = pchar 'f' >>% F
+let g = pchar 'g' >>% G
+let noPitch = pchar 'x' >>% NoPitch
 
-let pitch = csharp <|> cflat <|> cnat <|> dsharp <|> dflat <|> dnat <|> esharp <|> eflat <|> enat <|> fsharp <|> fflat <|> fnat <|> gsharp <|> gflat <|> gnat <|> asharp <|> aflat <|> anat <|> bsharp <|> bflat <|> bnat <|> a <|> b <|> c <|> d <|> e <|> f <|> g <|> noPitch <!> "pitch"
+let pitch = attempt csharp <|> cflat <|> cnat <|> dsharp <|> dflat <|> dnat <|> esharp <|> eflat <|> enat <|> fsharp <|> fflat <|> fnat <|> gsharp <|> gflat <|> gnat <|> asharp <|> aflat <|> anat <|> bsharp <|> bflat <|> bnat <|> a <|> b <|> c <|> d <|> e <|> f <|> g <|> noPitch <??> "A valid pitch: 'a', 'a#', 'ab', 'an', 'b', 'b#', 'bb', 'bn', 'c', 'c#', 'cb', 'cn', 'd', 'd#', 'db', 'dn', 'e', 'e#', 'eb', 'en', 'f', 'f#', 'fb', 'fn', 'g', 'g#', 'gb', 'gn' or 'x'"
 
 //properties
-let sls = pstr "sls" |>> (fun _ -> Sls) <!> "slur stasrt"
-let sle = pstr "sle" |>> (fun _ -> Sle) <!> "slur end"
-let stu = pstr "stu" |>> (fun _ -> Stu) <!> "strum up"
-let std = pstr "std" |>> (fun _ -> Std) <!> "strum down"
-let plu = pstr "plu" |>> (fun _ -> Plu) <!> "pluck up"
-let pld = pstr "pld" |>> (fun _ -> Pld) <!> "pluck down"
-let har = pstr "har" |>> (fun _ -> Har) <!> "harmonic"
-let gra = pstr "gra" |>> (fun _ -> Gra) <!> "grace note"
-let sld = pstr "sld" |>> (fun _ -> Sld) <!> "slide"
-let sli = pstr "sli" |>> (fun _ -> Sli) <!> "slide in"
-let par = pstr "par" |>> (fun _ -> Par) <!> "parentheses"
-let tie = pstr "tie" |>> (fun _ -> Tie) <!> "tie"
-
-// a property that is an EitherProperty
-// first one is for just an EitherProperty type
-let eitherProperty = pright (pchar '/') (par <|> sld <|> sli <|> tie) <!> "eitherProperty "
-// this one turns into a Property type to be used for the anyProperties parser
-let eitherPropertyEither = pright (pchar '/') (par <|> sld <|> sli <|> tie) |>> Either <!> "eitherPropertyEither "
+let sls = pstr "sls" >>% Sls
+let sle = pstr "sle" >>% Sle
+let stu = pstr "stu" >>% Stu
+let std = pstr "std" >>% Std
+let plu = pstr "plu" >>% Plu
+let pld = pstr "pld" >>% Pld
+let har = pstr "har" >>% Har
+let gra = pstr "gra" >>% Gra
+let sld = pstr "sld" >>% Sld
+let sli = pstr "sli" >>% Sli
+let par = pstr "par" >>% Par
+let tie = pstr "tie" >>% Tie
 
 
-// a property that is a MultiProperty
-// first one is for just a MultiProperty type
-let multiProperty = pright (pchar '/') (stu <|> std <|> plu <|> pld <|> har <|> gra  <|> sls <|> sle) <!> "multiProperty"
-// this one turns into a Property type to be used for the anyProperties parser
-let multiPropertyMulti = pright (pchar '/') (stu <|> std <|> plu <|> pld <|> har <|> gra <|> sls <|> sle) |>> Multi <!> "multiProperty"
 
-// pamny0 version for regular either or multi
-let eitherProperties = pmany0 eitherProperty <!> "eitherProperties"
-let multiProperties = pmany0 multiProperty <!> "multiProperties"
+// Properties
+let eitherProperty = pchar '/' >>. (par <|> sld <|> sli <|> tie)
 
-// pmany0 version for Property types
-let eitherPropertiesEither = pmany0 eitherPropertyEither <!> "eitherPropertiesEither"
-let multiPropertiesMulti = pmany0 multiPropertyMulti <!> "multiPropertiesMulti"
+let multiProperty = pchar '/' >>. (stu <|> std <|> plu <|> pld <|> har <|> gra <|> sls <|> sle)
 
-// Could be either one
-let anyProperties = pmany0 (eitherPropertyEither <|> multiPropertyMulti) <!> "anyProperties"
+let eitherProperties = many eitherProperty
 
-//rhythms
-let x64 = pstr "64" |>> (fun _ -> X64) <!> "64"
-let x32 = pstr "32" |>> (fun _ -> X32) <!> "32"
-let x16 = pstr "16" |>> (fun _ -> X16) <!> "16"
-let x8 = pstr "8" |>> (fun _ -> X8) <!> "8"
-let x4 = pstr "4" |>> (fun _ -> X4) <!> "4"
-let x2 = pstr "2" |>> (fun _ -> X2) <!> "2"
-let x1 = pstr "1" |>> (fun _ -> X1) <!> "1"
-let x0 = pstr "0" |>> (fun _ -> X0) <!> "0"
+let multiProperties = many multiProperty
 
-let dot = pmany0 (pchar '.') |>> (fun list -> list.Length) <!> "dot"
+let anyProperty = pchar '/' >>. ((par |>> Either) <|> (sld |>> Either) <|> (sli |>> Either) <|> (tie |>> Either) <|> (stu |>> Multi) <|> (std |>> Multi) <|> (plu |>> Multi) <|> (pld |>> Multi) <|> (har |>> Multi) <|> (gra |>> Multi) <|> (sls |>> Multi) <|> (sle |>> Multi)) <!> "anyproperty"
+let anyProperties = many anyProperty <??> "property" <!> "anyProperties"
 
-let rhythm = pseq (x64 <|> x32 <|> x16 <|> x8 <|> x4 <|> x2 <|> x1 <|> x0) dot (fun (a,b) -> (a,b)) |>> R <!> "Rhythm"
 
-///// SIMPLE //////
+// Rhythms
+let x64 = pstr "64" >>% X64
+let x32 = pstr "32" >>% X32
+let x16 = pstr "16" >>% X16
+let x8 = pstr "8" >>% X8
+let x4 = pstr "4" >>% X4
+let x2 = pstr "2" >>% X2
+let x1 = pstr "1" >>% X1
+let x0 = pstr "0" >>% X0
 
-//SINGLESIMPLE
-let singlesimple = pseq pdigit2 (pseq pitch anyProperties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c)) |>> SingleSimple <!> "singlesimple"
+let dot = many (pchar '.') |>> (fun list -> list.Length)
 
-//RESTSIMPLE
-let restsimple = pchar 'r' |>> (fun _ -> RestSimple) <!> "restsimple"
+let rhythm = ((x64 <|> x32 <|> x16 <|> x8 <|> x4 <|> x2 <|> x1 <|> x0) .>>. dot) |>> R <??> "Rhythm with the form (int)(dots) where int is 0, 1, 2, 4, 8, 16, 32, or 64 and dots are a sequence of '.'"
 
-// Simple
+
+// After the measure number and after each note, there should be a bunch of spaces followed by a newline
+let spacesAndNewLine = (many (pchar ' ')) .>> newline
+
+
+// for the measure number
+let int32 = pint32 <??> "An integer"
+let measureNumber = int32 .>> ((pchar ':') .>> spacesAndNewLine) <!> "measurenumber"
+let stringNum = int32
+
+
+
+
+/// SIMPLE ///
+// simplesingle
+let singlesimple = tuple3 stringNum pitch anyProperties |>> SingleSimple <!> "singlesimple"
+
+// restsimple
+let restsimple = pchar 'r' >>% RestSimple <!> "restsimple"
+
+// simple
 let simple = singlesimple <|> restsimple |>> Simple <!> "simple"
 
-///// COMPLEX //////
+/// COMPLEX ///
 
-//SINGLECOMPLEX
-let singlecomplex = pseq pdigit2 (pseq pitch (pseq rhythm anyProperties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c))) (fun (a,(b,c,d)) -> (a,b,c,d)) |>> SingleComplex <!> "singlecomplex"
+// singlecomplex
+let singlecomplex = tuple4 stringNum pitch rhythm anyProperties |>> SingleComplex <!> "singlecomplex"
 
-//RESTCOMPLEX
-let restcomplex = pright (pchar 'r') rhythm |>> RestComplex <!> "restcomplex"
+// restcomplex
+let restcomplex = (pchar 'r') >>. rhythm |>> RestComplex <!> "restcomplex"
 
-// Complex
+// complex
 let complex = singlecomplex <|> restcomplex |>> Complex <!> "complex"
 
-//GROUP
-let gsimpleHelper = pseq pdigit2 (pseq pitch eitherProperties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c)) |>> GS <!> "one groupsimple"
+/// GROUP ///
+let oneNoteInGroup = tuple3 stringNum pitch eitherProperties |>> GS <!> "one note in a group"
 
-let multipleGSimple = pseq gsimpleHelper (pmany0 (pright pws1 gsimpleHelper)) (fun (a,b) -> a::b) <!> "multipleGSimple"
+let multipleNotes = sepBy oneNoteInGroup spaces1 <!> "multiplenotes"
 
-let multipleGSimpleParens = pbetween (pchar '(') (pchar ')') multipleGSimple <!> "multipleGSimpleParens"
+let notesWithParens = between (pchar '(') (pchar ')') multipleNotes <!> "noteswithparens"
 
-let gsimple = pseq multipleGSimpleParens multiProperties (fun (a,b) -> (a,b)) |>> GSimple <!> "GSimple"
+let groupsimple = notesWithParens .>>. multiProperties |>> GSimple <!> "groupsimple"
 
-let gcomplex = pseq multipleGSimpleParens (pseq rhythm multiProperties (fun (a,b) -> (a,b))) (fun (a,(b,c)) -> (a,b,c)) |>> GComplex <!> "GComplex"
+let groupcomplex = tuple3 notesWithParens rhythm multiProperties |>> GComplex <!> "groupcomplex"
 
-// group
-let group = gcomplex <|> gsimple |>> Group <!> "group"
-
-// Note
-let note = pright pws1 (complex <|> simple <|> group) <!> "note"
-
-// Measure
-let measure1 = pseq measureNumber (pmany1 note) (fun (a,b) -> (a,b)) |>> Measure <!> "measure!"
+let group = attempt groupcomplex <|> attempt groupsimple |>> Group <!> "group"
 
 
-let expr = pseq option (pmany0 (pleft measure1 pws1)) (fun (a,b) -> (a,b)) <!> "expr"
 
-let grammar = pleft expr (pleft pws0 peof) <!> "grammar"
+let note = spaces1 >>. (attempt complex <|> attempt simple <|> attempt group) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
 
-let parse input =
-   let input' = prepare input
-   match grammar input' with
-   | Success(res,_) ->
+let measure1 = measureNumber .>>. (many1 note) |>> Measure <!> "measure"
 
-      Some res
-   | Failure(pos,rule) ->
-      printfn "Invalid expression"
-      let msg = sprintf "Cannot parse input at pos %d in rule '%s':" pos rule
-      let diag = diagnosticMessage 20 pos input msg
-      printf "%s" diag
-      None
+let expr = (option .>>. (many measure1)) .>> spaces <!> "expr"
+
+let grammar = expr .>> eof
+
+
+
+
 
 
 

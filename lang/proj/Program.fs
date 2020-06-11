@@ -2,24 +2,27 @@
 
 open System
 open System.IO
-open Parser 
+open FParsec
 open ProjectParser
 open ProjectInterpreter
 
 [<EntryPoint>]
 let main argv =
    //reads in from a file
-   if (Array.length argv = 0) then
-      printfn "Correct usage: dotnet run <file>"
+   if (Array.length argv <> 2) then
+      printfn "Correct usage: dotnet run <file> <outFile>"
       1
    else
       let fileName = argv.[0]
+      let outFile = argv.[1]
       let fileText = System.IO.File.ReadAllText fileName
-      match parse fileText with
-      | Some ast ->
-         match (eval ast) with
-         | Some(_) -> 0
+      match run grammar fileText with
+      | Success(result, _, _) ->
+         printfn "Success: %A" result
+         let (optionsList, measuresList) = result
+         match eval optionsList measuresList outFile with
+         | Some(text,pages) -> 0
          | None -> 1
-      | None ->
-         printfn "Error!"
-         0
+      | Failure(errorMsg, _, _) ->
+         printfn "Failure: %s" errorMsg
+         1

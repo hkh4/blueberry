@@ -6,10 +6,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Parsers.fs" />
     <Compile Include="ProjectParser.fs" />
     <Compile Include="ProjectInterpreter.fs" />
     <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+     <PackageReference Update="FSharp.Core" Version="4.7.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FParsec" Version="1.1.1" />
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
 
 </Project>

@@ -1,84 +1,24 @@
 -type tab
--key e
--capo 2
--title hello
--composer hugo
+-title Testing
+-composer Hugo Hua
+-key f#
 -time 4-4
 
 1:
-   1e4
-   2f4
-   3d
-   5g#
+   1a4
+   2d
+   4f#16.
+   6gb16.
+   5a32.
+   6d64/sls
+   4f16/gra
+   5gn4
 2:
-   4e8
-   2f8
-   6d8.
-   2d16
-   1e4..
-   6d16
-3:
-   1e4
-   2f4
-   3d
-   5g#
-4:
-   4e8
-   2f8
-   6d8.
-   2d16
-   1e4..
-   6d16
-
-5:
-   1e4
-   2f4
-   3d
-   5g#
-6:
-   4e8
-   2f8
-   6d8.
-   2d16
-   1e4..
-   6d16/sls/tie
-7:
-   6d4
-   2f4
-   3d/sle
-   5g#
-8:
-   5f32/gra
-   6d16/gra
-   2e8./gra
-   4e8
-   (2f 3e)
-   6d8.
-   2d16
-   1e4..
-   6d16
-9:
-   1e4/sls
-   2f4
-   3d
-   5g#
-10:
-   4e8/sle
-   2f8/tie
-   2f8.
-   2d16
-   1e4..
-   6d16
-
-1:
-   1e4
-   2f4
-   3d
-   5g#
-2:
-   4e8
-   2f8
-   6d8.
-   2d16
-   1e4..
-   6d16
+   r
+   r8
+   r16
+   r32
+   r64
+   1e64/sle
+   (1e/par 2d 3e)4
+   (6dn 5f)
