@@ -3,22 +3,10 @@
 -composer Hugo Hua
 -key f#
 -time 4-4
- 
+
+
 1:
-   1a4
-   2d
-   4f#16.
-   6gb16.
-   5a32.
-   6d64/sls
-   4f16/gra
-   5gn4
-2:
-   r
-   r8
-   r16
-   r32
-   r64
-   1e64/sle
-   (1e/par 2d 3e)4
-   (6dn 5f)
+   (1e/par/tie 2d 3e)/sls
+   (1e/par/tie 2d/tie 3e/tie)/sle
+   (1e 2d 3e/tie)
+   (1e 5d 3e)

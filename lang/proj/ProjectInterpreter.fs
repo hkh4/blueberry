@@ -858,7 +858,7 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
          | _ ->
             printfn "Error! The bottom of the time signature can be 1 2 4 8 16 32 or 64"
             X0
-            
+
       match (evalMeasureHelper b c [] baseBeat numberOfBeats acc 1.0 optionsR []) with
       // tuple: first element is the total width of all the elements added together, second is the list of elements
       | Some(width,list) ->
@@ -1593,6 +1593,9 @@ let showX (x: float) (y: float) (guitarString:int) : string =
 
 
 
+
+
+
 (* Show the numbers or x for grace notes
 1) x is the xcoord
 2) y is the ycoord
@@ -1603,6 +1606,25 @@ let showX (x: float) (y: float) (guitarString:int) : string =
 RETURNS the list of strings, the list of new elements, and the new x y coords for the real note that this list of grace notes is attached to
 *)
 let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElements: Element List) (text: string List) (insideScale: float) : (string List * Element List * float * float) option =
+
+
+   (* Helper to show a grace note which is a normal guitar note
+   *)
+   let showNormalGraceNote (guitarString: int) (pitch: Pitch) (capo: int) : string option =
+      match (calculateStringAndFret guitarString pitch capo) with
+      | Some(fret) ->
+         let yCoord = (y - 1.5) + (6.0 * ((float guitarString) - 1.0))
+         Some(string x + " " + string yCoord + " " + string fret + " guitarfretnumbergrace ")
+      | None -> None
+
+
+   (* Helper to show a grace note which is an X
+   *)
+   let showXGraceNote (guitarString: int) : string =
+      let yCoord = (y - 1.5) + (6.0 * ((float guitarString) - 1.0))
+      string x + " " + string yCoord + " (x) guitarfretnumbergrace "
+
+
    match els with
    | [] ->
       Some(text,updatedElements,x,y)
@@ -1611,17 +1633,42 @@ let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElement
       let newEl = { head with Location = (x,y) }
 
       match head.NoteInfo with
+      // show a grace note which is a normal guitar note
       | SingleNote(NormalGuitarNote(guitarString,pitch,eProperties),mProperties) ->
-         match (calculateStringAndFret guitarString pitch head.Capo) with
-         | Some(fret) ->
-            let yCoord = (y - 1.5) + (6.0 * ((float guitarString) - 1.0))
-            let newText = string x + " " + string yCoord + " " + string fret + "    guitarfretnumbergrace "
+         match (showNormalGraceNote guitarString pitch head.Capo) with
+         | Some(newText) ->
             showGraceNotes newX y tail (updatedElements @ [newEl]) (text @ [newText]) insideScale
          | None -> None
+
+      // show a grace note that's an x
       | SingleNote(X(guitarString,eProperties),mProperties) ->
-         let yCoord = (y - 1.5) + (6.0 * ((float guitarString) - 1.0))
-         let newText = string x + " " + string yCoord + " (x) guitarfretnumbergrace "
+         let newText = showXGraceNote guitarString
          showGraceNotes newX y tail (updatedElements @ [newEl]) (text @ [newText]) insideScale
+
+      // show a grace note that's a group
+      | GroupNote(sList,mProperties) ->
+
+         (* Helper to show each note in the group
+         *)
+         let rec showGroupGraceHelper (sList: singleNote List) (fullText: string List) : string List option =
+            match sList with
+            | [] -> Some(fullText)
+            | head'::tail' ->
+               match head' with
+               | NormalGuitarNote(guitarString,pitch,eProperties) ->
+                  match (showNormalGraceNote guitarString pitch head.Capo) with
+                  | Some(newText) ->
+                     showGroupGraceHelper tail' (fullText @ [newText])
+                  | None -> None
+               | X(guitarString,eProperties) ->
+                  let newText = showXGraceNote guitarString
+                  showGroupGraceHelper tail' (fullText @ [newText])
+
+         match (showGroupGraceHelper sList []) with
+         | Some(groupText) ->
+            showGraceNotes newX y tail (updatedElements @ [newEl]) (text @ groupText) insideScale
+         | None -> None
+
       | _ -> showGraceNotes x y tail (updatedElements @ [newEl]) text insideScale
 
 
@@ -1950,73 +1997,280 @@ let drawSlur (currentX: float) (currentY: float) (mProperties: MultiProperty Lis
 
 
 (* draw ties
-1) currentX is the x coord for this element
-2) currentY is the y coord for this element
-3) pitch is the pitch of this note
-4) currentString is the guitar string of the current note
-5) eProperties is the multi property list for this element
-6) propertyList describes the properties to be drawn
+1) coords is the list of coordinates for each string that needs to be tied
+2) pitch is the map of all the pitches for the strings to be tied
+3) ePropertiesList is the eitherproperty list for each element
+4) propertyList describes the properties to be drawn
 RETURNS the string list and the new property list
 *)
-let drawTie (currentX: float) (currentY: float) (pitch: Pitch) (currentString: int) (eProperties: EitherProperty List) (propertyList: PropertyList) : (string List * PropertyList) option =
+let drawTie (coords: Map<int,(float * float)>) (pitches: Map<int,Pitch>) (ePropertiesList: Map<int,EitherProperty List>) (propertyList: PropertyList) : (string List * PropertyList) option =
 
    let temp = [1..6]
-   // go through each item in the map
+
    let results =
       List.map (fun e ->
-      let thisTie = propertyList.TieStart.[e]
-      match e with
-      // if this one matches the guitarstring, see if it wanted a tie
-      | num when num = currentString ->
-         match thisTie with
-         // no tie needed
-         | ((x,y),p,b) when b = false -> Some("")
-         // tie needed
-         | ((x,y),p,b) ->
-            match pitch with
-            | pi when pi = p ->
-               let tieText = string x + " " + string y + " " + string currentX + " " + string currentY + " tie "
-               Some(tieText)
-            | _ ->
-               printfn "Error! There's a tie to a note that doesn't match"
+
+         // check the PropertyList to see if this guitar string had a tie requested earlier
+         let thisTie = propertyList.TieStart.[e]
+
+         // See if this guitar string is in the coords list
+         match coords.ContainsKey(e) with
+
+         // contains the key
+         | true ->
+
+            // get the metadata
+            let currentPitch = pitches.[e]
+            let (currentX,currentY) = coords.[e]
+
+            match thisTie with
+            // no tie needed
+            | ((x,y),p,b) when b = false -> Some("")
+
+            // tie needed
+            | ((x,y),p,b) ->
+
+               match currentPitch with
+               | pi when pi = p ->
+                  let tieText = string x + " " + string y + " " + string currentX + " " + string currentY + " tie "
+                  Some(tieText)
+               | _ ->
+                  printfn "Error! There's a tie where the second note's pitch doesn't match the first!"
+                  None
+
+
+         // does not contain the key
+         | false ->
+
+            match thisTie with
+            // if the bool is false, then move on
+            | ((x,y),p,b) when b = false -> Some("")
+            // if it's true, then a previous note request a tie which won't work
+            | ((x,y),p,b) ->
+               printfn "Error! There's a tie requested to a note that doesn't exist! When a tie is called, the very next note must be on the same string with the same pitch."
                None
-      // for all other strings
-      | _ ->
-         match thisTie with
-         // if the bool is false, then move on
-         | ((x,y),p,b) when b = false -> Some("")
-         // if it's true, then a previous note request a tie which won't work
-         | ((x,y),p,b) ->
-            printfn "Error! There's a tie requested where there is no second note on that line"
-            None
+
       ) temp
 
    // see if anything in results is none
    match (List.exists (fun e -> e = None) results) with
    | true -> None
    | false ->
-      // get the text
-      let newText =
-         match (results.Item(currentString - 1)) with
-         | Some(x) -> x
-         | None -> ""
-      //check to see if this note wants a tie
-      let hasTie = List.exists (fun e -> e = Tie) eProperties
 
-      match hasTie with
-      | false ->
-         // update the PropertyList where the map index of this string is set to nothing
-         let newTieList = propertyList.TieStart.Remove(currentString).Add(currentString,((0.0,0.0),NoPitch,false))
-         let newPropertyList = { propertyList with TieStart = newTieList }
-         Some([newText],newPropertyList)
-      | true ->
-         // update the PropertyList with this element's info
-         let newTieList = propertyList.TieStart.Remove(currentString).Add(currentString,((currentX,currentY),pitch,true))
-         let newPropertyList = { propertyList with TieStart = newTieList }
-         Some([newText],newPropertyList)
+      // for each guitar string, see if it has the tie property, and update the text and the propertyList as needed
+      let (newText,newPropertyList) =
+         List.fold (fun acc elem ->
+
+            let (currentText,currentPropertyList) = acc
+
+            match (coords.ContainsKey(elem)) with
+            // if it contains this guitar string
+            | true ->
+               // look for the text
+               match (results.[elem - 1]) with
+               | Some(t) ->
+
+                  //check to see if this note wants a tie
+                  let currentEProperties = ePropertiesList.[elem]
+                  let hasTie = List.exists (fun e -> e = Tie) currentEProperties
+
+                  match hasTie with
+                  // This note doesn't have the tie property
+                  | false ->
+                     // update the PropertyList where the map index of this string is set to nothing
+                     let newTieList = currentPropertyList.TieStart.Remove(elem).Add(elem,((0.0,0.0),NoPitch,false))
+                     // update the map
+                     let updatedPropertyList = { currentPropertyList with TieStart = newTieList }
+
+                     ((currentText @ [t]),updatedPropertyList)
+
+                  // this note has the tie property
+                  | true ->
+
+                     // get the metadata
+                     let currentPitch = pitches.[elem]
+                     let (currentX,currentY) = coords.[elem]
+
+                     // update the PropertyList with this element's info
+                     let newTieList = currentPropertyList.TieStart.Remove(elem).Add(elem,((currentX,currentY),currentPitch,true))
+
+                     // update the map
+                     let updatedPropertyList = { currentPropertyList with TieStart = newTieList }
+
+                     ((currentText @ [t]),updatedPropertyList)
+
+               // SHOULD NEVER REACH THIS CASE! Before this list fold, there's a check to see if anything in the results list is None
+               | None ->
+                  printfn "ERROR IN DRAWTIE! Somehow, the result list contains a 'None' that escaped detection the first time"
+                  acc
+
+            // if it doesn't contain this guitar string, then do nothing
+            | false ->
+               acc
+
+         ) ([],propertyList) temp
+
+
+      Some(newText,newPropertyList)
 
 
 
+
+
+
+
+(* Helper method for drawing the eProperties of a singleNote
+1) currentString is the guitar string of the note
+2) eProperties is the list of EitherProperty
+3) pitch is the pitch of the note
+4) yCoord is the y coordinate based on which string the note is on
+5) propertyList is the record that describes the state of properties to be drawn
+6) isGrace is a bool that says whether or not this note is a grace note
+7) x is the xcoord
+8) y is the ycoord
+RETURNS the list of strings to be printed and the new PropertyList
+*)
+let drawEProperties (currentString: int) (eProperties: EitherProperty List) (pitch: Pitch) (yCoord: float) (propertyList: PropertyList) (isGrace: bool) (x: float) (y: float) : (string List * PropertyList) option =
+
+   // TEMP
+   Some([],propertyList)
+
+
+
+
+
+(* Helper method for drawing the mProperties of an Element
+1) propertyList is the record that describes the state of properties to be drawn
+2) isGrace is a bool that says whether or not this note is a grace note
+3) x is the xcoord
+4) y is the ycoord
+RETURNS the list of strings to be printed and the new PropertyList
+*)
+let drawMProperties (mList: MultiProperty List) (propertyList: PropertyList) (isGrace: bool) (x: float) (y: float) : (string List * PropertyList) option =
+   // draw slurs
+   match (drawSlur x y mList propertyList) with
+   // successful slur drawing
+   | Some(slurList,propertyList') ->
+      Some(slurList,propertyList')
+   | None -> None
+
+
+
+
+
+(* helper for drawing properties of a single element
+1) el is the current Element
+2) propertyList is the record that describes the state of properties to be drawn
+3) isGrace is a bool that says whether or not this note is a grace note
+RETURNS the list of strings to be printed and the new PropertyList
+*)
+let drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: bool) : (string List * PropertyList) option =
+   match el.NoteInfo with
+   | SingleNote(n,mProperties) ->
+      // x y
+      let (currentX,currentY) = el.Location
+
+      // useful properties of the note
+      let (currentString,eProperties,pitchOfNote) =
+         match n with
+         | NormalGuitarNote(guitarString,pitch,eList) -> guitarString,eList,pitch
+         | X(guitarString,eList) -> guitarString,eList,NoPitch
+
+      // used for eProperties
+      let yCoord = (currentY - 2.3) + (6.0 * ((float currentString) - 1.0))
+
+      //** draw the mProperties
+      match (drawMProperties mProperties propertyList false currentX currentY) with
+      | Some(mTextList,propertyList') ->
+
+         // call the helper to draw eProperties
+         match (drawEProperties currentString eProperties pitchOfNote yCoord propertyList' false currentX currentY) with
+         | Some(eTextList,propertyList'') ->
+
+
+            // ties need to be drawn separately because of issues with group ties
+            let coords = Map.empty.Add(currentString,(currentX,yCoord))
+            let pitches = Map.empty.Add(currentString,pitchOfNote)
+            let ePropertiesList = Map.empty.Add(currentString,eProperties)
+
+            match (drawTie coords pitches ePropertiesList propertyList'') with
+
+            | Some(tieList,propertyList''') ->
+
+               let completeText = mTextList @ eTextList @ tieList
+               Some(completeText, propertyList''')
+
+            | None -> None
+         | None -> None
+      | None -> None
+
+
+   | GroupNote(nList,mProperties) ->
+      // x y
+      let (currentX, currentY) = el.Location
+
+
+
+      (* Recursive helper to parse each note in the list and call the helper to draw the eProperties. Also creates the info needed for ties later one
+      1) sList is the notes in this group
+      2) t is the string list composed to be returned and printed
+      3) pList is the propertyList describing how to draw some properties
+      4) coords is the map of guitar strings and coordinates to be used for ties
+      5) pitches is the map of guitar strings and pitches to be used for ties
+      6) ePropertiesList is the map of guitar strings and eitherProperties to be used for ties
+      RETURNS none if an error, or the full text from all the eProperties, the new PropertyList, and the 3 maps for ties
+      *)
+      let rec groupPropertiesHelper (sList: singleNote List) (t: string List) (pList: PropertyList) (coords: Map<int,(float * float)>) (pitches: Map<int,Pitch>) (ePropertiesList: Map<int,EitherProperty List>) : (string List * PropertyList * Map<int,(float * float)> * Map<int,Pitch> * Map<int,EitherProperty List>) option =
+         match sList with
+         | [] -> Some(t,pList,coords,pitches,ePropertiesList)
+         | head::tail ->
+
+            // useful properties of the note
+            let (currentString,eProperties,pitchOfNote) =
+               match head with
+               | NormalGuitarNote(guitarString,pitch,eList) -> guitarString,eList,pitch
+               | X(guitarString,eList) -> guitarString,eList,NoPitch
+
+            // specific y coord depending on which string the note is on
+            let yCoord = (currentY - 2.3) + (6.0 * ((float currentString) - 1.0))
+
+            match (drawEProperties currentString eProperties pitchOfNote yCoord pList false currentX currentY) with
+            | Some(eT,pList') ->
+
+               //update the maps
+               let newCoords = coords.Add(currentString,(currentX,yCoord))
+               let newPitches = pitches.Add(currentString,pitchOfNote)
+               let newEPropertiesList = ePropertiesList.Add(currentString,eProperties)
+
+               groupPropertiesHelper tail (t @ eT) pList' newCoords newPitches newEPropertiesList
+            | None -> None
+
+
+
+
+      // First draw the multiproperties
+      match (drawMProperties mProperties propertyList false currentX currentY) with
+      | Some(mTextList,propertyList') ->
+
+         // Call the helper, which calls the eProperty drawer for each note in the group
+         match (groupPropertiesHelper nList [] propertyList' Map.empty Map.empty Map.empty) with
+         | Some(eTextList,propertyList'',coords,pitches,ePropertiesList) ->
+
+            // draw the ties separately
+            match (drawTie coords pitches ePropertiesList propertyList'') with
+
+            | Some(tieList,propertyList''') ->
+
+               let completeText = mTextList @ eTextList @ tieList
+               Some(completeText, propertyList''')
+
+            | None -> None
+         | None -> None
+      | None -> None
+
+   // not a note
+   | _ ->
+      Some([""],propertyList)
 
 
 
@@ -2025,47 +2279,19 @@ let drawTie (currentX: float) (currentY: float) (pitch: Pitch) (currentString: i
 (* helper for drawing properties of one measure
 1) els is the Element list
 2) text is the string list
-3) isGrace is true if it's a grace note, false otherwise
-4) propertyList is the record that describes the state of properties to be drawn
+3) propertyList is the record that describes the state of properties to be drawn
 RETURNS the string list and the new property list
 *)
-let rec drawPropertiesMeasures (els: Element List) (text: string List) (isGrace: bool) (propertyList: PropertyList) : (String List * PropertyList) option =
+let rec drawPropertiesMeasures (els: Element List) (text: string List) (propertyList: PropertyList) : (String List * PropertyList) option =
    match els with
    | [] -> Some(text,propertyList)
    | head::tail ->
-      // not a grace note
-      match isGrace with
-      | false ->
-         match head.NoteInfo with
-         | SingleNote(n,mProperties) ->
-            // x y
-            let (currentX,currentY) = head.Location
-            // list of either property
-            let (currentString,eProperties,pitchOfNote) =
-               match n with
-               | NormalGuitarNote(guitarString,pitch,eList) -> guitarString,eList,pitch
-               | X(guitarString,eList) -> guitarString,eList,NoPitch
+      match (drawPropertiesElement head propertyList false) with
+      | Some(newText, newPropertyList) ->
+         drawPropertiesMeasures tail (text @ newText) newPropertyList
+      | None -> None
 
-            // draw slurs
-            match (drawSlur currentX currentY mProperties propertyList) with
-            // successful slur drawing
-            | Some(slurList,propertyList') ->
 
-               // draw ties
-               let yCoord = (currentY - 2.3) + (6.0 * ((float currentString) - 1.0))
-               match (drawTie currentX yCoord pitchOfNote currentString eProperties propertyList') with
-               | Some(tieList,propertyList'') ->
-
-                  drawPropertiesMeasures tail (text @ slurList @ tieList) isGrace propertyList''
-               | None -> None
-
-            | None -> None
-
-         // not a note
-         | _ ->
-            drawPropertiesMeasures tail text isGrace propertyList
-      // grace note TODO
-      | true -> Some([""],propertyList)
 
 
 
@@ -2084,7 +2310,7 @@ let rec drawProperties (ms: SingleMeasure List) (text: string List) (propertyLis
       Some(flattenedText,propertyList)
    | head::tail ->
       // properties for regular notes
-      match (drawPropertiesMeasures head.Elements text false propertyList) with
+      match (drawPropertiesMeasures head.Elements text propertyList) with
       | Some(newText,newPropertyList) ->
          drawProperties tail newText newPropertyList
       | None -> None

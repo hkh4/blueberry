@@ -149,13 +149,15 @@ let tie = pstr "tie" >>% Tie
 
 
 // Properties
+let slash = pchar '/' <!> "slash"
+
 let eitherProperty = pchar '/' >>. (par <|> sld <|> sli <|> tie)
 
-let multiProperty = pchar '/' >>. (stu <|> std <|> plu <|> pld <|> har <|> gra <|> sls <|> sle)
+let multiProperty = slash >>. (stu <|> std <|> plu <|> pld <|> har <|> gra <|> sls <|> sle) <!> "multiProperty" <??> "stu (strum up), std (strum down), plu (pluck up), pld (pluck down), har (harmonic), gra (grace note), sls (slur start), or sle (slur end). Any other properties should be included with each individual note inside the parentheses"
 
 let eitherProperties = many eitherProperty
 
-let multiProperties = many multiProperty
+let multiProperties = many multiProperty <!> "multiProperties"
 
 let anyProperty = pchar '/' >>. ((par |>> Either) <|> (sld |>> Either) <|> (sli |>> Either) <|> (tie |>> Either) <|> (stu |>> Multi) <|> (std |>> Multi) <|> (plu |>> Multi) <|> (pld |>> Multi) <|> (har |>> Multi) <|> (gra |>> Multi) <|> (sls |>> Multi) <|> (sle |>> Multi)) <!> "anyproperty"
 let anyProperties = many anyProperty <??> "property" <!> "anyProperties"
@@ -173,11 +175,13 @@ let x0 = pstr "0" >>% X0
 
 let dot = many (pchar '.') |>> (fun list -> list.Length)
 
-let rhythm = ((x64 <|> x32 <|> x16 <|> x8 <|> x4 <|> x2 <|> x1 <|> x0) .>>. dot) |>> R <??> "Rhythm with the form (int)(dots) where int is 0, 1, 2, 4, 8, 16, 32, or 64 and dots are a sequence of '.'"
+let rhythm = ((x64 <|> x32 <|> x16 <|> x8 <|> x4 <|> x2 <|> x1 <|> x0) .>>. dot) |>> R <!> "rhythm" <??> "Rhythm with the form (int)(dots) where int is 0, 1, 2, 4, 8, 16, 32, or 64 and dots are a sequence of '.'"
 
 
 // After the measure number and after each note, there should be a bunch of spaces followed by a newline
-let spacesAndNewLine = (many (pchar ' ')) .>> newline
+let emptySpaces = many (pchar ' ')
+let emptySpaces1 = many1 (pchar ' ')
+let spacesAndNewLine = emptySpaces .>> newline
 
 
 // for the measure number
@@ -187,27 +191,33 @@ let stringNum = int32
 
 
 
-
-/// SIMPLE ///
-// simplesingle
-let singlesimple = tuple3 stringNum pitch anyProperties |>> SingleSimple <!> "singlesimple"
-
+/// RESTS ///
 // restsimple
-let restsimple = pchar 'r' >>% RestSimple <!> "restsimple"
-
-// simple
-let simple = singlesimple <|> restsimple |>> Simple <!> "simple"
-
-/// COMPLEX ///
-
-// singlecomplex
-let singlecomplex = tuple4 stringNum pitch rhythm anyProperties |>> SingleComplex <!> "singlecomplex"
+let restsimple = pchar 'r' >>% RestSimple |>> Simple <!> "restsimple"
 
 // restcomplex
-let restcomplex = (pchar 'r') >>. rhythm |>> RestComplex <!> "restcomplex"
+let restcomplex = (pchar 'r') >>? rhythm |>> RestComplex |>> Complex <!> "restcomplex"
 
-// complex
-let complex = singlecomplex <|> restcomplex |>> Complex <!> "complex"
+let anyRest = restcomplex <|> restsimple
+
+
+
+/// SINGLE NOTES ///
+
+let noteTemplate = stringNum .>>. pitch <!> "note template"
+
+// simplesingle
+let singlesimple = noteTemplate .>>. anyProperties |>> (fun ((a,b),c) -> (a,b,c)) |>> SingleSimple |>> Simple <!> "singlesimple"
+
+// singlecomplex
+let singlecomplex = noteTemplate .>>.? (rhythm .>>. anyProperties) |>> (fun ((a,b),(c,d)) -> (a,b,c,d)) |>> SingleComplex |>> Complex <!> "singlecomplex"
+
+
+let singleNote = singlecomplex <|> singlesimple
+
+
+
+
 
 /// GROUP ///
 let oneNoteInGroup = tuple3 stringNum pitch eitherProperties |>> GS <!> "one note in a group"
@@ -218,15 +228,16 @@ let notesWithParens = between (pchar '(') (pchar ')') multipleNotes <!> "noteswi
 
 let groupsimple = notesWithParens .>>. multiProperties |>> GSimple <!> "groupsimple"
 
-let groupcomplex = tuple3 notesWithParens rhythm multiProperties |>> GComplex <!> "groupcomplex"
+let groupcomplex = notesWithParens .>>.? (rhythm .>>. multiProperties) |>> (fun (a,(b,c)) -> (a,b,c)) |>> GComplex <!> "groupcomplex"
 
-let group = attempt groupcomplex <|> attempt groupsimple |>> Group <!> "group"
+let group = groupcomplex <|> groupsimple |>> Group <!> "group"
 
 
 
-let note = spaces1 >>. (attempt complex <|> attempt simple <|> attempt group) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
 
-let measure1 = measureNumber .>>. (many1 note) |>> Measure <!> "measure"
+let note = emptySpaces1 >>? (anyRest <|> group <|> singleNote) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
+
+let measure1 = measureNumber .>>. (many1 note) .>> spaces |>> Measure <!> "measure"
 
 let expr = (option .>>. (many measure1)) .>> spaces <!> "expr"
 
