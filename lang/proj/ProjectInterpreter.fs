@@ -62,7 +62,7 @@ type Page = {
 }
 
 type PropertyList = {
-   SlurStart: (float * float) * bool
+   SlurStart: (float * float) * bool * bool
    TieStart: Map<int,(float * float) * Pitch * bool>
 }
 
@@ -1940,13 +1940,14 @@ let rec beamGraceNotes (els: Element List) (text: string List) (time: int * int)
 
 
 (* Draw a slur
-1) currentX is the x coord for this element
-2) currentY is the y coord for this element
-3) mProperties is the multi property list for this element
-4) propertyList describes the properties to be drawn
+1) isGrace is a bool that says whether or not this note is a grace note
+2) currentX is the x coord for this element
+3) currentY is the y coord for this element
+4) mProperties is the multi property list for this element
+5) propertyList describes the properties to be drawn
 RETURNS the list of strings and the new slurStart
 *)
-let drawSlur (currentX: float) (currentY: float) (mProperties: MultiProperty List) (propertyList: PropertyList) : (String List * PropertyList) option =
+let drawSlur (isGrace: bool) (currentX: float) (currentY: float) (mProperties: MultiProperty List) (propertyList: PropertyList) : (String List * PropertyList) option =
 
    // does this element have Sls
    let hasSls = List.exists (fun e -> e = Sls) mProperties
@@ -1962,31 +1963,34 @@ let drawSlur (currentX: float) (currentY: float) (mProperties: MultiProperty Lis
    | (true,false) ->
       match propertyList.SlurStart with
       // there was already a slur started
-      | ((x,y),b) when b = true ->
+      | ((x,y),b,g) when b = true ->
          printfn "Error! Overlapping slurs detected"
          None
       // return an empty list, and the new slurStart for recursion
-      | ((x,y),b) ->
-         let newPropertyList = { propertyList with SlurStart = ((currentX,currentY),true) }
+      | ((x,y),b,g) ->
+         let newPropertyList = { propertyList with SlurStart = ((currentX,currentY),true,isGrace) }
          Some([""],newPropertyList)
    // has the end slur
    | (false,true) ->
       match propertyList.SlurStart with
       // there was a slur started
-      | ((x,y),b) when b = true ->
+      | ((x,y),b,g) when b = true ->
          let diff = currentX - x
          let slurCommand =
-            match diff with
-            | num when num > 150.0 -> " slurverylong "
-            | num when num > 80.0 -> " slurlong "
-            | num when num < 20.0 -> " slurshort "
-            | _ -> " slur "
+            match isGrace with
+            | true when g = true -> " slurgrace"
+            | _ ->
+               match diff with
+               | num when num > 150.0 -> " slurverylong "
+               | num when num > 80.0 -> " slurlong "
+               | num when num < 20.0 -> " slurshort "
+               | _ -> " slur "
 
          let slurString = string x + " " + string y + " " + string currentX + " " + string currentY + slurCommand
-         let newPropertyList = { propertyList with SlurStart = ((0.0,0.0),false) }
+         let newPropertyList = { propertyList with SlurStart = ((0.0,0.0),false,false) }
          Some([slurString],newPropertyList)
       // no slur started, error
-      | ((x,y),b) ->
+      | ((x,y),b,g) ->
          printfn "Error! A slur was marked as ended but there was no beginning slur"
          None
    // doesn't have start or end slur
@@ -2148,7 +2152,7 @@ RETURNS the list of strings to be printed and the new PropertyList
 *)
 let drawMProperties (mList: MultiProperty List) (propertyList: PropertyList) (isGrace: bool) (x: float) (y: float) : (string List * PropertyList) option =
    // draw slurs
-   match (drawSlur x y mList propertyList) with
+   match (drawSlur isGrace x y mList propertyList) with
    // successful slur drawing
    | Some(slurList,propertyList') ->
       Some(slurList,propertyList')
@@ -2165,6 +2169,7 @@ let drawMProperties (mList: MultiProperty List) (propertyList: PropertyList) (is
 RETURNS the list of strings to be printed and the new PropertyList
 *)
 let drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: bool) : (string List * PropertyList) option =
+
    match el.NoteInfo with
    | SingleNote(n,mProperties) ->
       // x y
@@ -2176,15 +2181,16 @@ let drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: b
          | NormalGuitarNote(guitarString,pitch,eList) -> guitarString,eList,pitch
          | X(guitarString,eList) -> guitarString,eList,NoPitch
 
+
       // used for eProperties
       let yCoord = (currentY - 2.3) + (6.0 * ((float currentString) - 1.0))
 
       //** draw the mProperties
-      match (drawMProperties mProperties propertyList false currentX currentY) with
+      match (drawMProperties mProperties propertyList isGrace currentX currentY) with
       | Some(mTextList,propertyList') ->
 
          // call the helper to draw eProperties
-         match (drawEProperties currentString eProperties pitchOfNote yCoord propertyList' false currentX currentY) with
+         match (drawEProperties currentString eProperties pitchOfNote yCoord propertyList' isGrace currentX currentY) with
          | Some(eTextList,propertyList'') ->
 
 
@@ -2286,9 +2292,28 @@ let rec drawPropertiesMeasures (els: Element List) (text: string List) (property
    match els with
    | [] -> Some(text,propertyList)
    | head::tail ->
-      match (drawPropertiesElement head propertyList false) with
-      | Some(newText, newPropertyList) ->
-         drawPropertiesMeasures tail (text @ newText) newPropertyList
+      let graceNotes = head.GraceNotes
+
+      // First, draw properties on the grace notes
+      let rec drawGraceProperties (grace: Element List) (t: string List) (pList: PropertyList) : (String List * PropertyList) option =
+         match grace with
+         | [] -> Some(t,pList)
+         | head::tail ->
+            // for each grace note, call the element property drawer with isGrace set to true
+            match (drawPropertiesElement head pList true) with
+            | Some(nText, newPList) ->
+               drawGraceProperties tail (t @ nText) newPList
+            | None -> None
+
+
+      match (drawGraceProperties graceNotes [] propertyList) with
+
+      | Some(nText, newPList) ->
+         match (drawPropertiesElement head newPList false) with
+         | Some(newText, newPropertyList) ->
+            drawPropertiesMeasures tail (text @ nText @ newText) newPropertyList
+         | None -> None
+
       | None -> None
 
 
@@ -2411,7 +2436,7 @@ let checkEndTie (restOfLines: Line List) (propertyList: PropertyList) =
 let checkEndSlur (restOfLines: Line List) (propertyList: PropertyList) =
    match propertyList.SlurStart with
    // this means a slur ended in a previous line and needs to be extended
-   | ((x,y),b) when x <> 0.0 && y <> 0.0 && b = true ->
+   | ((x,y),b,g) when x <> 0.0 && y <> 0.0 && b = true ->
       // draw a slur stub from where it began to the last barline
       let lastX = 565.0 //565 is where a line ends
       let slurCommand =
@@ -2426,7 +2451,7 @@ let checkEndSlur (restOfLines: Line List) (propertyList: PropertyList) =
          // figure out the start of the next line
          let nextHead = restOfLines.Head
          let (nextStartX,nextStartY) = nextHead.Start
-         let newPropertyList = { propertyList with SlurStart = ((nextStartX,nextStartY),true) }
+         let newPropertyList = { propertyList with SlurStart = ((nextStartX,nextStartY),true,false) }
          Some(slurStub,newPropertyList)
 
       with
@@ -2555,7 +2580,7 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) (outFil
       // property list for showing properties
       let defaultPropertyList =
          {
-            SlurStart = ((0.0,0.0),false);
+            SlurStart = ((0.0,0.0),false,false);
             TieStart = Map.empty.
                Add(1,((0.0,0.0),NoPitch,false)).
                Add(2,((0.0,0.0),NoPitch,false)).
@@ -3074,6 +3099,23 @@ let eval optionsList measuresList outFile =
                /temp x2 x1 sub 0.3 mul def
                x1 temp add y1 55 add x2 temp sub y2 55 add
                x2 y2 44 add curveto
+               stroke
+               grestore end
+               } bind def
+
+               /slurgrace {
+               5 dict begin gsave
+               0.5 setlinewidth
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /x1 x1 1.5 add store
+               /x2 x2 1 add store
+               x1 y1 41.5 add moveto
+               /temp x2 x1 sub 0.3 mul def
+               x1 temp add y1 44 add x2 temp sub y2 44 add
+               x2 y2 41.5 add curveto
                stroke
                grestore end
                } bind def

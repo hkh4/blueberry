@@ -4,9 +4,13 @@
 -key f#
 -time 4-4
 
-
-1:
-   (1e/par/tie 2d 3e)/sls
-   (1e/par/tie 2d/tie 3e/tie)/sle
-   (1e 2d 3e/tie)
-   (1e 5d 3e)
+8:
+   5f32/gra/sls
+   6d16/gra/sle
+   2e8./gra/sls
+   4e8
+   (2f/tie 3e)
+   2f8./sle
+   2d16/sls
+   1e4..
+   6d16/sle
