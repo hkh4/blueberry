@@ -16,7 +16,7 @@ type optionsRecord = {
 }
 
 type singleNote =
-| NormalGuitarNote of int * Pitch * EitherProperty List
+| NormalGuitarNote of int * Pitch * int * EitherProperty List
 | X of int * EitherProperty List
 
 // Types of "notes"
@@ -63,7 +63,8 @@ type Page = {
 
 type PropertyList = {
    SlurStart: (float * float) * bool * bool
-   TieStart: Map<int,(float * float) * Pitch * bool>
+   TieStart: Map<int,(float * float) * Pitch * bool * bool>
+   SlideStart: Map<int,(float * float) * int * bool * bool>
 }
 
 ///////// Useful Global Variables And Functions /////////
@@ -482,7 +483,7 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
                   SingleNote(X(guitarString,eProperties),mProperties)
                // normal note
                | _ ->
-                  SingleNote(NormalGuitarNote(guitarString,pitch,eProperties),mProperties)
+                  SingleNote(NormalGuitarNote(guitarString,pitch,0,eProperties),mProperties)
             // Check to see if it's a grace note
             match (List.exists (fun e -> e = Gra) mProperties) with
             // not a grace note
@@ -522,7 +523,7 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
                   SingleNote(X(guitarString,eProperties),mProperties)
                // normal note
                | _ ->
-                  SingleNote(NormalGuitarNote(guitarString,pitch,eProperties),mProperties)
+                  SingleNote(NormalGuitarNote(guitarString,pitch,0,eProperties),mProperties)
             defaultRhythm <- r
             match (List.exists (fun e -> e = Gra) mProperties) with
             // not a grace note
@@ -571,7 +572,7 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
                         // X note
                         | NoPitch -> X(guitarString,eProperties)
                         // regular note
-                        | _ -> NormalGuitarNote(guitarString,pitch,eProperties)
+                        | _ -> NormalGuitarNote(guitarString,pitch,0,eProperties)
                      // recurse
                      groupHelper tail (sList @ [newSingleNote]) (guitarString::usedStrings)
 
@@ -774,13 +775,13 @@ let parseKey (l: Element List) (key: string) : Element List =
 
          match newHead.NoteInfo with
          // if it's a single guitar note
-         | SingleNote(NormalGuitarNote(s,pitch,eProperties),mProperties) ->
+         | SingleNote(NormalGuitarNote(s,pitch,fret,eProperties),mProperties) ->
             // see if this pitch needs to be changed
             match mapOfChanges.TryFind pitch with
             // change the pitch
             | Some(newPitch) ->
                // update all the info for the new Element
-               let newNInfo = SingleNote(NormalGuitarNote(s,newPitch,eProperties),mProperties)
+               let newNInfo = SingleNote(NormalGuitarNote(s,newPitch,fret,eProperties),mProperties)
                let newElement = { newHead with NoteInfo = newNInfo }
                let newList = updatedList @ [newElement]
                parseKeyHelper tail newList mapOfChanges
@@ -798,10 +799,10 @@ let parseKey (l: Element List) (key: string) : Element List =
                | head::tail ->
                   match head with
                   // if it's a guitar note, do the pitch change
-                  | NormalGuitarNote(guitarString,pitch,eProperties) ->
+                  | NormalGuitarNote(guitarString,pitch,fret,eProperties) ->
                      match mapOfChanges.TryFind pitch with
                      | Some(newPitch) ->
-                        let newNInfo = NormalGuitarNote(guitarString,newPitch,eProperties)
+                        let newNInfo = NormalGuitarNote(guitarString,newPitch,fret,eProperties)
                         parseKeyGroup tail (newNList @ [newNInfo])
                      // doesn't need changing, just add to new list
                      | None -> parseKeyGroup tail (newNList @ [head])
@@ -1445,6 +1446,7 @@ let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhyth
 RETURNS a list of strings
 *)
 let rec beam (els: Element List) (text: string List) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (timeSignature: int * int) (lastBeamed: int) (lastLastRhythm: Rhythm) (isGrace: bool) : string List =
+
    match els with
    // Base case: no more elements
    | [] ->
@@ -1455,7 +1457,7 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
       | SingleNote(n,mProperties) ->
          match n with
          // guitar note - beam
-         | NormalGuitarNote(guitarString,pitch,eProperties) ->
+         | NormalGuitarNote(guitarString,pitch,fret,eProperties) ->
             let (newText, newLastBeamed) = beamHelper head guitarString lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm isGrace
             beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm isGrace
          // also beam if an X
@@ -1471,7 +1473,7 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
             | [] -> false // random number that isn't 6
             | head::tail ->
                match head with
-               | NormalGuitarNote(guitarString,pitch,eProperties) ->
+               | NormalGuitarNote(guitarString,pitch,fret,eProperties) ->
                   match guitarString with
                   // if it's 6 return, if not, check the tail of the list
                   | 6 -> true
@@ -1568,13 +1570,13 @@ let calculateStringAndFret (guitarString: int) (pitch: Pitch) (capo: int) : int 
 5) capo is the capo for the note
 RETURNS the string, or None
 *)
-let showNormalGuitarNote (x: float) (y: float) (guitarString: int) (pitch: Pitch) (capo: int) : string option =
+let showNormalGuitarNote (x: float) (y: float) (guitarString: int) (pitch: Pitch) (capo: int) : (string * int) option =
    match (calculateStringAndFret guitarString pitch capo) with
    | Some(fret) ->
       // sub 2.5 and add 6 times the number of strings above 1. For placement
       let yCoord = (y - 2.3) + (6.0 * ((float guitarString) - 1.0))
       let newText = string x + " " + string yCoord + " " + string fret + " guitarfretnumber "
-      Some(newText)
+      Some(newText,fret)
    | None -> None
 
 
@@ -1610,11 +1612,11 @@ let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElement
 
    (* Helper to show a grace note which is a normal guitar note
    *)
-   let showNormalGraceNote (guitarString: int) (pitch: Pitch) (capo: int) : string option =
+   let showNormalGraceNote (guitarString: int) (pitch: Pitch) (capo: int) : (string * int) option =
       match (calculateStringAndFret guitarString pitch capo) with
       | Some(fret) ->
          let yCoord = (y - 1.5) + (6.0 * ((float guitarString) - 1.0))
-         Some(string x + " " + string yCoord + " " + string fret + " guitarfretnumbergrace ")
+         Some(string x + " " + string yCoord + " " + string fret + " guitarfretnumbergrace ",fret)
       | None -> None
 
 
@@ -1629,43 +1631,65 @@ let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElement
    | [] ->
       Some(text,updatedElements,x,y)
    | head::tail ->
+
+      // figure out the x coord for the next note
       let newX = x + (head.Width * insideScale)
+      // update the element with it's proper location
       let newEl = { head with Location = (x,y) }
 
       match head.NoteInfo with
       // show a grace note which is a normal guitar note
-      | SingleNote(NormalGuitarNote(guitarString,pitch,eProperties),mProperties) ->
+      | SingleNote(NormalGuitarNote(guitarString,pitch,f,eProperties),mProperties) ->
          match (showNormalGraceNote guitarString pitch head.Capo) with
-         | Some(newText) ->
-            showGraceNotes newX y tail (updatedElements @ [newEl]) (text @ [newText]) insideScale
+         | Some(newText,fret) ->
+
+            // update the element again for the fret
+            let newNoteHead = SingleNote((NormalGuitarNote(guitarString,pitch,fret,eProperties)),mProperties)
+            let newNewEl = { newEl with NoteInfo = newNoteHead }
+
+            showGraceNotes newX y tail (updatedElements @ [newNewEl]) (text @ [newText]) insideScale
          | None -> None
 
       // show a grace note that's an x
       | SingleNote(X(guitarString,eProperties),mProperties) ->
          let newText = showXGraceNote guitarString
+
          showGraceNotes newX y tail (updatedElements @ [newEl]) (text @ [newText]) insideScale
+
 
       // show a grace note that's a group
       | GroupNote(sList,mProperties) ->
 
          (* Helper to show each note in the group
          *)
-         let rec showGroupGraceHelper (sList: singleNote List) (fullText: string List) : string List option =
+         let rec showGroupGraceHelper (sList: singleNote List) (fullText: string List) (newNotes: singleNote List) : (string List * singleNote List) option =
             match sList with
-            | [] -> Some(fullText)
+            | [] -> Some(fullText,newNotes)
             | head'::tail' ->
                match head' with
-               | NormalGuitarNote(guitarString,pitch,eProperties) ->
+
+               | NormalGuitarNote(guitarString,pitch,f,eProperties) ->
                   match (showNormalGraceNote guitarString pitch head.Capo) with
-                  | Some(newText) ->
-                     showGroupGraceHelper tail' (fullText @ [newText])
+                  | Some(newText,fret) ->
+
+                     // create the new note with updated fret
+                     // update the element again for the fret
+                     let newSingleNote = NormalGuitarNote(guitarString,pitch,fret,eProperties)
+
+                     showGroupGraceHelper tail' (fullText @ [newText]) (newNotes @ [newSingleNote])
                   | None -> None
+
                | X(guitarString,eProperties) ->
                   let newText = showXGraceNote guitarString
-                  showGroupGraceHelper tail' (fullText @ [newText])
+                  showGroupGraceHelper tail' (fullText @ [newText]) (newNotes @ [head'])
 
-         match (showGroupGraceHelper sList []) with
-         | Some(groupText) ->
+         match (showGroupGraceHelper sList [] []) with
+         | Some(groupText,newSingleNotes) ->
+
+            // update the element with the new singlenotes
+            let newNoteHead = GroupNote(newSingleNotes,mProperties)
+            let newNewEl = { newEl with NoteInfo = newNoteHead }
+
             showGraceNotes newX y tail (updatedElements @ [newEl]) (text @ groupText) insideScale
          | None -> None
 
@@ -1720,16 +1744,17 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
             match n with
 
             // if it's a guitar note
-            | NormalGuitarNote(guitarString,pitch,eProperties) ->
+            | NormalGuitarNote(guitarString,pitch,fret,eProperties) ->
                // call the helper, which calculates the fret and returns the string to print the note
                match (showNormalGuitarNote x y guitarString pitch head.Capo) with
-               | Some(newText) ->
+               | Some(newText,newFret) ->
                   // x coord of next element
                   let newX = x + (head.Width * insideScale)
                   // add string to the list
                   let newList = l @ [newText]
-                  // updated element with location
-                  let newElement = { head with Location = (x,y) }
+                  // update the NoteInfo with the new fret and Location
+                  let newNoteHead = SingleNote((NormalGuitarNote(guitarString,pitch,newFret,eProperties)),mProperties)
+                  let newElement = { head with Location = (x,y) ; NoteInfo = newNoteHead }
                   // add new element into list
                   let newUpdatedElements = updatedElements @ [newElement]
                   // recurse
@@ -1751,19 +1776,21 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
          | grace ->
             match n with
             // normal guitar note grace note
-            | NormalGuitarNote(guitarString,pitch,eProperties) ->
+            | NormalGuitarNote(guitarString,pitch,fret,eProperties) ->
                // call the grace note helper
                match (showGraceNotes x y grace [] [] insideScale) with
                // returns the new text, the updated grace notes, and the new x y coords
                | Some(newText,newGraceNotes,newX,newY) ->
+
                   match (showNormalGuitarNote newX newY guitarString pitch head.Capo) with
-                  | Some(newerText) ->
+                  | Some(newerText,newFret) ->
                      // NOTE: adding from the original x to make the math easier and safer
                      let newerX = x + (head.Width * insideScale)
                      // add string to the list
                      let newList = l @ newText @ [newerText]
-                     // updated element with location and grace notes
-                     let newElement = { head with Location = (newX,newY); GraceNotes = newGraceNotes }
+                     // update the NoteInfo with the new fret and Location
+                     let newNoteHead = SingleNote((NormalGuitarNote(guitarString,pitch,newFret,eProperties)),mProperties)
+                     let newElement = { head with Location = (newX,newY) ; NoteInfo = newNoteHead ; GraceNotes = newGraceNotes }
                      // add new element into list
                      let newUpdatedElements = updatedElements @ [newElement]
                      // recurse
@@ -1791,31 +1818,33 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
       | GroupNote(nList,mProperties) ->
 
          // helper method to show all the notes within a group
-         let rec groupHelper (nList: singleNote List) (stringList: string List) (capo: int) (x:float) (y:float) : string List option =
+         let rec groupHelper (nList: singleNote List) (stringList: string List) (capo: int) (x:float) (y:float) (newNotes: singleNote List) : (string List * singleNote List) option =
             match nList with
-            | [] -> Some(stringList)
+            | [] -> Some(stringList,newNotes)
             | head::tail ->
                match head with
                // if it's a note
-               | NormalGuitarNote(guitarString,pitch,eProperties) ->
+               | NormalGuitarNote(guitarString,pitch,fret,eProperties) ->
                   match (showNormalGuitarNote x y guitarString pitch capo) with
-                  | Some(newText) ->
-                     groupHelper tail (stringList @ [newText]) capo x y
+                  | Some(newText,newFret) ->
+                     let newNote = NormalGuitarNote(guitarString,pitch,newFret,eProperties)
+                     groupHelper tail (stringList @ [newText]) capo x y (newNotes @ [newNote])
                   | None -> None
                // if it's an X
                | X(guitarString,eProperties) ->
                   let newText = showX x y guitarString
-                  groupHelper tail (stringList @ [newText]) capo x y
+                  groupHelper tail (stringList @ [newText]) capo x y (newNotes @ [head])
 
          // check to see if there are grace notes
          match head.GraceNotes with
          // no grace notes
          | [] ->
-            match (groupHelper nList [] head.Capo x y) with
-            | Some(newText) ->
+            match (groupHelper nList [] head.Capo x y []) with
+            | Some(newText,newSingleNotes) ->
                let newX = x + (head.Width * insideScale)
                let newList = l @ newText
-               let newElement = { head with Location = (x,y) }
+               let newNoteHead = GroupNote(newSingleNotes,mProperties)
+               let newElement = { head with Location = (x,y) ; NoteInfo = newNoteHead }
                let newUpdatedElements = updatedElements @ [newElement]
                showElements tail newUpdatedElements measureWidth newX y newList insideScale
             | None -> None
@@ -1824,11 +1853,13 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
             match (showGraceNotes x y grace [] [] insideScale) with
             | Some(newText,newGraceNotes,newX,newY) ->
                // call the helper to get the strings for each note, using the new x and y
-               match (groupHelper nList [] head.Capo newX newY) with
-               | Some(newerText) ->
+               match (groupHelper nList [] head.Capo newX newY []) with
+
+               | Some(newerText,newSingleNotes) ->
                   let newerX = x + (head.Width * insideScale)
                   let newList = l @ newText @ newerText
-                  let newElement = { head with Location = (newX,newY); GraceNotes = newGraceNotes }
+                  let newNoteHead = GroupNote(newSingleNotes,mProperties)
+                  let newElement = { head with Location = (newX,newY); GraceNotes = newGraceNotes; NoteInfo = newNoteHead }
                   let newUpdatedElements = updatedElements @ [newElement]
                   showElements tail newUpdatedElements measureWidth newerX y newList insideScale
                | None -> None
@@ -1913,6 +1944,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
 
 
 
+
 (* used to beam grace notes, calls the beam method used for all beaming
 1) els is the list of elements of the measure
 2) text is the list of strings to print
@@ -1934,8 +1966,10 @@ let rec beamGraceNotes (els: Element List) (text: string List) (time: int * int)
             let (x,y) = h.Location
             [" 0.4 setlinewidth " + string (x - 0.5) + " " + string (y + 33.0) + " moveto 4 4.4 rlineto stroke"]
       // beam the grace notes, if there any
+
       let graceNoteBeams = beam head.GraceNotes [] (0.0,0.0) Other 0.0 time 0 Other true
       beamGraceNotes tail (text @ graceNoteBeams @ slash) time
+
 
 
 
@@ -2000,125 +2034,141 @@ let drawSlur (isGrace: bool) (currentX: float) (currentY: float) (mProperties: M
 
 
 
-(* draw ties
-1) coords is the list of coordinates for each string that needs to be tied
-2) pitch is the map of all the pitches for the strings to be tied
-3) ePropertiesList is the eitherproperty list for each element
-4) propertyList describes the properties to be drawn
-RETURNS the string list and the new property list
+(* Helper method for drawing tie properties
+1) currentString is the guitar string of the note
+2) eProperties is the list of EitherProperty
+3) pitch is the pitch of the note
+4) fret is the fret of the current note (-1 if an X)
+5) yCoord is the y coordinate based on which string the note is on
+6) propertyList is the record that describes the state of properties to be drawn
+7) isGrace is a bool that says whether or not this note is a grace note
+8) xCoord is the xcoord
+RETURNS the list of strings to be printed and the new PropertyList
 *)
-let drawTie (coords: Map<int,(float * float)>) (pitches: Map<int,Pitch>) (ePropertiesList: Map<int,EitherProperty List>) (propertyList: PropertyList) : (string List * PropertyList) option =
+let drawTie (currentString: int) (eProperties: EitherProperty List) (pitch: Pitch) (fret: int) (yCoord: float) (propertyList: PropertyList) (isGrace: bool) (xCoord: float) : (string List * PropertyList) option =
 
-   let temp = [1..6]
+   // get the tiestart for this string
+   let elem = propertyList.TieStart.[currentString]
 
-   let results =
-      List.map (fun e ->
+   // get the text and the new property list if a tie is needed
+   let text =
+      match elem with
+      // If there was a tie requested from a previous note on this string
+      | ((x,y),p,g,b) when b = true ->
 
-         // check the PropertyList to see if this guitar string had a tie requested earlier
-         let thisTie = propertyList.TieStart.[e]
-
-         // See if this guitar string is in the coords list
-         match coords.ContainsKey(e) with
-
-         // contains the key
-         | true ->
-
-            // get the metadata
-            let currentPitch = pitches.[e]
-            let (currentX,currentY) = coords.[e]
-
-            match thisTie with
-            // no tie needed
-            | ((x,y),p,b) when b = false -> Some("")
-
-            // tie needed
-            | ((x,y),p,b) ->
-
-               match currentPitch with
-               | pi when pi = p ->
-                  let tieText = string x + " " + string y + " " + string currentX + " " + string currentY + " tie "
-                  Some(tieText)
-               | _ ->
-                  printfn "Error! There's a tie where the second note's pitch doesn't match the first!"
-                  None
-
-
-         // does not contain the key
-         | false ->
-
-            match thisTie with
-            // if the bool is false, then move on
-            | ((x,y),p,b) when b = false -> Some("")
-            // if it's true, then a previous note request a tie which won't work
-            | ((x,y),p,b) ->
-               printfn "Error! There's a tie requested to a note that doesn't exist! When a tie is called, the very next note must be on the same string with the same pitch."
-               None
-
-      ) temp
-
-   // see if anything in results is none
-   match (List.exists (fun e -> e = None) results) with
-   | true -> None
-   | false ->
-
-      // for each guitar string, see if it has the tie property, and update the text and the propertyList as needed
-      let (newText,newPropertyList) =
-         List.fold (fun acc elem ->
-
-            let (currentText,currentPropertyList) = acc
-
-            match (coords.ContainsKey(elem)) with
-            // if it contains this guitar string
+         // figure out which tie function to use
+         let tieFunction =
+            match isGrace with
             | true ->
-               // look for the text
-               match (results.[elem - 1]) with
-               | Some(t) ->
-
-                  //check to see if this note wants a tie
-                  let currentEProperties = ePropertiesList.[elem]
-                  let hasTie = List.exists (fun e -> e = Tie) currentEProperties
-
-                  match hasTie with
-                  // This note doesn't have the tie property
-                  | false ->
-                     // update the PropertyList where the map index of this string is set to nothing
-                     let newTieList = currentPropertyList.TieStart.Remove(elem).Add(elem,((0.0,0.0),NoPitch,false))
-                     // update the map
-                     let updatedPropertyList = { currentPropertyList with TieStart = newTieList }
-
-                     ((currentText @ [t]),updatedPropertyList)
-
-                  // this note has the tie property
-                  | true ->
-
-                     // get the metadata
-                     let currentPitch = pitches.[elem]
-                     let (currentX,currentY) = coords.[elem]
-
-                     // update the PropertyList with this element's info
-                     let newTieList = currentPropertyList.TieStart.Remove(elem).Add(elem,((currentX,currentY),currentPitch,true))
-
-                     // update the map
-                     let updatedPropertyList = { currentPropertyList with TieStart = newTieList }
-
-                     ((currentText @ [t]),updatedPropertyList)
-
-               // SHOULD NEVER REACH THIS CASE! Before this list fold, there's a check to see if anything in the results list is None
-               | None ->
-                  printfn "ERROR IN DRAWTIE! Somehow, the result list contains a 'None' that escaped detection the first time"
-                  acc
-
-            // if it doesn't contain this guitar string, then do nothing
+               match g with
+               // both grace
+               | true -> " tiegrace "
+               // second grace
+               | false -> " tiegracesecond "
             | false ->
-               acc
+               match g with
+               // first grace
+               | true -> " tiegracefirst "
+               // neither grace
+               | false -> " tie "
 
-         ) ([],propertyList) temp
+         let tempText = string x + " " + string y + " " + string xCoord + " " + string yCoord + " " + string fret + tieFunction
+
+         [tempText]
+
+      | ((x,y),p,g,b) -> []
+
+   // see if this note wanted a tie
+   let newPropertyList =
+
+      match (List.exists (fun e -> e = Tie) eProperties) with
+      // wants a tie
+      | true ->
+         // update the propertyList
+         let newTieList = propertyList.TieStart.Remove(currentString).Add(currentString,((xCoord,yCoord),pitch,isGrace,true))
+         { propertyList with TieStart = newTieList }
+
+      // no tie, just return
+      | false ->
+         // set the propertyList element for this string to empty
+         let newTieList = propertyList.TieStart.Remove(currentString).Add(currentString,((0.0,0.0),NoPitch,false,false))
+         { propertyList with TieStart = newTieList }
+
+   Some(text,newPropertyList)
 
 
-      Some(newText,newPropertyList)
 
 
 
+
+(* Helper method for drawing slide properties
+1) currentString is the guitar string of the note
+2) eProperties is the list of EitherProperty
+3) pitch is the pitch of the note
+4) fret is the fret of the current note (-1 if an X)
+5) yCoord is the y coordinate based on which string the note is on
+6) propertyList is the record that describes the state of properties to be drawn
+7) isGrace is a bool that says whether or not this note is a grace note
+8) xCoord is the xcoord
+RETURNS the list of strings to be printed and the new PropertyList
+*)
+let drawSlide (currentString: int) (eProperties: EitherProperty List) (pitch: Pitch) (fret: int) (yCoord: float) (propertyList: PropertyList) (isGrace: bool) (xCoord: float) : (string List * PropertyList) option =
+
+   // get the slidestart for this string
+   let elem = propertyList.SlideStart.[currentString]
+
+   // get the text and the new property list if a slide is needed
+   let text =
+      match elem with
+      // If there was a slide requested from a previous note on this string
+      | ((x,y),f,g,b) when b = true ->
+
+         // figure out which slide function to use
+         let direction =
+            match f with
+            // if the last fret is smaller or the same, slide up
+            | num when num <= fret ->
+               match g with
+               // both are grace notes
+               | true when isGrace = true -> " slideupbothgrace"
+               // first one is grace
+               | true -> " slideupfirstgrace "
+               // second one is grace
+               | false when isGrace = true -> " slideupsecondgrace "
+               // neither are grace notes
+               | false -> " slideup "
+
+            // slide down
+            | _ ->
+               match g with
+               | true when isGrace = true -> " slidedownbothgrace "
+               | true -> " slidedownfirstgrace "
+               | false when isGrace = true -> " slidedownsecondgrace "
+               | false -> " slidedown "
+
+
+         let tempText = string f + " " + string fret + " " + string x + " " + string y + " " + string xCoord + " " + string yCoord + direction
+         [tempText]
+
+      | ((x,y),f,g,b) -> []
+
+   // see if this note wanted a slide
+   let newPropertyList =
+
+      match (List.exists (fun e -> e = Sli) eProperties) with
+      // wants a slide
+      | true ->
+         // update the propertyList
+         let newSlideList = propertyList.SlideStart.Remove(currentString).Add(currentString,((xCoord,yCoord),fret,isGrace,true))
+         { propertyList with SlideStart = newSlideList }
+
+      // no slide, just return
+      | false ->
+         // set the propertyList element for this string to empty
+         let newSlideList = propertyList.SlideStart.Remove(currentString).Add(currentString,((0.0,0.0),0,false,false))
+         { propertyList with SlideStart = newSlideList }
+
+   Some(text,newPropertyList)
 
 
 
@@ -2127,17 +2177,27 @@ let drawTie (coords: Map<int,(float * float)>) (pitches: Map<int,Pitch>) (ePrope
 1) currentString is the guitar string of the note
 2) eProperties is the list of EitherProperty
 3) pitch is the pitch of the note
-4) yCoord is the y coordinate based on which string the note is on
-5) propertyList is the record that describes the state of properties to be drawn
-6) isGrace is a bool that says whether or not this note is a grace note
-7) x is the xcoord
-8) y is the ycoord
+4) fret is the fret of the current note (-1 if an X)
+5) yCoord is the y coordinate based on which string the note is on
+6) propertyList is the record that describes the state of properties to be drawn
+7) isGrace is a bool that says whether or not this note is a grace note
+8) x is the xcoord
+9) y is the ycoord
 RETURNS the list of strings to be printed and the new PropertyList
 *)
-let drawEProperties (currentString: int) (eProperties: EitherProperty List) (pitch: Pitch) (yCoord: float) (propertyList: PropertyList) (isGrace: bool) (x: float) (y: float) : (string List * PropertyList) option =
+let drawEProperties (currentString: int) (eProperties: EitherProperty List) (pitch: Pitch) (fret: int) (yCoord: float) (propertyList: PropertyList) (isGrace: bool) (x: float) (y: float) : (string List * PropertyList) option =
 
-   // TEMP
-   Some([],propertyList)
+   // Draw slides
+   match (drawSlide currentString eProperties pitch fret yCoord propertyList isGrace x) with
+   | Some(slideText, propertyList') ->
+
+      // draw ties
+      match (drawTie currentString eProperties pitch fret yCoord propertyList' isGrace x) with
+      Some(tieText,propertyList'') ->
+         Some((tieText @ slideText),propertyList'')
+
+      | None -> None
+   | None -> None
 
 
 
@@ -2176,10 +2236,10 @@ let drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: b
       let (currentX,currentY) = el.Location
 
       // useful properties of the note
-      let (currentString,eProperties,pitchOfNote) =
+      let (currentString,pitchOfNote,fret,eProperties) =
          match n with
-         | NormalGuitarNote(guitarString,pitch,eList) -> guitarString,eList,pitch
-         | X(guitarString,eList) -> guitarString,eList,NoPitch
+         | NormalGuitarNote(guitarString,pitch,fret,eList) -> guitarString,pitch,fret,eList
+         | X(guitarString,eList) -> guitarString,NoPitch,-1,eList
 
 
       // used for eProperties
@@ -2190,23 +2250,10 @@ let drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: b
       | Some(mTextList,propertyList') ->
 
          // call the helper to draw eProperties
-         match (drawEProperties currentString eProperties pitchOfNote yCoord propertyList' isGrace currentX currentY) with
+         match (drawEProperties currentString eProperties pitchOfNote fret yCoord propertyList' isGrace currentX currentY) with
          | Some(eTextList,propertyList'') ->
+            Some((mTextList @ eTextList), propertyList'')
 
-
-            // ties need to be drawn separately because of issues with group ties
-            let coords = Map.empty.Add(currentString,(currentX,yCoord))
-            let pitches = Map.empty.Add(currentString,pitchOfNote)
-            let ePropertiesList = Map.empty.Add(currentString,eProperties)
-
-            match (drawTie coords pitches ePropertiesList propertyList'') with
-
-            | Some(tieList,propertyList''') ->
-
-               let completeText = mTextList @ eTextList @ tieList
-               Some(completeText, propertyList''')
-
-            | None -> None
          | None -> None
       | None -> None
 
@@ -2217,38 +2264,30 @@ let drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: b
 
 
 
-      (* Recursive helper to parse each note in the list and call the helper to draw the eProperties. Also creates the info needed for ties later one
+      (* Recursive helper to parse each note in the list and call the helper to draw the eProperties
       1) sList is the notes in this group
       2) t is the string list composed to be returned and printed
       3) pList is the propertyList describing how to draw some properties
-      4) coords is the map of guitar strings and coordinates to be used for ties
-      5) pitches is the map of guitar strings and pitches to be used for ties
-      6) ePropertiesList is the map of guitar strings and eitherProperties to be used for ties
-      RETURNS none if an error, or the full text from all the eProperties, the new PropertyList, and the 3 maps for ties
+      RETURNS none if an error, or the full text from all the eProperties and the new PropertyList
       *)
-      let rec groupPropertiesHelper (sList: singleNote List) (t: string List) (pList: PropertyList) (coords: Map<int,(float * float)>) (pitches: Map<int,Pitch>) (ePropertiesList: Map<int,EitherProperty List>) : (string List * PropertyList * Map<int,(float * float)> * Map<int,Pitch> * Map<int,EitherProperty List>) option =
+      let rec groupPropertiesHelper (sList: singleNote List) (t: string List) (pList: PropertyList) : (string List * PropertyList) option =
          match sList with
-         | [] -> Some(t,pList,coords,pitches,ePropertiesList)
+         | [] -> Some(t,pList)
          | head::tail ->
 
             // useful properties of the note
-            let (currentString,eProperties,pitchOfNote) =
+            let (currentString,pitchOfNote,fret,eProperties) =
                match head with
-               | NormalGuitarNote(guitarString,pitch,eList) -> guitarString,eList,pitch
-               | X(guitarString,eList) -> guitarString,eList,NoPitch
+               | NormalGuitarNote(guitarString,pitch,fret,eList) -> guitarString,pitch,fret,eList
+               | X(guitarString,eList) -> guitarString,NoPitch,-1,eList
 
             // specific y coord depending on which string the note is on
             let yCoord = (currentY - 2.3) + (6.0 * ((float currentString) - 1.0))
 
-            match (drawEProperties currentString eProperties pitchOfNote yCoord pList false currentX currentY) with
+            match (drawEProperties currentString eProperties pitchOfNote fret yCoord pList false currentX currentY) with
             | Some(eT,pList') ->
 
-               //update the maps
-               let newCoords = coords.Add(currentString,(currentX,yCoord))
-               let newPitches = pitches.Add(currentString,pitchOfNote)
-               let newEPropertiesList = ePropertiesList.Add(currentString,eProperties)
-
-               groupPropertiesHelper tail (t @ eT) pList' newCoords newPitches newEPropertiesList
+               groupPropertiesHelper tail (t @ eT) pList'
             | None -> None
 
 
@@ -2259,18 +2298,10 @@ let drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: b
       | Some(mTextList,propertyList') ->
 
          // Call the helper, which calls the eProperty drawer for each note in the group
-         match (groupPropertiesHelper nList [] propertyList' Map.empty Map.empty Map.empty) with
-         | Some(eTextList,propertyList'',coords,pitches,ePropertiesList) ->
+         match (groupPropertiesHelper nList [] propertyList') with
+         | Some(eTextList,propertyList'') ->
+            Some((mTextList @ eTextList),propertyList'')
 
-            // draw the ties separately
-            match (drawTie coords pitches ePropertiesList propertyList'') with
-
-            | Some(tieList,propertyList''') ->
-
-               let completeText = mTextList @ eTextList @ tieList
-               Some(completeText, propertyList''')
-
-            | None -> None
          | None -> None
       | None -> None
 
@@ -2391,6 +2422,7 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
 
 
 
+
 (* add a tie at the end of a line if needed, and update the PropertyList
 1) restOfLines is the rest of the lines after the current. Need it to check the next line
 2) propertyList describes how to draw certain properties that depend on previous notes
@@ -2404,18 +2436,18 @@ let checkEndTie (restOfLines: Line List) (propertyList: PropertyList) =
       | [] -> Some(text,newPList)
       | head::tail ->
          match head with
-         | (n,((x,y),p,b)) when x <> 0.0 && y <> 0.0 && b = true ->
+         | (n,((x,y),p,g,b)) when x <> 0.0 && y <> 0.0 && b = true ->
 
             let lastX = 565.0
-            let tieStub = string x + " " + string y + " " + string lastX + " " + string y + " tie "
+            let tieStub = string x + " " + string y + " " + string lastX + " " + string y + " 0 tie "
 
-            // try and set the new SlurStart, but if there are no more lines, error
+            // try and set the new TieStart, but if there are no more lines, error
             try
                // figure out the start of the next line
                let nextHead = restOfLines.Head
                let (nextStartX,nextStartY) = nextHead.Start
                // shift the x and y
-               let newP = newPList.TieStart.Remove(n).Add(n,((nextStartX + 8.0,(nextStartY - 2.3) + (6.0 * ((float n) - 1.0))),p,true))
+               let newP = newPList.TieStart.Remove(n).Add(n,((nextStartX + 8.0,(nextStartY - 2.3) + (6.0 * ((float n) - 1.0))),p,g,true))
                let newPropertyList = { newPList with TieStart = newP }
                checkEndTieHelper tail newPropertyList (text + tieStub)
             with
@@ -2427,6 +2459,8 @@ let checkEndTie (restOfLines: Line List) (propertyList: PropertyList) =
             checkEndTieHelper tail newPList text
 
    checkEndTieHelper mapToList propertyList ""
+
+
 
 
 (* add a slur at the end of a line if needed, and update the PropertyList
@@ -2460,6 +2494,43 @@ let checkEndSlur (restOfLines: Line List) (propertyList: PropertyList) =
          None
    | _ ->
       Some("",propertyList)
+
+
+
+
+(* push a slide to the next line if needed, and update property list
+1) restOfLines is the rest of the lines after the current. Need it to check the next line
+2) propertyList describes how to draw certain properties that depend on previous notes
+*)
+let checkEndSlide (restOfLines: Line List) (propertyList: PropertyList) =
+
+   let mapToList = propertyList.SlideStart |> Map.toList
+
+   let rec checkEndSlideHelper l newPList =
+      match l with
+      | [] -> Some(newPList)
+      | head::tail ->
+         match head with
+         | (n,((x,y),f,g,b)) when b = true ->
+
+            // try and set the new SlideStart, but if there are no more lines, error
+            try
+               // figure out the start of the next line
+               let nextHead = restOfLines.Head
+               let (nextStartX,nextStartY) = nextHead.Start
+               // shift the x and y
+               let newP = newPList.SlideStart.Remove(n).Add(n,((nextStartX + 8.0,(nextStartY - 2.3) + (6.0 * ((float n) - 1.0))),f,g,true))
+               let newPropertyList = { newPList with SlideStart = newP }
+               checkEndSlideHelper tail newPropertyList
+            with
+            | _ ->
+               printfn "Unended slide detected."
+               None
+
+         | _ ->
+            checkEndSlideHelper tail newPList
+
+   checkEndSlideHelper mapToList propertyList
 
 
 
@@ -2544,13 +2615,20 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
          match (drawProperties newLine.Measures [] propertyList) with
          | Some(propertyText,newPropertyList) ->
 
+            // CHECK ENDINGS
             // check for ending slurs
             match (checkEndSlur tail newPropertyList) with
             | Some(slurText,newPropertyList') ->
+
                // check for ending ties
                match (checkEndTie tail newPropertyList') with
                | Some(tieText,newPropertyList'') ->
-                  showLines tail newUpdatedLines (newText + propertyText + slurText + tieText) newPropertyList''
+
+                  match (checkEndSlide tail newPropertyList'') with
+                  | Some(newPropertyList''') ->
+
+                     showLines tail newUpdatedLines (newText + propertyText + slurText + tieText) newPropertyList'''
+                  | None -> None
                | None -> None
             | None -> None
 
@@ -2582,12 +2660,19 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) (outFil
          {
             SlurStart = ((0.0,0.0),false,false);
             TieStart = Map.empty.
-               Add(1,((0.0,0.0),NoPitch,false)).
-               Add(2,((0.0,0.0),NoPitch,false)).
-               Add(3,((0.0,0.0),NoPitch,false)).
-               Add(4,((0.0,0.0),NoPitch,false)).
-               Add(5,((0.0,0.0),NoPitch,false)).
-               Add(6,((0.0,0.0),NoPitch,false))
+               Add(1,((0.0,0.0),NoPitch,false,false)).
+               Add(2,((0.0,0.0),NoPitch,false,false)).
+               Add(3,((0.0,0.0),NoPitch,false,false)).
+               Add(4,((0.0,0.0),NoPitch,false,false)).
+               Add(5,((0.0,0.0),NoPitch,false,false)).
+               Add(6,((0.0,0.0),NoPitch,false,false));
+            SlideStart = Map.empty.
+               Add(1,((0.0,0.0),0,false,false)).
+               Add(2,((0.0,0.0),0,false,false)).
+               Add(3,((0.0,0.0),0,false,false)).
+               Add(4,((0.0,0.0),0,false,false)).
+               Add(5,((0.0,0.0),0,false,false)).
+               Add(6,((0.0,0.0),0,false,false))
          }
       match (showLines lines [] text defaultPropertyList) with
       | Some(t,updatedLines) ->
@@ -3121,8 +3206,9 @@ let eval optionsList measuresList outFile =
                } bind def
 
                /tie {
-               5 dict begin gsave
+               6 dict begin gsave
               0.6 setlinewidth
+              /fret exch def
               /y2 exch def
               /x2 exch def
               /y1 exch def
@@ -3137,6 +3223,234 @@ let eval optionsList measuresList outFile =
               x2 y2 1 add curveto
               stroke
               grestore end
+               } bind def
+
+               /tiegrace {
+               6 dict begin gsave
+              0.4 setlinewidth
+              /fret exch def
+              /y2 exch def
+              /x2 exch def
+              /y1 exch def
+              /x1 exch def
+              /x1 x1 2.9 add store
+              /x2 x2 0.2 sub store
+              /y2 y2 2.3 add store
+              /y1 y1 2.3 add store
+              x1 y1 1 add moveto
+              /temp x2 x1 sub 0.3 mul def
+              x1 temp add y1 2.6 add x2 temp sub y2 2.6 add
+              x2 y2 1 add curveto
+              stroke
+              grestore end
+               } bind def
+
+               /tiegracefirst {
+               6 dict begin gsave
+              0.6 setlinewidth
+              /fret exch def
+              /y2 exch def
+              /x2 exch def
+              /y1 exch def
+              /x1 exch def
+              /x1 x1 2.9 add store
+              /x2 x2 0.2 sub store
+              /y2 y2 2.5 add store
+              /y1 y1 2.5 add store
+              x1 y1 1 add moveto
+              /temp x2 x1 sub 0.3 mul def
+              x1 temp add y1 3 add x2 temp sub y2 3 add
+              x2 y2 1 add curveto
+              stroke
+              grestore end
+               } bind def
+
+               /tiegracesecond {
+               6 dict begin gsave
+              0.6 setlinewidth
+              /fret exch def
+              /y2 exch def
+              /x2 exch def
+              /y1 exch def
+              /x1 exch def
+              /x1 x1 4.2 add store
+              /x2 x2 0.2 sub store
+              /y2 y2 2.5 add store
+              /y1 y1 2.5 add store
+              x1 y1 1 add moveto
+              /temp x2 x1 sub 0.3 mul def
+              x1 temp add y1 3 add x2 temp sub y2 3 add
+              x2 y2 1 add curveto
+              stroke
+              grestore end
+               } bind def
+
+               /slideup {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret1 9 gt {
+                  /x1 x1 1.6 add store
+               }{} ifelse
+               fret2 9 gt {
+                  /x2 x2 1.4 sub store
+               }
+               0.3 setlinewidth
+               x1 4 add y1 0.7 add moveto
+               x2 0.4 sub y2 3.8 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slidedown {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.4 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.5 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 4 add y1 3.8 add moveto
+               x2 0.2 sub y2 0.7 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slidedownbothgrace {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.1 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.1 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 3 add y1 3.4 add moveto
+               x2 0.2 sub y2 1.2 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slideupbothgrace {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.1 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.1 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 3 add y1 1.2 add moveto
+               x2 0.2 sub y2 3.4 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slidedownfirstgrace {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.3 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.1 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 2.9 add y1 3.4 add moveto
+               x2 0.1 sub y2 1.2 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slideupfirstgrace {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.3 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.1 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 2.9 add y1 1.2 add moveto
+               x2 0.1 sub y2 3.4 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slidedownsecondgrace {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.1 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.6 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 3.9 add y1 3.4 add moveto
+               x2 0.1 sub y2 1.2 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slideupsecondgrace {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.1 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.6 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 3.9 add y1 1.2 add moveto
+               x2 0.1 sub y2 3.4 add lineto
+               stroke
+               grestore end
                } bind def
 
                %%EndProlog

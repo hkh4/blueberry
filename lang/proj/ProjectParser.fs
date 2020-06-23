@@ -1,5 +1,5 @@
 module ProjectParser
- 
+
 open System
 open FParsec
 (*
@@ -13,8 +13,9 @@ plu = pluck up
 pld = pluck down
 gra = grace note
 har = harmonic
-sld = slide
-sli = slide in
+sld = slide down
+slu = slide up
+sli = slide
 tie = tie
 *)
 
@@ -25,7 +26,7 @@ type MultiProperty =
 | Gra | Har | Stu | Std | Plu | Pld | Sls | Sle
 
 type EitherProperty =
-| Par | Sld | Sli | Tie
+| Par | Sld | Sli | Tie | Slu
 
 type Property =
 | Multi of MultiProperty
@@ -143,6 +144,7 @@ let har = pstr "har" >>% Har
 let gra = pstr "gra" >>% Gra
 let sld = pstr "sld" >>% Sld
 let sli = pstr "sli" >>% Sli
+let slu = pstr "slu" >>% Slu
 let par = pstr "par" >>% Par
 let tie = pstr "tie" >>% Tie
 
@@ -151,7 +153,7 @@ let tie = pstr "tie" >>% Tie
 // Properties
 let slash = pchar '/' <!> "slash"
 
-let eitherProperty = pchar '/' >>. (par <|> sld <|> sli <|> tie)
+let eitherProperty = pchar '/' >>. (par <|> sld <|> sli <|> tie <|> slu)
 
 let multiProperty = slash >>. (stu <|> std <|> plu <|> pld <|> har <|> gra <|> sls <|> sle) <!> "multiProperty" <??> "stu (strum up), std (strum down), plu (pluck up), pld (pluck down), har (harmonic), gra (grace note), sls (slur start), or sle (slur end). Any other properties should be included with each individual note inside the parentheses"
 
@@ -159,7 +161,7 @@ let eitherProperties = many eitherProperty
 
 let multiProperties = many multiProperty <!> "multiProperties"
 
-let anyProperty = pchar '/' >>. ((par |>> Either) <|> (sld |>> Either) <|> (sli |>> Either) <|> (tie |>> Either) <|> (stu |>> Multi) <|> (std |>> Multi) <|> (plu |>> Multi) <|> (pld |>> Multi) <|> (har |>> Multi) <|> (gra |>> Multi) <|> (sls |>> Multi) <|> (sle |>> Multi)) <!> "anyproperty"
+let anyProperty = pchar '/' >>. ((par |>> Either) <|> (slu |>> Either) <|> (sld |>> Either) <|> (sli |>> Either) <|> (tie |>> Either) <|> (stu |>> Multi) <|> (std |>> Multi) <|> (plu |>> Multi) <|> (pld |>> Multi) <|> (har |>> Multi) <|> (gra |>> Multi) <|> (sls |>> Multi) <|> (sle |>> Multi)) <!> "anyproperty"
 let anyProperties = many anyProperty <??> "property" <!> "anyProperties"
 
 
@@ -180,8 +182,9 @@ let rhythm = ((x64 <|> x32 <|> x16 <|> x8 <|> x4 <|> x2 <|> x1 <|> x0) .>>. dot)
 
 // After the measure number and after each note, there should be a bunch of spaces followed by a newline
 let emptySpaces = many (pchar ' ')
-let emptySpaces1 = many1 (pchar ' ')
+let emptySpaces1 : Parser<_> = many1 (pchar ' ')
 let spacesAndNewLine = emptySpaces .>> newline
+let emptyLines = many spacesAndNewLine <!> "empty lines"
 
 
 // for the measure number
@@ -235,9 +238,11 @@ let group = groupcomplex <|> groupsimple |>> Group <!> "group"
 
 
 
-let note = emptySpaces1 >>? (anyRest <|> group <|> singleNote) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
+let note = spaces1 >>? (anyRest <|> group <|> singleNote) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
 
-let measure1 = measureNumber .>>. (many1 note) .>> spaces |>> Measure <!> "measure"
+let noteWithOptionalSpaces = note .>> optional (attempt emptyLines)
+
+let measure1 = measureNumber .>>. (many1 noteWithOptionalSpaces) .>> spaces |>> Measure <!> "measure"
 
 let expr = (option .>>. (many measure1)) .>> spaces <!> "expr"
 

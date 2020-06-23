@@ -4,13 +4,88 @@
 -key f#
 -time 4-4
 
-8:
-   5f32/gra/sls
-   6d16/gra/sle
-   2e8./gra/sls
+
+1:
+   1e4
+   2f4/tie
+   3d
+   2f
+2:
    4e8
-   (2f/tie 3e)
-   2f8./sle
-   2d16/sls
+   2f8
+   6d8.
+   2d16
    1e4..
-   6d16/sle
+   6d16
+3:
+   1e4
+   2f4
+   3d
+   5g#
+4:
+   4e8
+   2f8
+   6d8.
+   2d16
+   1e4..
+   6d16
+
+5:
+   1e4
+   2f4
+   3d
+   5g#
+6:
+   4e8
+   2f8
+   6d8.
+   2d16
+   1e4..
+   6d16/sls/sli
+7:
+   6db8/gra
+   6db4
+   2f4
+   3d/sle
+   5g#
+8:
+   5f32/gra
+   6d16/gra
+   2e8./gra
+   4e8
+   (2f 3e)
+   6d8.
+   2d16
+   1e4..
+   6d16
+9:
+   1e4/sls
+   2f4
+   3d
+   5g#
+10:
+   4e8/sle
+   2f8/tie
+   2f8.
+   2d16
+   1e4..
+   6d16
+
+11:
+   1e4
+   2f4
+   3d
+   5g#
+12:
+   4e8
+   2f8
+   6d8.
+   2d16
+   1e4../tie
+   (5e/par 2d 3e)16/sls
+13:
+   1e64/gra
+   (1e/par 2d 3e)4/sle
+   4d
+   5f
+   2d
