@@ -3297,11 +3297,11 @@ let eval optionsList measuresList outFile =
                   /x1 x1 1.6 add store
                }{} ifelse
                fret2 9 gt {
-                  /x2 x2 1.4 sub store
-               }
+                  /x2 x2 1.6 sub store
+               }{} ifelse
                0.3 setlinewidth
                x1 4 add y1 0.7 add moveto
-               x2 0.4 sub y2 3.8 add lineto
+               x2 0.2 sub y2 3.8 add lineto
                stroke
                grestore end
                } bind def

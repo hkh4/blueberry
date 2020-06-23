@@ -1,15 +1,15 @@
 -type tab
 -title Testing
 -composer Hugo Hua
--key f#
+-key c
 -time 4-4
 
 
 1:
    1e4
    2f4/tie
-   3d
-   2f
+   (1e/sli 2e/sli 3e/sli 4e/sli 5e/sli)
+   (1e 2e 3e 4d 5e)
 2:
    4e8
    2f8
