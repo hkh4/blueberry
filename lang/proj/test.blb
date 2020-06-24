@@ -6,7 +6,7 @@
 
 
 1:
-   1e4
+   (1e/slu 2e/slu 3e/slu 4e#/slu)4
    2f4/tie
    (1e/sli 2e/sli 3e/sli 4e/sli 5e/sli)
    (1e 2e 3e 4d 5e)
@@ -49,9 +49,9 @@
    3d/sle
    5g#
 8:
-   5f32/gra
-   6d16/gra
-   2e8./gra
+   5f32/gra/slu
+   6d16/gra/slu
+   2e8./gra/slu
    4e8
    (2f 3e)
    6d8.

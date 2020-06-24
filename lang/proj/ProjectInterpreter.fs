@@ -2173,6 +2173,29 @@ let drawSlide (currentString: int) (eProperties: EitherProperty List) (pitch: Pi
 
 
 
+
+(* Helper to draw slide-ups
+1) eProperties is the list of EitherProperty
+2) y is the y-coord
+3) x is the x-coord
+4) isGrace is a bool that says whether or not this note is a grace note
+5) fret is the fret of this note
+RETURNS the list of strings
+*)
+let drawSlideUp (eProperties: EitherProperty List) (y: float) (x: float) (isGrace: bool) (fret: int) : (string List) option =
+   match (List.exists (fun e -> e = Slu) eProperties) with
+   | true ->
+      let text =
+         match isGrace with
+         | true -> " " + string x + " " + string y + " " + string fret + " supgrace "
+         | false -> " " + string x + " " + string y + " " + string fret + " sup "
+      Some([text])
+   | false -> Some([])
+
+
+
+
+
 (* Helper method for drawing the eProperties of a singleNote
 1) currentString is the guitar string of the note
 2) eProperties is the list of EitherProperty
@@ -2193,9 +2216,13 @@ let drawEProperties (currentString: int) (eProperties: EitherProperty List) (pit
 
       // draw ties
       match (drawTie currentString eProperties pitch fret yCoord propertyList' isGrace x) with
-      Some(tieText,propertyList'') ->
-         Some((tieText @ slideText),propertyList'')
+      | Some(tieText,propertyList'') ->
 
+         match (drawSlideUp eProperties yCoord x isGrace fret) with
+         | Some(slideUpText) ->
+            Some((slideText @ tieText @ slideUpText),propertyList'')
+
+         | None -> None
       | None -> None
    | None -> None
 
@@ -3449,6 +3476,42 @@ let eval optionsList measuresList outFile =
                0.3 setlinewidth
                x1 3.9 add y1 1.2 add moveto
                x2 0.1 sub y2 3.4 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /sup {
+               5 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               /temp x1 5 sub def
+               /temp2 y1 0.7 add def
+               fret 9 gt {
+                  /x1 x1 0.6 sub store
+                  /y1 y1 0.24230769 sub store
+               }{} ifelse
+               0.3 setlinewidth
+               temp temp2 moveto
+               x1 0.2 sub y1 3.8 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /supgrace {
+               5 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               /temp x1 3 sub def
+               /temp2 y1 1.2 add def
+               fret 9 gt {
+                  /x1 x1 0.6 sub store
+                  /y1 y1 0.4125 sub store
+               }{} ifelse
+               0.3 setlinewidth
+               temp temp2 moveto
+               x1 0.2 sub y1 3.4 add lineto
                stroke
                grestore end
                } bind def
