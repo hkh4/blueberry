@@ -62,8 +62,11 @@ type Page = {
 }
 
 type PropertyList = {
+   // (x,y),fret,grace note,valid
    SlurStart: (float * float) * bool * bool
-   TieStart: Map<int,(float * float) * Pitch * bool * bool>
+   // <string,(x,y),fret,grace,valid>
+   TieStart: Map<int,(float * float) * int * bool * bool>
+   // <string, (x,y),fret,grace,valid>
    SlideStart: Map<int,(float * float) * int * bool * bool>
 }
 
@@ -1597,7 +1600,6 @@ let showX (x: float) (y: float) (guitarString:int) : string =
 
 
 
-
 (* Show the numbers or x for grace notes
 1) x is the xcoord
 2) y is the ycoord
@@ -1689,8 +1691,7 @@ let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElement
             // update the element with the new singlenotes
             let newNoteHead = GroupNote(newSingleNotes,mProperties)
             let newNewEl = { newEl with NoteInfo = newNoteHead }
-
-            showGraceNotes newX y tail (updatedElements @ [newEl]) (text @ groupText) insideScale
+            showGraceNotes newX y tail (updatedElements @ [newNewEl]) (text @ groupText) insideScale
          | None -> None
 
       | _ -> showGraceNotes x y tail (updatedElements @ [newEl]) text insideScale
@@ -2050,33 +2051,42 @@ let drawTie (currentString: int) (eProperties: EitherProperty List) (pitch: Pitc
    // get the tiestart for this string
    let elem = propertyList.TieStart.[currentString]
 
+   // flag
+   let mutable drawn = false;
+
    // get the text and the new property list if a tie is needed
    let text =
       match elem with
       // If there was a tie requested from a previous note on this string
-      | ((x,y),p,g,b) when b = true ->
+      | ((x,y),f,g,b) when b = true ->
 
-         // figure out which tie function to use
-         let tieFunction =
-            match isGrace with
-            | true ->
-               match g with
-               // both grace
-               | true -> " tiegrace "
-               // second grace
-               | false -> " tiegracesecond "
-            | false ->
-               match g with
-               // first grace
-               | true -> " tiegracefirst "
-               // neither grace
-               | false -> " tie "
+         match f with
+         // if the frets match, draw the tie
+         | fr when fr = fret ->
+            drawn <- true
+            // figure out which tie function to use
+            let tieFunction =
+               match isGrace with
+               | true ->
+                  match g with
+                  // both grace
+                  | true -> " tiegrace "
+                  // second grace
+                  | false -> " tiegracesecond "
+               | false ->
+                  match g with
+                  // first grace
+                  | true -> " tiegracefirst "
+                  // neither grace
+                  | false -> " tie "
 
-         let tempText = string x + " " + string y + " " + string xCoord + " " + string yCoord + " " + string fret + tieFunction
+            let tempText = string x + " " + string y + " " + string xCoord + " " + string yCoord + " " + string fret + tieFunction
 
-         [tempText]
+            [tempText]
 
-      | ((x,y),p,g,b) -> []
+         | fr' -> []
+
+      | ((x,y),f,g,b) -> []
 
    // see if this note wanted a tie
    let newPropertyList =
@@ -2085,14 +2095,21 @@ let drawTie (currentString: int) (eProperties: EitherProperty List) (pitch: Pitc
       // wants a tie
       | true ->
          // update the propertyList
-         let newTieList = propertyList.TieStart.Remove(currentString).Add(currentString,((xCoord,yCoord),pitch,isGrace,true))
+         let newTieList = propertyList.TieStart.Remove(currentString).Add(currentString,((xCoord,yCoord),fret,isGrace,true))
          { propertyList with TieStart = newTieList }
 
       // no tie, just return
       | false ->
-         // set the propertyList element for this string to empty
-         let newTieList = propertyList.TieStart.Remove(currentString).Add(currentString,((0.0,0.0),NoPitch,false,false))
-         { propertyList with TieStart = newTieList }
+
+         match drawn with
+         //if a tie was drawn, zero it out
+         | true ->
+
+            // set the propertyList element for this string to empty
+            let newTieList = propertyList.TieStart.Remove(currentString).Add(currentString,((0.0,0.0),0,false,false))
+            { propertyList with TieStart = newTieList }
+
+         | false -> propertyList
 
    Some(text,newPropertyList)
 
@@ -2187,8 +2204,31 @@ let drawSlideUp (eProperties: EitherProperty List) (y: float) (x: float) (isGrac
    | true ->
       let text =
          match isGrace with
-         | true -> " " + string x + " " + string y + " " + string fret + " supgrace "
-         | false -> " " + string x + " " + string y + " " + string fret + " sup "
+         | true ->
+            " " + string x + " " + string y + " " + string fret + " supgrace "
+         | false ->
+            " " + string x + " " + string y + " " + string fret + " sup "
+      Some([text])
+   | false -> Some([])
+
+
+
+
+(* Helper to draw slide-downs
+1) eProperties is the list of EitherProperty
+2) y is the y-coord
+3) x is the x-coord
+4) isGrace is a bool that says whether or not this note is a grace note
+5) fret is the fret of this note
+RETURNS the list of strings
+*)
+let drawSlideDown (eProperties: EitherProperty List) (y: float) (x: float) (isGrace: bool) (fret: int) : (string List) option =
+   match (List.exists (fun e -> e = Sld) eProperties) with
+   | true ->
+      let text =
+         match isGrace with
+         | true -> " " + string x + " " + string y + " " + string fret + " sdngrace "
+         | false -> " " + string x + " " + string y + " " + string fret + " sdn "
       Some([text])
    | false -> Some([])
 
@@ -2220,8 +2260,13 @@ let drawEProperties (currentString: int) (eProperties: EitherProperty List) (pit
 
          match (drawSlideUp eProperties yCoord x isGrace fret) with
          | Some(slideUpText) ->
-            Some((slideText @ tieText @ slideUpText),propertyList'')
 
+            match (drawSlideDown eProperties yCoord x isGrace fret) with
+            | Some(slideDownText) ->
+
+               Some((slideText @ tieText @ slideUpText @ slideDownText),propertyList'')
+
+            | None -> None
          | None -> None
       | None -> None
    | None -> None
@@ -2265,9 +2310,8 @@ let drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: b
       // useful properties of the note
       let (currentString,pitchOfNote,fret,eProperties) =
          match n with
-         | NormalGuitarNote(guitarString,pitch,fret,eList) -> guitarString,pitch,fret,eList
+         | NormalGuitarNote(guitarString,pitch,fretTemp,eList) -> guitarString,pitch,fretTemp,eList
          | X(guitarString,eList) -> guitarString,NoPitch,-1,eList
-
 
       // used for eProperties
       let yCoord = (currentY - 2.3) + (6.0 * ((float currentString) - 1.0))
@@ -2305,13 +2349,13 @@ let drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: b
             // useful properties of the note
             let (currentString,pitchOfNote,fret,eProperties) =
                match head with
-               | NormalGuitarNote(guitarString,pitch,fret,eList) -> guitarString,pitch,fret,eList
+               | NormalGuitarNote(guitarString,pitch,fretTemp,eList) -> guitarString,pitch,fretTemp,eList
                | X(guitarString,eList) -> guitarString,NoPitch,-1,eList
 
             // specific y coord depending on which string the note is on
             let yCoord = (currentY - 2.3) + (6.0 * ((float currentString) - 1.0))
 
-            match (drawEProperties currentString eProperties pitchOfNote fret yCoord pList false currentX currentY) with
+            match (drawEProperties currentString eProperties pitchOfNote fret yCoord pList isGrace currentX currentY) with
             | Some(eT,pList') ->
 
                groupPropertiesHelper tail (t @ eT) pList'
@@ -2348,7 +2392,8 @@ RETURNS the string list and the new property list
 *)
 let rec drawPropertiesMeasures (els: Element List) (text: string List) (propertyList: PropertyList) : (String List * PropertyList) option =
    match els with
-   | [] -> Some(text,propertyList)
+   | [] ->
+      Some(text,propertyList)
    | head::tail ->
       let graceNotes = head.GraceNotes
 
@@ -2687,12 +2732,12 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) (outFil
          {
             SlurStart = ((0.0,0.0),false,false);
             TieStart = Map.empty.
-               Add(1,((0.0,0.0),NoPitch,false,false)).
-               Add(2,((0.0,0.0),NoPitch,false,false)).
-               Add(3,((0.0,0.0),NoPitch,false,false)).
-               Add(4,((0.0,0.0),NoPitch,false,false)).
-               Add(5,((0.0,0.0),NoPitch,false,false)).
-               Add(6,((0.0,0.0),NoPitch,false,false));
+               Add(1,((0.0,0.0),0,false,false)).
+               Add(2,((0.0,0.0),0,false,false)).
+               Add(3,((0.0,0.0),0,false,false)).
+               Add(4,((0.0,0.0),0,false,false)).
+               Add(5,((0.0,0.0),0,false,false)).
+               Add(6,((0.0,0.0),0,false,false));
             SlideStart = Map.empty.
                Add(1,((0.0,0.0),0,false,false)).
                Add(2,((0.0,0.0),0,false,false)).
@@ -3240,6 +3285,10 @@ let eval optionsList measuresList outFile =
               /x2 exch def
               /y1 exch def
               /x1 exch def
+              fret 9 gt {
+                 /x1 x1 0.7 add store
+                 /x2 x2 0.7 sub store
+              }{} ifelse
               /x1 x1 4.2 add store
               /x2 x2 0.2 sub store
               /y2 y2 2.5 add store
@@ -3260,6 +3309,10 @@ let eval optionsList measuresList outFile =
               /x2 exch def
               /y1 exch def
               /x1 exch def
+              fret 9 gt {
+                 /x1 x1 0.4 add store
+                 /x2 x2 0.4 sub store
+              }{} ifelse
               /x1 x1 2.9 add store
               /x2 x2 0.2 sub store
               /y2 y2 2.3 add store
@@ -3280,6 +3333,10 @@ let eval optionsList measuresList outFile =
               /x2 exch def
               /y1 exch def
               /x1 exch def
+              fret 9 gt {
+                 /x1 x1 0.4 add store
+                 /x2 x2 0.4 sub store
+              }{} ifelse
               /x1 x1 2.9 add store
               /x2 x2 0.2 sub store
               /y2 y2 2.5 add store
@@ -3300,6 +3357,10 @@ let eval optionsList measuresList outFile =
               /x2 exch def
               /y1 exch def
               /x1 exch def
+              fret 9 gt {
+                 /x1 x1 0.4 add store
+                 /x2 x2 0.4 sub store
+              }{} ifelse
               /x1 x1 4.2 add store
               /x2 x2 0.2 sub store
               /y2 y2 2.5 add store
@@ -3512,6 +3573,42 @@ let eval optionsList measuresList outFile =
                0.3 setlinewidth
                temp temp2 moveto
                x1 0.2 sub y1 3.4 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /sdn {
+               5 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               /temp x1 5 sub def
+               /temp2 y1 3.8 add def
+               fret 9 gt {
+                  /x1 x1 0.6 sub store
+                  /y1 y1 0.24230769 add store
+               }{} ifelse
+               0.3 setlinewidth
+               temp temp2 moveto
+               x1 0.2 sub y1 0.7 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /sdngrace {
+               5 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               /temp x1 3 sub def
+               /temp2 y1 3.4 add def
+               fret 9 gt {
+                  /x1 x1 0.6 sub store
+                  /y1 y1 0.4125 add store
+               }{} ifelse
+               0.3 setlinewidth
+               temp temp2 moveto
+               x1 0.2 sub y1 1.2 add lineto
                stroke
                grestore end
                } bind def

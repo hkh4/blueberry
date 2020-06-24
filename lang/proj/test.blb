@@ -6,22 +6,25 @@
 
 
 1:
-   (1e/slu 2e/slu 3e/slu 4e#/slu)4
-   2f4/tie
-   (1e/sli 2e/sli 3e/sli 4e/sli 5e/sli)
-   (1e 2e 3e 4d 5e)
+   (1e/slu 2e/slu 3x/slu 4e#/slu)4
+   2g#/tie
+   (1gb/slu 2e/slu 3e/slu 4e#/slu)4/gra
+   1eb4/gra/sld
+   1e2
 2:
-   4e8
-   2f8
-   6d8.
-   2d16
-   1e4..
-   6d16
+   2g#4
+   (1e/sld 2e/sld 3e/sld 4x/sld)4/gra
+   (1e/sld 2x/sld 3e/sld 4e#/sld)4
+   (1e/sli 2e/sli 3x/sli 4e/sli 5e/sli)
+   (1e 2e 3e 4d 5e)
 3:
-   1e4
-   2f4
-   3d
-   5g#
+   1x4/tie
+   (2d/tie 3c#/tie)16./gra
+   (2d# 3c#/tie)16/gra
+   (2d/tie 3c#)4
+   2d32/gra
+   5f4
+   1x4
 4:
    4e8
    2f8
@@ -29,27 +32,45 @@
    2d16
    1e4..
    6d16
-
 5:
    1e4
-   2f4
-   3d
-   5g#
+   2f16.
+   5db32./tie
+   6g64/sls
+   4db64
+   5f64/sli
+   5db16
+   3d2
 6:
-   4e8
-   2f8
+   5eb8/sle
+   3f#8
    6d8.
+   (1d/tie 5fb 3e/sld)16
+   1d4..
+   6d16
+
+7:
+   1e4...
+   2f32
+   3d4/sld
+   (5g# 6g/slu)
+8:
+   4e8
+   (2f 4d)8
+   6d8.
+   6f8/gra
    2d16
    1e4..
    6d16/sls/sli
-7:
+9:
    6db8/gra
    6db4
    2f4
+   (1g/sli 2ab/tie)/gra
    3d/sle
-   5g#
-8:
-   5f32/gra/slu
+   1g#
+10:
+   2ab32/gra/slu
    6d16/gra/slu
    2e8./gra/slu
    4e8
@@ -58,12 +79,12 @@
    2d16
    1e4..
    6d16
-9:
+11:
    1e4/sls
    2f4
    3d
    5g#
-10:
+12:
    4e8/sle
    2f8/tie
    2f8.
@@ -71,19 +92,19 @@
    1e4..
    6d16
 
-11:
+13:
    1e4
    2f4
    3d
    5g#
-12:
+14:
    4e8
    2f8
    6d8.
    2d16
    1e4../tie
    (5e/par 2d 3e)16/sls
-13:
+15:
    1e64/gra
    (1e/par 2d 3e)4/sle
    4d
