@@ -2236,6 +2236,31 @@ let drawSlideDown (eProperties: EitherProperty List) (y: float) (x: float) (isGr
 
 
 
+(* Helper to draw slide-downs
+1) eProperties is the list of EitherProperty
+2) y is the y-coord
+3) x is the x-coord
+4) isGrace is a bool that says whether or not this note is a grace note
+5) fret is the fret of this note
+RETURNS the list of strings
+*)
+let drawParens (eProperties: EitherProperty List) (y: float) (x: float) (isGrace: bool) (fret: int) : (string List) option =
+
+   match (List.exists (fun e -> e = Par) eProperties) with
+   | true ->
+
+      match isGrace with
+      | true -> Some([" " + string (x - 1.4) + " " + string (y + 1.0) + " " + string fret + " openPG "; " " + string (x + 2.6) + " " + string (y + 1.0) + " " + string fret + " closePG "])
+
+      | false -> Some([" " + string (x - 1.7) + " " + string (y + 0.5) + " " + string fret + " openP "; " " + string (x + 3.5) + " " + string (y + 0.5) + " " + string fret + " closeP "])
+
+   | false -> Some([""])
+
+
+
+
+
+
 (* Helper method for drawing the eProperties of a singleNote
 1) currentString is the guitar string of the note
 2) eProperties is the list of EitherProperty
@@ -2264,8 +2289,12 @@ let drawEProperties (currentString: int) (eProperties: EitherProperty List) (pit
             match (drawSlideDown eProperties yCoord x isGrace fret) with
             | Some(slideDownText) ->
 
-               Some((slideText @ tieText @ slideUpText @ slideDownText),propertyList'')
+               match (drawParens eProperties yCoord x isGrace fret) with
+               | Some(parensText) ->
 
+                  Some((slideText @ tieText @ slideUpText @ slideDownText @ parensText),propertyList'')
+
+               | None -> None
             | None -> None
          | None -> None
       | None -> None
@@ -3610,6 +3639,78 @@ let eval optionsList measuresList outFile =
                temp temp2 moveto
                x1 0.2 sub y1 1.2 add lineto
                stroke
+               grestore end
+               } bind def
+
+               /openP {
+               3 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               fret 9 gt {
+                  /x1 x1 1.0 sub store
+               }{} ifelse
+               /Times-Roman findfont
+               7 scalefont
+               setfont
+               newpath
+               0 0 0 setrgbcolor
+               x1 y1 moveto
+               (\() show
+               grestore end
+               } bind def
+
+               /closeP {
+               3 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               fret 9 gt {
+                  /x1 x1 1.1 add store
+               }{} ifelse
+               /Times-Roman findfont
+               7 scalefont
+               setfont
+               newpath
+               0 0 0 setrgbcolor
+               x1 y1 moveto
+               (\)) show
+               grestore end
+               } bind def
+
+               /openPG {
+               3 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               fret 9 gt {
+                  /x1 x1 0.9 sub store
+               }{} ifelse
+               /Times-Roman findfont
+               5 scalefont
+               setfont
+               newpath
+               0 0 0 setrgbcolor
+               x1 y1 moveto
+               (\() show
+               grestore end
+               } bind def
+
+               /closePG {
+               3 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               fret 9 gt {
+                  /x1 x1 0.8 add store
+               }{} ifelse
+               /Times-Roman findfont
+               5 scalefont
+               setfont
+               newpath
+               0 0 0 setrgbcolor
+               x1 y1 moveto
+               (\)) show
                grestore end
                } bind def
 

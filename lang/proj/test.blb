@@ -6,12 +6,14 @@
 
 
 1:
-   (1e/slu 2e/slu 3x/slu 4e#/slu)4
-   2g#/tie
-   (1gb/slu 2e/slu 3e/slu 4e#/slu)4/gra
+   (1e/par 2e/slu/par 3x/slu/par 4e#/slu/par)4
+   2g#/tie/par
+   (1gb/par 2e/slu 3e/slu 4e#/slu)4/gra
    1eb4/gra/sld
    1e2
 2:
+   4fb8/gra/par
+   1eb/par/gra
    2g#4
    (1e/sld 2e/sld 3e/sld 4x/sld)4/gra
    (1e/sld 2x/sld 3e/sld 4e#/sld)4
@@ -93,7 +95,8 @@
    6d16
 
 13:
-   1e4
+   1e4/par
+   5f16../gra/sld
    2f4
    3d
    5g#
