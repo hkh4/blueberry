@@ -1,5 +1,5 @@
 module ProjectParser
- 
+
 open System
 open FParsec
 (*

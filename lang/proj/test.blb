@@ -1,12 +1,12 @@
 -type tab
--title Testing
+-title Blueberry
 -composer Hugo Hua
 -key c
 -time 4-4
 
 
 1:
-   (1e/par 2e/slu/par 3x/slu/par 4e#/slu/par)4
+   (1e/par 2e/slu/par 3x/slu/par 4e#/slu/par)4/stu
    2g#/tie/par
    (1gb/par 2e/slu 3e/slu 4e#/slu)4/gra
    1eb4/gra/sld
@@ -18,7 +18,7 @@
    (1e/sld 2e/sld 3e/sld 4x/sld)4/gra
    (1e/sld 2x/sld 3e/sld 4e#/sld)4
    (1e/sli 2e/sli 3x/sli 4e/sli 5e/sli)
-   (1e 2e 3e 4d 5e)
+   (1e 2e 3e 4d 5e)/stu
 3:
    1x4/tie
    (2d/tie 3c#/tie)16./gra
@@ -29,11 +29,11 @@
    1x4
 4:
    4e8
-   2f8
-   6d8.
+   2f8/par
+   6d8./stu
    2d16
    1e4..
-   6d16
+   6d16/stu
 5:
    1e4
    2f16.
@@ -74,15 +74,15 @@
 10:
    2ab32/gra/slu
    6d16/gra/slu
-   2e8./gra/slu
+   2e8./gra/slu/stu
    4e8
-   (2f 3e)
+   (2f 3e)/std
    6d8.
    2d16
    1e4..
    6d16
 11:
-   1e4/sls
+   (1e)4/sls/std
    2f4
    3d
    5g#
@@ -103,7 +103,7 @@
 14:
    4e8
    2f8
-   6d8.
+   6d8./std
    2d16
    1e4../tie
    (5e/par 2d 3e)16/sls
@@ -113,3 +113,30 @@
    4d
    5f
    2d
+16:
+   1e4/gra/stu/tie
+   (1f 2e)/gra/stu
+   (1e 2e 3e)8/gra/stu
+   (1e 4e)/gra/stu
+   (1e 5e)/gra/stu
+   (1e 6e)/stu/gra
+   1eb4/stu
+   (1e 2e)/stu
+   (1e 3e)8/stu
+   (1e 3f 4e)/stu
+   (1e 4f 5e)/stu
+   (1e 6e 4b)/stu
+
+16:
+   1e4/gra/tie/std
+   (1f 2e)/gra/std
+   (1e 2e 3e)8/gra/std
+   (1e 4e)/gra/std
+   (1e 5e)/gra/std
+   (1e 6e)/gra/std
+   1eb4/std
+   (1e 2e)/std
+   (2e 4e)8/std
+   (3e 5f/sld 6e)/std
+   (1e/sli 4f 5e)/std
+   (1e 6e 4b)/std

@@ -2214,6 +2214,7 @@ let drawSlideUp (eProperties: EitherProperty List) (y: float) (x: float) (isGrac
 
 
 
+
 (* Helper to draw slide-downs
 1) eProperties is the list of EitherProperty
 2) y is the y-coord
@@ -2256,6 +2257,58 @@ let drawParens (eProperties: EitherProperty List) (y: float) (x: float) (isGrace
 
    | false -> Some([""])
 
+
+
+
+(* Draw strum up
+1) isGrace is a bool that says whether or not this note is a grace note
+2) x is the x coord for this element
+3) y is the y coord for this element
+4) mProperties is the multi property list for this element
+RETURNS the list of strings
+*)
+let drawStrumUp (isGrace: bool) (x: float) (y: float) (mList: MultiProperty List) (bottomString: int) (topString: int) : (string List) option =
+
+   match (List.exists (fun e -> e = Stu) mList) with
+   // If it includes Stu
+   | true ->
+
+      let height = topString - bottomString + 1
+
+      match isGrace with
+      | true ->
+         Some([" " + string x + " " + string y + " " + string height + " " + string bottomString + " arrowGrace "])
+      | false ->
+         Some([" " + string x + " " + string y + " " + string height + " " + string bottomString + " arrow "])
+
+   | false -> Some([""])
+
+
+
+
+
+(* Draw strum down
+1) isGrace is a bool that says whether or not this note is a grace note
+2) x is the x coord for this element
+3) y is the y coord for this element
+4) mProperties is the multi property list for this element
+RETURNS the list of strings
+*)
+let drawStrumDown (isGrace: bool) (x: float) (y: float) (mList: MultiProperty List) (bottomString: int) (topString: int) : (string List) option =
+
+   match (List.exists (fun e -> e = Std) mList) with
+   // If it includes Std
+   | true ->
+
+      let height = topString - bottomString + 1
+
+      match isGrace with
+      | true ->
+         Some([" " + string x + " " + string y + " " + string height + " " + string topString + " arrowDownGrace "])
+      | false ->
+         Some([" " + string x + " " + string y + " " + string height + " " + string topString + " arrowDown "])
+
+   | false -> Some([""])
 
 
 
@@ -2311,12 +2364,22 @@ let drawEProperties (currentString: int) (eProperties: EitherProperty List) (pit
 4) y is the ycoord
 RETURNS the list of strings to be printed and the new PropertyList
 *)
-let drawMProperties (mList: MultiProperty List) (propertyList: PropertyList) (isGrace: bool) (x: float) (y: float) : (string List * PropertyList) option =
+let drawMProperties (mList: MultiProperty List) (propertyList: PropertyList) (isGrace: bool) (x: float) (y: float) (bottomString: int) (topString : int) : (string List * PropertyList) option =
    // draw slurs
    match (drawSlur isGrace x y mList propertyList) with
    // successful slur drawing
    | Some(slurList,propertyList') ->
-      Some(slurList,propertyList')
+
+      match (drawStrumUp isGrace x y mList bottomString topString) with
+      | Some(strumUpList) ->
+
+         match (drawStrumDown isGrace x y mList bottomString topString) with
+         | Some(strumDownList) ->
+
+            Some((slurList @ strumUpList @ strumDownList),propertyList')
+
+         | None -> None
+      | None -> None
    | None -> None
 
 
@@ -2346,7 +2409,7 @@ let drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: b
       let yCoord = (currentY - 2.3) + (6.0 * ((float currentString) - 1.0))
 
       //** draw the mProperties
-      match (drawMProperties mProperties propertyList isGrace currentX currentY) with
+      match (drawMProperties mProperties propertyList isGrace currentX currentY currentString currentString) with
       | Some(mTextList,propertyList') ->
 
          // call the helper to draw eProperties
@@ -2392,9 +2455,24 @@ let drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: b
 
 
 
+      let rec getStrings (sList: singleNote List) (t: int List) : int List =
+         match sList with
+         | [] -> t
+         | head::tail ->
+            let currentString =
+               match head with
+               | NormalGuitarNote(guitarString,pitch,fret,eList) -> guitarString
+               | X(guitarString,eList) -> guitarString
+            getStrings tail (currentString::t)
 
-      // First draw the multiproperties
-      match (drawMProperties mProperties propertyList false currentX currentY) with
+
+      // First, figure out which guitar strings are used, necessary for some of the properties
+      let allStrings = List.sort (getStrings nList [])
+      let firstString = allStrings.Head
+      let secondString = allStrings.Item(allStrings.Length - 1)
+
+      // draw the multiproperties
+      match (drawMProperties mProperties propertyList isGrace currentX currentY firstString secondString) with
       | Some(mTextList,propertyList') ->
 
          // Call the helper, which calls the eProperty drawer for each note in the group
@@ -3712,6 +3790,102 @@ let eval optionsList measuresList outFile =
                x1 y1 moveto
                (\)) show
                grestore end
+               } bind def
+
+               /arrow {
+                 6 dict begin gsave
+                 /start1 exch def
+                 /height exch def
+                 /y1 exch def
+                 /x1 exch def
+                 /x1 x1 2.2 sub store
+                 /y1 y1 8.5 sub store
+                 /scale1 start1 6 mul def
+                 /y1 y1 scale1 add store
+                 /len height 1 sub 6 mul 4.5 add def
+                 x1 y1 moveto
+                 0.45 setlinewidth
+                 0 len rlineto
+                 stroke
+                 x1 y1 len add moveto
+                 1.35 0 rlineto
+                 -1.35 3.5 rlineto
+                 -1.35 -3.5 rlineto
+                 1.35 0 rlineto
+                 fill
+                 grestore end
+               } bind def
+
+               /arrowGrace {
+                 6 dict begin gsave
+                 /start1 exch def
+                 /height exch def
+                 /y1 exch def
+                 /x1 exch def
+                 /x1 x1 1.5 sub store
+                 /y1 y1 8.5 sub store
+                 /scale1 start1 6 mul def
+                 /y1 y1 scale1 add store
+                 /len height 1 sub 6 mul 4 add def
+                 x1 y1 moveto
+                 0.35 setlinewidth
+                 0 len rlineto
+                 stroke
+                 x1 y1 len add moveto
+                 1 0 rlineto
+                 -1 3 rlineto
+                 -1 -3 rlineto
+                 1 0 rlineto
+                 fill
+                 grestore end
+               } bind def
+
+               /arrowDown {
+                 6 dict begin gsave
+                 /start1 exch def
+                 /height exch def
+                 /y1 exch def
+                 /x1 exch def
+                 /x1 x1 2.2 sub store
+                 /y1 y1 3 sub store
+                 /scale1 start1 6 mul def
+                 /y1 y1 scale1 add store
+                 /len height -6 mul 1 add def
+                 x1 y1 moveto
+                 0.45 setlinewidth
+                 0 len rlineto
+                 stroke
+                 x1 y1 len add moveto
+                 1.35 0 rlineto
+                 -1.35 -3.5 rlineto
+                 -1.35 3.5 rlineto
+                 1.35 0 rlineto
+                 fill
+                 grestore end
+               } bind def
+
+               /arrowDownGrace {
+                 6 dict begin gsave
+                 /start1 exch def
+                 /height exch def
+                 /y1 exch def
+                 /x1 exch def
+                 /x1 x1 1.5 sub store
+                 /y1 y1 3.6 sub store
+                 /scale1 start1 6 mul def
+                 /y1 y1 scale1 add store
+                 /len height -6 mul 2 add def
+                 x1 y1 moveto
+                 0.35 setlinewidth
+                 0 len rlineto
+                 stroke
+                 x1 y1 len add moveto
+                 1 0 rlineto
+                 -1 -3 rlineto
+                 -1 3 rlineto
+                 1 0 rlineto
+                 fill
+                 grestore end
                } bind def
 
                %%EndProlog
