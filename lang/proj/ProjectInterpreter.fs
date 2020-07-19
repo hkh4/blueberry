@@ -1525,6 +1525,7 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
 
 
 
+
 // ############### DRAW THE NOTES ###################
 
 (* Given a string number and a pitch, figure out the fret number
@@ -1565,22 +1566,36 @@ let calculateStringAndFret (guitarString: int) (pitch: Pitch) (capo: int) : int 
 
 
 
+
+
 (* Helper which returns the string to print a single NormalGuitarNote
-1) x is the xcoord
-2) y is the ycoord
-3) guitarString is the string on the guitar, used for calculateStringAndFret
-4) pitch is the Pitch of the note
-5) capo is the capo for the note
+1) e is the eitherproperties to see if it wants to go up fret
+2) x is the xcoord
+3) y is the ycoord
+4) guitarString is the string on the guitar, used for calculateStringAndFret
+5) pitch is the Pitch of the note
+6) capo is the capo for the note
 RETURNS the string, or None
 *)
-let showNormalGuitarNote (x: float) (y: float) (guitarString: int) (pitch: Pitch) (capo: int) : (string * int) option =
+let showNormalGuitarNote (e: EitherProperty List) (x: float) (y: float) (guitarString: int) (pitch: Pitch) (capo: int) : (string * int) option =
    match (calculateStringAndFret guitarString pitch capo) with
    | Some(fret) ->
+
+      // See if this note wants to go up
+      let fretUp =
+         match (List.exists (fun e -> e = Upf) e) with
+         | true ->
+            match fret with
+            | num when num > 8 -> fret
+            | _ -> fret + 12
+         | false -> fret
+
       // sub 2.5 and add 6 times the number of strings above 1. For placement
       let yCoord = (y - 2.3) + (6.0 * ((float guitarString) - 1.0))
-      let newText = string x + " " + string yCoord + " " + string fret + " guitarfretnumber "
-      Some(newText,fret)
+      let newText = string x + " " + string yCoord + " " + string fretUp + " guitarfretnumber "
+      Some(newText,fretUp)
    | None -> None
+
 
 
 
@@ -1614,11 +1629,21 @@ let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElement
 
    (* Helper to show a grace note which is a normal guitar note
    *)
-   let showNormalGraceNote (guitarString: int) (pitch: Pitch) (capo: int) : (string * int) option =
+   let showNormalGraceNote (e: EitherProperty List) (guitarString: int) (pitch: Pitch) (capo: int) : (string * int) option =
       match (calculateStringAndFret guitarString pitch capo) with
       | Some(fret) ->
+
+         // see if it wants to go up
+         let fretUp =
+            match (List.exists (fun e -> e = Upf) e) with
+            | true ->
+               match fret with
+               | num when num > 8 -> fret
+               | _ -> fret + 12
+            | false -> fret
+
          let yCoord = (y - 1.5) + (6.0 * ((float guitarString) - 1.0))
-         Some(string x + " " + string yCoord + " " + string fret + " guitarfretnumbergrace ",fret)
+         Some(string x + " " + string yCoord + " " + string fretUp + " guitarfretnumbergrace ",fretUp)
       | None -> None
 
 
@@ -1642,7 +1667,7 @@ let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElement
       match head.NoteInfo with
       // show a grace note which is a normal guitar note
       | SingleNote(NormalGuitarNote(guitarString,pitch,f,eProperties),mProperties) ->
-         match (showNormalGraceNote guitarString pitch head.Capo) with
+         match (showNormalGraceNote eProperties guitarString pitch head.Capo) with
          | Some(newText,fret) ->
 
             // update the element again for the fret
@@ -1671,7 +1696,7 @@ let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElement
                match head' with
 
                | NormalGuitarNote(guitarString,pitch,f,eProperties) ->
-                  match (showNormalGraceNote guitarString pitch head.Capo) with
+                  match (showNormalGraceNote eProperties guitarString pitch head.Capo) with
                   | Some(newText,fret) ->
 
                      // create the new note with updated fret
@@ -1747,7 +1772,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
             // if it's a guitar note
             | NormalGuitarNote(guitarString,pitch,fret,eProperties) ->
                // call the helper, which calculates the fret and returns the string to print the note
-               match (showNormalGuitarNote x y guitarString pitch head.Capo) with
+               match (showNormalGuitarNote eProperties x y guitarString pitch head.Capo) with
                | Some(newText,newFret) ->
                   // x coord of next element
                   let newX = x + (head.Width * insideScale)
@@ -1783,7 +1808,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                // returns the new text, the updated grace notes, and the new x y coords
                | Some(newText,newGraceNotes,newX,newY) ->
 
-                  match (showNormalGuitarNote newX newY guitarString pitch head.Capo) with
+                  match (showNormalGuitarNote eProperties newX newY guitarString pitch head.Capo) with
                   | Some(newerText,newFret) ->
                      // NOTE: adding from the original x to make the math easier and safer
                      let newerX = x + (head.Width * insideScale)
@@ -1826,7 +1851,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                match head with
                // if it's a note
                | NormalGuitarNote(guitarString,pitch,fret,eProperties) ->
-                  match (showNormalGuitarNote x y guitarString pitch capo) with
+                  match (showNormalGuitarNote eProperties x y guitarString pitch capo) with
                   | Some(newText,newFret) ->
                      let newNote = NormalGuitarNote(guitarString,pitch,newFret,eProperties)
                      groupHelper tail (stringList @ [newText]) capo x y (newNotes @ [newNote])
@@ -2314,6 +2339,79 @@ let drawStrumDown (isGrace: bool) (x: float) (y: float) (mList: MultiProperty Li
 
 
 
+(* Helper to draw harmonics
+1) eProperties is the list of EitherProperty
+2) y is the y-coord
+3) x is the x-coord
+4) isGrace is a bool that says whether or not this note is a grace note
+5) fret is the fret of this note
+RETURNS the list of strings
+*)
+let drawHarmonics (eProperties: EitherProperty List) (y: float) (x: float) (isGrace: bool) (fret: int) : (string List) option =
+
+   match (List.exists (fun e -> e = Har) eProperties) with
+   | true ->
+      match isGrace with
+      | true ->
+         Some([" " + string x + " " + string y + " " + string fret + " harmonicsgrace "])
+
+      | false ->
+         Some([" " + string x + " " + string y + " " + string fret + " harmonics "])
+
+   | false -> Some([""])
+
+
+
+
+(* Draw pluck down
+1) isGrace is a bool that says whether or not this note is a grace note
+2) x is the x coord for this element
+3) y is the y coord for this element
+4) mProperties is the multi property list for this element
+RETURNS the list of strings
+*)
+let drawPluckDown (isGrace: bool) (x: float) (y: float) (mList: MultiProperty List) (bottomString: int) (topString: int) : (string List) option =
+
+   match (List.exists (fun e -> e = Pld) mList) with
+   | true ->
+
+      let height = topString - bottomString + 1
+
+      match isGrace with
+      | true -> Some([" " + string x + " " + string y + " " + string height + " " + string topString + " pluckdowngrace "])
+
+      | false -> Some([" " + string x + " " + string y + " " + string height + " " + string topString + " pluckdown "])
+
+   | false -> Some([""])
+
+
+
+
+
+(* Draw pluck up
+1) isGrace is a bool that says whether or not this note is a grace note
+2) x is the x coord for this element
+3) y is the y coord for this element
+4) mProperties is the multi property list for this element
+RETURNS the list of strings
+*)
+let drawPluckUp (isGrace: bool) (x: float) (y: float) (mList: MultiProperty List) (bottomString: int) (topString: int) : (string List) option =
+
+   match (List.exists (fun e -> e = Plu) mList) with
+   | true ->
+
+      let height = topString - bottomString + 1
+
+      match isGrace with
+      | true -> Some([" " + string x + " " + string y + " " + string height + " " + string bottomString + " pluckupgrace "])
+
+      | false -> Some([" " + string x + " " + string y + " " + string height + " " + string bottomString + " pluckup "])
+
+   | false -> Some([""])
+
+
+
+
 (* Helper method for drawing the eProperties of a singleNote
 1) currentString is the guitar string of the note
 2) eProperties is the list of EitherProperty
@@ -2345,8 +2443,12 @@ let drawEProperties (currentString: int) (eProperties: EitherProperty List) (pit
                match (drawParens eProperties yCoord x isGrace fret) with
                | Some(parensText) ->
 
-                  Some((slideText @ tieText @ slideUpText @ slideDownText @ parensText),propertyList'')
+                  match (drawHarmonics eProperties yCoord x isGrace fret) with
+                  | Some(harText) ->
 
+                     Some((slideText @ tieText @ slideUpText @ slideDownText @ parensText @ harText),propertyList'')
+
+                  | None -> None
                | None -> None
             | None -> None
          | None -> None
@@ -2376,8 +2478,16 @@ let drawMProperties (mList: MultiProperty List) (propertyList: PropertyList) (is
          match (drawStrumDown isGrace x y mList bottomString topString) with
          | Some(strumDownList) ->
 
-            Some((slurList @ strumUpList @ strumDownList),propertyList')
+            match (drawPluckUp isGrace x y mList bottomString topString) with
+            | Some(pluckUpList) ->
 
+               match (drawPluckDown isGrace x y mList bottomString topString) with
+               | Some(pluckDownList) ->
+
+                  Some((slurList @ strumUpList @ strumDownList @ pluckUpList @ pluckDownList),propertyList')
+
+               | None -> None
+            | None -> None
          | None -> None
       | None -> None
    | None -> None
@@ -3886,6 +3996,204 @@ let eval optionsList measuresList outFile =
                  1 0 rlineto
                  fill
                  grestore end
+               } bind def
+
+               /harmonics {
+                  5 dict begin gsave
+                  /fret exch def
+                  /y1 exch def
+                  /x1 exch def
+                  /x1 x1 3.3 sub store
+                  /y1 y1 2.3 add store
+                  /x2 x1 10.7 add store
+                  fret 9 gt {
+                     /x1 x1 1.5 sub store
+                     /x2 x2 1.9 add store
+                  }{} ifelse
+                  0.5 setlinewidth
+                  x1 y1 moveto
+                  x1 3.5 add y1 1.5 add lineto
+                  x1 y1 moveto
+                  x1 3.5 add y1 1.5 sub lineto
+                  x2 y1 moveto
+                  x2 3.5 sub y1 1.5 add lineto
+                  x2 y1 moveto
+                  x2 3.5 sub y1 1.5 sub lineto
+                  stroke
+                  grestore end
+               } bind def
+
+               /harmonicsgrace {
+                  5 dict begin gsave
+                  /fret exch def
+                  /y1 exch def
+                  /x1 exch def
+                  /x1 x1 2.5 sub store
+                  /y1 y1 2.3 add store
+                  /x2 x1 7.7 add store
+                  fret 9 gt {
+                     /x1 x1 0.9 sub store
+                     /x2 x2 1.2 add store
+                  }{} ifelse
+                  0.4 setlinewidth
+                  x1 y1 moveto
+                  x1 2.5 add y1 1.1 add lineto
+                  x1 y1 moveto
+                  x1 2.5 add y1 1.1 sub lineto
+                  x2 y1 moveto
+                  x2 2.5 sub y1 1.1 add lineto
+                  x2 y1 moveto
+                  x2 2.5 sub y1 1.1 sub lineto
+                  stroke
+                  grestore end
+               } bind def
+
+               /pluckcurve {
+                  2 dict begin gsave
+                  /y1 exch def
+                  /x1 exch def
+                  0.1 setlinewidth
+                  x1 y1 moveto
+                  x1 1 sub y1 1 add x1 1 sub y1 1.5 add x1 y1 3 add curveto
+                  x1 1.5 add y1 4 add x1 1.5 add y1 4.5 add x1 y1 6 add curveto
+                  x1 0.15 sub y1 6.1 add x1 0.4 sub y1 5.85 add x1 0.3 sub y1 5.7 add curveto
+                  x1 0.1 add y1 5.2 add x1 0.1 add y1 4.8 add x1 0.5 sub y1 4 add curveto
+                  x1 2.3 sub y1 2.3 add x1 2.3 sub y1 2.2 add x1 0.3 sub y1 0.3 sub curveto
+                  x1 0.15 sub y1 0.4 sub x1 0.1 add y1 0.15 sub x1 y1 curveto
+                  fill
+                  grestore end
+               } bind def
+
+               /pluckcurvegrace {
+                  2 dict begin gsave
+                  /y1 exch def
+                  /x1 exch def
+                  0.1 setlinewidth
+                  x1 y1 moveto
+                  x1 0.7 sub y1 1 add x1 0.7 sub y1 1.5 add x1 y1 3 add curveto
+                  x1 1.3 add y1 4 add x1 1.3 add y1 4.5 add x1 y1 6 add curveto
+                  x1 0.1 sub y1 6.1 add x1 0.3 sub y1 5.85 add x1 0.2 sub y1 5.7 add curveto
+                  x1 0.07 add y1 5.2 add x1 0.07 add y1 4.8 add x1 0.3 sub y1 4 add curveto
+                  x1 1.6 sub y1 2.3 add x1 1.6 sub y1 2.2 add x1 0.2 sub y1 0.3 sub curveto
+                  x1 0.1 sub y1 0.4 sub x1 0.07 add y1 0.15 sub x1 y1 curveto
+                  fill
+                  grestore end
+               } bind def
+
+               /arrowup {
+                  2 dict begin gsave
+                  /y1 exch def
+                  /x1 exch def
+                  0.1 setlinewidth
+                  x1 2 add y1 moveto
+                  x1 y1 4 add lineto
+                  x1 2 sub y1 lineto
+                  x1 2 add y1 lineto
+                  fill
+                  grestore end
+               } bind def
+
+               /arrowupgrace {
+                  2 dict begin gsave
+                  /y1 exch def
+                  /x1 exch def
+                  0.1 setlinewidth
+                  x1 1.5 add y1 moveto
+                  x1 y1 3 add lineto
+                  x1 1.5 sub y1 lineto
+                  x1 1.5 add y1 lineto
+                  fill
+                  grestore end
+               } bind def
+
+               /pluckup {
+                  4 dict begin gsave
+                  /start1 exch def
+                  /height1 exch def
+                  /y1 exch def
+                  /x1 exch def
+                  /x1 x1 2 sub store
+                  /y1 y1 3.5 sub start1 1 sub 6 mul add store
+                  1 1 height1 {
+                     /num exch def
+                     x1 num 1 sub 6 mul y1 add pluckcurve
+                  } for
+                  x1 height1 6 mul y1 add 0.3 sub arrowup
+                  grestore end
+               } bind def
+
+               /pluckupgrace {
+                  4 dict begin gsave
+                  /start1 exch def
+                  /height1 exch def
+                  /y1 exch def
+                  /x1 exch def
+                  /x1 x1 2 sub store
+                  /y1 y1 3.5 sub start1 1 sub 6 mul add store
+                  1 1 height1 {
+                     /num exch def
+                     x1 num 1 sub 6 mul y1 add pluckcurvegrace
+                  } for
+                  x1 height1 6 mul y1 add 0.3 sub arrowupgrace
+                  grestore end
+               } bind def
+
+               /arrowdown {
+                  2 dict begin gsave
+                  /y1 exch def
+                  /x1 exch def
+                  0.1 setlinewidth
+                  x1 2 add y1 moveto
+                  x1 y1 4 sub lineto
+                  x1 2 sub y1 lineto
+                  x1 2 add y1 lineto
+                  fill
+                  grestore end
+               } bind def
+
+               /arrowdowngrace {
+                  2 dict begin gsave
+                  /y1 exch def
+                  /x1 exch def
+                  0.1 setlinewidth
+                  x1 1.5 add y1 moveto
+                  x1 y1 3 sub lineto
+                  x1 1.5 sub y1 lineto
+                  x1 1.5 add y1 lineto
+                  fill
+                  grestore end
+               } bind def
+
+               /pluckdown {
+                  4 dict begin gsave
+                  /start1 exch def
+                  /height1 exch def
+                  /y1 exch def
+                  /x1 exch def
+                  /x1 x1 2 sub store
+                  /y1 y1 3 sub start1 1 sub 6 mul add store
+                  1 1 height1 {
+                     /num exch def
+                     x1 num 1 sub -6 mul y1 add pluckcurve
+                  } for
+                  x1 height1 1 sub -6 mul y1 add arrowdown
+                  grestore end
+               } bind def
+
+               /pluckdowngrace {
+                  4 dict begin gsave
+                  /start1 exch def
+                  /height1 exch def
+                  /y1 exch def
+                  /x1 exch def
+                  /x1 x1 2 sub store
+                  /y1 y1 3.5 sub start1 1 sub 6 mul add store
+                  1 1 height1 {
+                     /num exch def
+                     x1 num 1 sub -6 mul y1 add pluckcurvegrace
+                  } for
+                  x1 height1 1 sub -6 mul y1 add arrowdowngrace
+                  grestore end
                } bind def
 
                %%EndProlog

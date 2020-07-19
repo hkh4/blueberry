@@ -1,0 +1,1204 @@
+%!PS
+               %%BeginProlog
+               /concatenate { %given string1 and string2
+                  dup length 2 index length add 1 index type
+                  /arraytype eq {array}{string} ifelse
+                  dup 0 4 index putinterval
+                  dup 4 -1 roll length 4 -1 roll putinterval
+               } bind def
+
+               /printimage {
+               %% stack: xcoord, ycoord, scalex, scaley, sizex, sizey, pathtofile, color
+                  8 dict begin
+                  /color exch def
+                  /pathtofile exch def
+                  /sizey exch def
+                  /sizex exch def
+                  /scaley exch def
+                  /scalex exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  gsave
+                  xcoord ycoord translate
+                  scalex scaley scale
+                  sizex sizey
+                  8
+                  [sizex 0 0 -1 sizey mul 0 sizey]
+                  pathtofile (r) file /DCTDecode filter
+                  false
+                  color
+                  colorimage
+                  grestore
+                  end
+               } bind def
+
+               % Create one number of the time signature.
+               /timesignature { % stack: x-coord, y-coord, number
+                  7 dict begin
+                  /num exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  /str (images/Time_Signature/0.jpg) def
+                  /num2 {num 48 add} bind def
+                  num 10 ge {
+                  /str (images/Time_Signature/10.jpg) store
+                  /tens num 10 idiv 48 add def
+                  /ones num 10 mod 48 add def
+                  str 22 tens put
+                  str 23 ones put
+                  xcoord 3 sub ycoord 13.2575758 8.909 125 84 str 3 printimage
+                  }{str 22 num2 put
+                  xcoord ycoord 7 8.909 66 84 str 3 printimage
+                  } ifelse
+               } bind def
+
+               %HELPER: draw single horizontal staff line
+               /staffline { % xcoord, ycoord, int - 1 means first line, else 0
+                  4 dict begin
+                  /first exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  /width 515 def
+                  first 1 eq {/width 495 store} {} ifelse
+                  xcoord ycoord moveto
+                  0.4 setlinewidth
+                  width 0 rlineto
+                  stroke
+                  end
+               } bind def
+
+               %Bar line
+               /barline { %xcoord, ycoord, height, linewidth
+                  4 dict begin
+                  /linewidth exch def
+                  /height exch def
+                  /ycoord exch def
+                  /ycoord ycoord 0.2 sub store
+                  /xcoord exch def
+                  gsave
+                  linewidth setlinewidth
+                  xcoord ycoord moveto
+                  0 height rlineto
+                  stroke
+                  grestore
+                  end
+               } bind def
+
+               %Create the lines
+               /guitartablines { % x-coord and y-coord of the first measure line bottom left corner, so NOT the extra fancy line, and an int 1 or 0 to say if first line
+                  5 dict begin
+                  /flag exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  gsave
+                  %first vertical line
+                  1.33 setlinewidth
+                  xcoord ycoord 30.4 1.33 barline
+                  stroke
+                  % horizontal lines
+                  0.4 setlinewidth
+                  0 1 5 {
+                     /num exch def
+                     xcoord num 6 mul ycoord add flag staffline
+                  } for
+                  1.33 setlinewidth
+                  /width 515 def
+                  flag 1 eq {/width 495 store}{} ifelse
+                  xcoord width add ycoord 30.4 1.33 barline
+                  stroke
+                  xcoord ycoord 40 fancyline
+                  end
+               } bind def
+
+               %create fancy line at the beginning of staff
+               /fancyline { % given x coord, y coord, height
+                  3 dict begin
+                  /height exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  xcoord 5 sub ycoord 5 sub moveto
+                  2.5 setlinewidth
+                  0 height rlineto
+                  stroke
+                  newpath %bottom curl
+                  0.1 setlinewidth
+                  xcoord 4 sub ycoord 5 sub moveto
+                  xcoord 2 sub ycoord 5 sub xcoord 0.5 sub ycoord 5.5 sub xcoord 2 add ycoord 8 sub curveto
+                  xcoord ycoord 4.666 sub xcoord 6 sub ycoord 3 sub 10 arct
+                  closepath
+                  fill
+                  newpath %top curl
+                  xcoord 4 sub ycoord 5 sub height add moveto
+                  xcoord 2 sub ycoord 5 sub height add xcoord 0.5 sub ycoord 4.5 sub height add xcoord 2 add ycoord 2 sub height add curveto
+                  xcoord ycoord 5.333 sub height add xcoord 6 sub ycoord 7 sub height add 10 arct
+                  closepath
+                  fill
+               } bind def
+
+               /guitarfretnumber { %xcoord, ycoord, filestring
+                  8 dict begin
+                  /str exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  /scalex 4 def
+                  /scaley 4.51 def
+                  /sizex 800 def
+                  /sizey 902 def
+                  /filestring (temp) def
+                  str type /stringtype eq {
+                     /xcoord xcoord 0.4 sub store
+                     /filestring (images/Tab_Numbers/) str (.jpg) concatenate concatenate store
+                     /scalex 4.6 store
+                     /scaley 4.8 store
+                     /sizex 1000 store
+                     }{
+                     str 9 gt {
+                        /xcoord xcoord 1.7 sub store
+                        /scalex 7.3 store
+                        /sizex 1460 store
+                        }{} ifelse
+                     /filestring (images/Tab_Numbers/) str (ffff) cvs (.jpg) concatenate concatenate store
+                     } ifelse
+                  xcoord ycoord scalex scaley sizex sizey filestring 1 printimage
+                  end
+               } bind def
+
+               /quarterRest { %x,y
+               2 dict begin
+               gsave
+               0.1 setlinewidth
+               /ycoord exch def
+               /xcoord exch def
+               /ycoord ycoord 12 add store
+               xcoord ycoord moveto
+               xcoord 2.8000000000000003 add ycoord 3.857142857142857 sub lineto
+               xcoord 0.5714285714285714 add ycoord 6.571428571428571 sub xcoord 1.1428571428571428 add ycoord 7.285714285714286 sub xcoord 3.4285714285714284 add ycoord 9.514285714285714 sub curveto
+               xcoord 0.8571428571428571 add ycoord 8.657142857142857 sub xcoord ycoord 10.085714285714285 sub xcoord 1.657142857142857 add ycoord 12.085714285714285 sub curveto
+               xcoord 1.657142857142857 add ycoord 12.142857142857142 sub xcoord 1.5714285714285714 add ycoord 12.200000000000001 sub xcoord 1.4857142857142858 add ycoord 12.12857142857143 sub curveto
+               xcoord 2.142857142857143 sub ycoord 10.0 sub xcoord 0.19999999999999998 add ycoord 7.428571428571429 sub xcoord 1.7142857142857142 add ycoord 8.285714285714286 sub curveto
+               xcoord 0.6571428571428571 sub ycoord 5.257142857142857 sub lineto
+               xcoord 1.1428571428571428 add ycoord 3.257142857142857 sub xcoord 1.1428571428571428 add ycoord 2.2857142857142856 sub xcoord 0.24285714285714285 sub ycoord 0.19999999999999998 sub curveto
+               xcoord 0.24285714285714285 sub ycoord 0.1142857142857143 sub xcoord 0.14285714285714285 sub ycoord xcoord ycoord curveto
+               fill
+               grestore
+               end
+               } bind def
+
+               /restCurl { %given x and y coord
+                  2 dict begin
+                  gsave
+                  0.1 setlinewidth
+                  /ycoord exch def
+                  /xcoord exch def
+                  newpath
+                  xcoord ycoord moveto
+                  xcoord 0.64816513755 sub ycoord 0.51853211004 sub xcoord 1.058669724665 sub ycoord 0.885825687985 sub xcoord 1.46917431178 sub ycoord 0.99385321091 sub curveto
+                  xcoord 2.46302752269 sub ycoord 1.85807339431 sub lineto
+                  xcoord 2.03091743099 sub ycoord 1.85807339431 sub xcoord 1.85807339431 sub ycoord 1.77165137597 sub xcoord 0.95064220174 sub ycoord 1.4475688071950001 sub curveto
+                  xcoord 0.8642201834000001 sub ycoord 1.42596330261 sub xcoord 0.8642201834000001 sub ycoord 1.663623853045 sub 0.08642201834 arct
+                  closepath
+                  fill
+                  newpath xcoord 2.46302752269 sub ycoord 0.8210091742300001 sub 1.03706422008 0 360 arc fill
+                  grestore
+                  end
+               } bind def
+
+               /8thRest { %given x and y coord
+                  2 dict begin
+                  gsave
+                  0.1 setlinewidth
+                  /ycoord exch def
+                  /xcoord exch def
+                  /xcoord xcoord 1 add store
+                  xcoord ycoord moveto
+                  xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto
+                  xcoord 2.72229357771 add ycoord 6.22238532048 add lineto
+                  xcoord 2.72229357771 add ycoord 6.3520183479900005 add xcoord 2.5062385318600002 add ycoord 6.5248623846700005 add xcoord 2.37660550435 add ycoord 6.43844036633 add curveto
+                  xcoord 1.51238532095 add ycoord 4.904449540795 add lineto
+                  xcoord 1.51238532095 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto
+                  xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct
+                  fill
+                  xcoord 2.37660550435 add ycoord 6.43844036633 add restCurl
+                  grestore
+                  end
+               } bind def
+
+               /16thRest { %given x and y coord
+                  2 dict begin
+                  gsave
+                  0.1 setlinewidth
+                  /ycoord exch def
+                  /xcoord exch def
+                  xcoord ycoord moveto
+                  xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto
+                  xcoord 3.9322018344700003 add ycoord 10.15458715495 add lineto
+                  xcoord 3.9538073390550004 add ycoord 10.262614677875 add xcoord 3.7377522932050002 add ycoord 10.435458714555 add xcoord 3.62972477028 add ycoord 10.3706422008 add curveto
+                  xcoord 2.76550458688 add ycoord 8.836651375265001 add lineto
+                  xcoord 1.51238532095 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto
+                  xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct
+                  fill
+                  xcoord 2.4198165135200003 add ycoord 6.43844036633 add restCurl
+                  xcoord 3.62972477028 add ycoord 10.3706422008 add restCurl
+                  grestore
+                  end
+               } bind def
+
+               /32ndRest { %given x and y coord
+                  2 dict begin
+                  gsave
+                  0.1 setlinewidth
+                  /ycoord exch def
+                  /xcoord exch def
+                  xcoord ycoord moveto
+                  xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto
+                  xcoord 4.515550458265 add ycoord 14.151605503175 add lineto
+                  xcoord 4.53715596285 add ycoord 14.17321100776 add xcoord 4.429128439925 add ycoord 14.367660549025 add xcoord 4.23467889866 add ycoord 14.272596328851002 add curveto
+                  xcoord 3.41366972443 add ycoord 12.79045871432 add lineto
+                  xcoord 1.33954128427 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto
+                  xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct
+                  fill
+                  xcoord 2.20376146767 add ycoord 6.43844036633 add restCurl
+                  xcoord 3.2624311923350002 add ycoord 10.3706422008 add restCurl
+                  xcoord 4.277889907830001 add ycoord 14.30284403527 add restCurl
+                  grestore
+                  end
+               } bind def
+
+               /64thRest { %given x and y coord
+                  2 dict begin
+                  gsave
+                  0.1 setlinewidth
+                  /ycoord exch def
+                  /xcoord exch def
+                  xcoord ycoord moveto
+                  xcoord 0.04321100917 add ycoord 0.194449541265 sub xcoord 0.8210091742300001 add ycoord 0.15123853209500002 sub xcoord 0.99385321091 add ycoord curveto
+                  xcoord 5.53100917376 add ycoord 18.1486238514 add lineto
+                  xcoord 5.48779816459 add ycoord 18.27825687891 add xcoord 5.44458715542 add ycoord 18.32146788808 add xcoord 5.250137614155 add ycoord 18.269614677076 add curveto
+                  xcoord 4.40752293534 add ycoord 16.76587155796 add lineto
+                  xcoord 1.33954128427 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto
+                  xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct
+                  fill
+                  xcoord 2.20376146767 add ycoord 6.43844036633 add restCurl
+                  xcoord 3.24082568775 add ycoord 10.3706422008 add restCurl
+                  xcoord 4.277889907830001 add ycoord 14.30284403527 add restCurl
+                  xcoord 5.27174311874 add ycoord 18.27825687891 add restCurl
+                  grestore
+                  end
+               } bind def
+
+               /halfWholeRest { %given x and y coord
+               2 dict begin gsave 0.1 setlinewidth /ycoord exch def /xcoord exch def
+               xcoord 0.37129898 add ycoord moveto
+               xcoord 4.48414922 add ycoord xcoord 4.48414922 add ycoord 0.37129898 add 0.37129898 arct
+               xcoord 4.48414922 add ycoord 2.31347826 add xcoord 4.11285024 add ycoord 2.31347826 add 0.37129898 arct
+               xcoord ycoord 2.31347826 add xcoord ycoord 0.37129898 add 0.37129898 arct
+               xcoord ycoord xcoord 0.37129898 add ycoord 0.37129898 arct
+               fill
+               grestore end
+               } bind def
+
+               /drawFlag {
+               2 dict begin gsave
+               /ycoord exch def
+               /xcoord exch def
+               0.1 setlinewidth
+               xcoord ycoord moveto
+               xcoord ycoord 2.744186046511628 add lineto
+               xcoord 0.20930232558139536 add ycoord 2.697674418604651 add 0.20930232558139536 170 10 arcn
+               xcoord 0.6976744186046512 add ycoord 1.627906976744186 sub xcoord 4.3023255813953485 add ycoord 1.627906976744186 sub xcoord 2.744186046511628 add ycoord 7.1395348837209305 sub curveto
+               xcoord 2.604651162790698 add ycoord 7.372093023255814 sub xcoord 2.2325581395348837 add ycoord 7.325581395348837 sub xcoord 2.2093023255813953 add ycoord 6.976744186046512 sub curveto
+               xcoord 3.13953488372093 add ycoord 3.953488372093023 sub xcoord 2.488372093023256 add ycoord 2.7906976744186047 sub xcoord ycoord curveto
+               fill
+               grestore end
+               } bind def
+
+               /measureNumber {
+                  3 dict begin gsave
+                  /str exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  /Times-Roman findfont
+                  7 scalefont setfont
+                  newpath
+                  0 0 0 setrgbcolor
+                  xcoord ycoord moveto
+                  str show
+                  grestore end
+               } bind def
+
+               /centerText {
+                  dup stringwidth pop -0.5 mul 0 rmoveto show } def
+
+               /title {
+                  1 dict begin gsave
+                  /str exch def
+                  /Times-Roman findfont
+                  22 scalefont setfont
+                  newpath
+                  0 0 0 setrgbcolor
+                  306 745 moveto
+                  str centerText
+                  grestore end
+               } bind def
+
+               /composer {
+               1 dict begin gsave
+               /str exch def
+               /Times-Roman findfont
+               10 scalefont
+               setfont
+               newpath
+               0 0 0 setrgbcolor
+               565 720 moveto
+               str stringwidth pop -1 mul 0 rmoveto
+               str show
+               grestore end
+               } bind def
+
+               /guitarfretnumbergrace { %xcoord, ycoord, filestring
+                  8 dict begin
+                  /str exch def
+                  /ycoord exch def
+                  /xcoord exch def
+                  /scalex 2.7 def
+                  /scaley 3.04425 def
+                  /sizex 800 def
+                  /sizey 902 def
+                  /filestring (temp) def
+                  str type /stringtype eq {
+                     /xcoord xcoord 0.4 sub store
+                     /filestring (images/Tab_Numbers/) str (.jpg) concatenate concatenate store
+                     /scalex 3.105 store
+                     /scaley 3.24 store
+                     /sizex 1000 store
+                     }{
+                     str 9 gt {
+                        /xcoord xcoord 1.1475 sub store
+                        /scalex 4.9275 store
+                        /sizex 1460 store
+                        }{} ifelse
+                     /filestring (images/Tab_Numbers/) str (ffff) cvs (.jpg) concatenate concatenate store
+                     } ifelse
+                  xcoord ycoord scalex scaley sizex sizey filestring 1 printimage
+                  end
+               } bind def
+
+               /drawFlagGrace {
+               2 dict begin gsave
+               /ycoord exch def
+               /xcoord exch def
+               0.1 setlinewidth
+               xcoord ycoord moveto
+               xcoord ycoord 2.1953488372093024 add lineto
+               xcoord 0.1674418604651163 add ycoord 2.158139534883721 add 0.1674418604651163 170 10 arcn
+               xcoord 0.5581395348837209 add ycoord 1.302325581395349 sub xcoord 3.441860465116279 add ycoord 1.302325581395349 sub xcoord 2.1953488372093024 add ycoord 5.711627906976744 sub curveto
+               xcoord 2.0837209302325586 add ycoord 5.897674418604652 sub xcoord 1.786046511627907 add ycoord 5.8604651162790695 sub xcoord 1.7674418604651163 add ycoord 5.5813953488372094 sub curveto
+               xcoord 2.511627906976744 add ycoord 3.162790697674419 sub xcoord 1.9906976744186047 add ycoord 2.2325581395348837 sub xcoord ycoord curveto
+               fill
+               grestore end
+               } bind def
+
+               /graceCurve {
+               4 dict begin gsave
+               0.7 setlinewidth
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               x1 y1 moveto
+               x2 x1 sub 0.13043478 mul x1 add     y1 2.5 add
+               x2 x1 sub 0.63043478 mul x1 add     y1 3 add
+               x2 y2 curveto stroke
+               grestore end
+               } bind def
+
+               /slurshort {
+               5 dict begin gsave
+               0.7 setlinewidth
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /x1 x1 3 add store
+               /x2 x2 1 add store
+               x1 y1 44 add moveto
+               /temp x2 x1 sub 0.3 mul def
+               x1 temp add y1 47 add x2 temp sub y2 47 add
+               x2 y2 44 add curveto
+               stroke
+               grestore end
+               } bind def
+
+               /slur {
+               5 dict begin gsave
+               0.7 setlinewidth
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /x1 x1 3 add store
+               /x2 x2 1 add store
+               x1 y1 44 add moveto
+               /temp x2 x1 sub 0.3 mul def
+               x1 temp add y1 48.5 add x2 temp sub y2 48.5 add
+               x2 y2 44 add curveto
+               stroke
+               grestore end
+               } bind def
+
+               /slurlong {
+               5 dict begin gsave
+               0.7 setlinewidth
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /x1 x1 3 add store
+               /x2 x2 1 add store
+               x1 y1 44 add moveto
+               /temp x2 x1 sub 0.3 mul def
+               x1 temp add y1 51.5 add x2 temp sub y2 51.5 add
+               x2 y2 44 add curveto
+               stroke
+               grestore end
+               } bind def
+
+               /slurverylong {
+               5 dict begin gsave
+               0.7 setlinewidth
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /x1 x1 3 add store
+               /x2 x2 1 add store
+               x1 y1 44 add moveto
+               /temp x2 x1 sub 0.3 mul def
+               x1 temp add y1 55 add x2 temp sub y2 55 add
+               x2 y2 44 add curveto
+               stroke
+               grestore end
+               } bind def
+
+               /slurgrace {
+               5 dict begin gsave
+               0.5 setlinewidth
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /x1 x1 1.5 add store
+               /x2 x2 1 add store
+               x1 y1 41.5 add moveto
+               /temp x2 x1 sub 0.3 mul def
+               x1 temp add y1 44 add x2 temp sub y2 44 add
+               x2 y2 41.5 add curveto
+               stroke
+               grestore end
+               } bind def
+
+               /tie {
+               6 dict begin gsave
+              0.6 setlinewidth
+              /fret exch def
+              /y2 exch def
+              /x2 exch def
+              /y1 exch def
+              /x1 exch def
+              fret 9 gt {
+                 /x1 x1 0.7 add store
+                 /x2 x2 0.7 sub store
+              }{} ifelse
+              /x1 x1 4.2 add store
+              /x2 x2 0.2 sub store
+              /y2 y2 2.5 add store
+              /y1 y1 2.5 add store
+              x1 y1 1 add moveto
+              /temp x2 x1 sub 0.3 mul def
+              x1 temp add y1 3 add x2 temp sub y2 3 add
+              x2 y2 1 add curveto
+              stroke
+              grestore end
+               } bind def
+
+               /tiegrace {
+               6 dict begin gsave
+              0.4 setlinewidth
+              /fret exch def
+              /y2 exch def
+              /x2 exch def
+              /y1 exch def
+              /x1 exch def
+              fret 9 gt {
+                 /x1 x1 0.4 add store
+                 /x2 x2 0.4 sub store
+              }{} ifelse
+              /x1 x1 2.9 add store
+              /x2 x2 0.2 sub store
+              /y2 y2 2.3 add store
+              /y1 y1 2.3 add store
+              x1 y1 1 add moveto
+              /temp x2 x1 sub 0.3 mul def
+              x1 temp add y1 2.6 add x2 temp sub y2 2.6 add
+              x2 y2 1 add curveto
+              stroke
+              grestore end
+               } bind def
+
+               /tiegracefirst {
+               6 dict begin gsave
+              0.6 setlinewidth
+              /fret exch def
+              /y2 exch def
+              /x2 exch def
+              /y1 exch def
+              /x1 exch def
+              fret 9 gt {
+                 /x1 x1 0.4 add store
+                 /x2 x2 0.4 sub store
+              }{} ifelse
+              /x1 x1 2.9 add store
+              /x2 x2 0.2 sub store
+              /y2 y2 2.5 add store
+              /y1 y1 2.5 add store
+              x1 y1 1 add moveto
+              /temp x2 x1 sub 0.3 mul def
+              x1 temp add y1 3 add x2 temp sub y2 3 add
+              x2 y2 1 add curveto
+              stroke
+              grestore end
+               } bind def
+
+               /tiegracesecond {
+               6 dict begin gsave
+              0.6 setlinewidth
+              /fret exch def
+              /y2 exch def
+              /x2 exch def
+              /y1 exch def
+              /x1 exch def
+              fret 9 gt {
+                 /x1 x1 0.4 add store
+                 /x2 x2 0.4 sub store
+              }{} ifelse
+              /x1 x1 4.2 add store
+              /x2 x2 0.2 sub store
+              /y2 y2 2.5 add store
+              /y1 y1 2.5 add store
+              x1 y1 1 add moveto
+              /temp x2 x1 sub 0.3 mul def
+              x1 temp add y1 3 add x2 temp sub y2 3 add
+              x2 y2 1 add curveto
+              stroke
+              grestore end
+               } bind def
+
+               /slideup {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret1 9 gt {
+                  /x1 x1 1.6 add store
+               }{} ifelse
+               fret2 9 gt {
+                  /x2 x2 1.6 sub store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 4 add y1 0.7 add moveto
+               x2 0.2 sub y2 3.8 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slidedown {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.4 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.5 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 4 add y1 3.8 add moveto
+               x2 0.2 sub y2 0.7 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slidedownbothgrace {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.1 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.1 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 3 add y1 3.4 add moveto
+               x2 0.2 sub y2 1.2 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slideupbothgrace {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.1 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.1 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 3 add y1 1.2 add moveto
+               x2 0.2 sub y2 3.4 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slidedownfirstgrace {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.3 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.1 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 2.9 add y1 3.4 add moveto
+               x2 0.1 sub y2 1.2 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slideupfirstgrace {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.3 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.1 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 2.9 add y1 1.2 add moveto
+               x2 0.1 sub y2 3.4 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slidedownsecondgrace {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.1 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.6 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 3.9 add y1 3.4 add moveto
+               x2 0.1 sub y2 1.2 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /slideupsecondgrace {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               /fret2 exch def
+               /fret1 exch def
+               fret2 9 gt {
+                  /x2 x2 1.1 sub store
+               }{} ifelse
+               fret1 9 gt {
+                  /x1 x1 1.6 add store
+               }{} ifelse
+               0.3 setlinewidth
+               x1 3.9 add y1 1.2 add moveto
+               x2 0.1 sub y2 3.4 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /sup {
+               5 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               /temp x1 5 sub def
+               /temp2 y1 0.7 add def
+               fret 9 gt {
+                  /x1 x1 0.6 sub store
+                  /y1 y1 0.24230769 sub store
+               }{} ifelse
+               0.3 setlinewidth
+               temp temp2 moveto
+               x1 0.2 sub y1 3.8 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /supgrace {
+               5 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               /temp x1 3 sub def
+               /temp2 y1 1.2 add def
+               fret 9 gt {
+                  /x1 x1 0.6 sub store
+                  /y1 y1 0.4125 sub store
+               }{} ifelse
+               0.3 setlinewidth
+               temp temp2 moveto
+               x1 0.2 sub y1 3.4 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /sdn {
+               5 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               /temp x1 5 sub def
+               /temp2 y1 3.8 add def
+               fret 9 gt {
+                  /x1 x1 0.6 sub store
+                  /y1 y1 0.24230769 add store
+               }{} ifelse
+               0.3 setlinewidth
+               temp temp2 moveto
+               x1 0.2 sub y1 0.7 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /sdngrace {
+               5 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               /temp x1 3 sub def
+               /temp2 y1 3.4 add def
+               fret 9 gt {
+                  /x1 x1 0.6 sub store
+                  /y1 y1 0.4125 add store
+               }{} ifelse
+               0.3 setlinewidth
+               temp temp2 moveto
+               x1 0.2 sub y1 1.2 add lineto
+               stroke
+               grestore end
+               } bind def
+
+               /openP {
+               3 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               fret 9 gt {
+                  /x1 x1 1.0 sub store
+               }{} ifelse
+               /Times-Roman findfont
+               7 scalefont
+               setfont
+               newpath
+               0 0 0 setrgbcolor
+               x1 y1 moveto
+               (\() show
+               grestore end
+               } bind def
+
+               /closeP {
+               3 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               fret 9 gt {
+                  /x1 x1 1.1 add store
+               }{} ifelse
+               /Times-Roman findfont
+               7 scalefont
+               setfont
+               newpath
+               0 0 0 setrgbcolor
+               x1 y1 moveto
+               (\)) show
+               grestore end
+               } bind def
+
+               /openPG {
+               3 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               fret 9 gt {
+                  /x1 x1 0.9 sub store
+               }{} ifelse
+               /Times-Roman findfont
+               5 scalefont
+               setfont
+               newpath
+               0 0 0 setrgbcolor
+               x1 y1 moveto
+               (\() show
+               grestore end
+               } bind def
+
+               /closePG {
+               3 dict begin gsave
+               /fret exch def
+               /y1 exch def
+               /x1 exch def
+               fret 9 gt {
+                  /x1 x1 0.8 add store
+               }{} ifelse
+               /Times-Roman findfont
+               5 scalefont
+               setfont
+               newpath
+               0 0 0 setrgbcolor
+               x1 y1 moveto
+               (\)) show
+               grestore end
+               } bind def
+
+               /arrow {
+                 6 dict begin gsave
+                 /start1 exch def
+                 /height exch def
+                 /y1 exch def
+                 /x1 exch def
+                 /x1 x1 2.2 sub store
+                 /y1 y1 8.5 sub store
+                 /scale1 start1 6 mul def
+                 /y1 y1 scale1 add store
+                 /len height 1 sub 6 mul 4.5 add def
+                 x1 y1 moveto
+                 0.45 setlinewidth
+                 0 len rlineto
+                 stroke
+                 x1 y1 len add moveto
+                 1.35 0 rlineto
+                 -1.35 3.5 rlineto
+                 -1.35 -3.5 rlineto
+                 1.35 0 rlineto
+                 fill
+                 grestore end
+               } bind def
+
+               /arrowGrace {
+                 6 dict begin gsave
+                 /start1 exch def
+                 /height exch def
+                 /y1 exch def
+                 /x1 exch def
+                 /x1 x1 1.5 sub store
+                 /y1 y1 8.5 sub store
+                 /scale1 start1 6 mul def
+                 /y1 y1 scale1 add store
+                 /len height 1 sub 6 mul 4 add def
+                 x1 y1 moveto
+                 0.35 setlinewidth
+                 0 len rlineto
+                 stroke
+                 x1 y1 len add moveto
+                 1 0 rlineto
+                 -1 3 rlineto
+                 -1 -3 rlineto
+                 1 0 rlineto
+                 fill
+                 grestore end
+               } bind def
+
+               /arrowDown {
+                 6 dict begin gsave
+                 /start1 exch def
+                 /height exch def
+                 /y1 exch def
+                 /x1 exch def
+                 /x1 x1 2.2 sub store
+                 /y1 y1 3 sub store
+                 /scale1 start1 6 mul def
+                 /y1 y1 scale1 add store
+                 /len height -6 mul 1 add def
+                 x1 y1 moveto
+                 0.45 setlinewidth
+                 0 len rlineto
+                 stroke
+                 x1 y1 len add moveto
+                 1.35 0 rlineto
+                 -1.35 -3.5 rlineto
+                 -1.35 3.5 rlineto
+                 1.35 0 rlineto
+                 fill
+                 grestore end
+               } bind def
+
+               /arrowDownGrace {
+                 6 dict begin gsave
+                 /start1 exch def
+                 /height exch def
+                 /y1 exch def
+                 /x1 exch def
+                 /x1 x1 1.5 sub store
+                 /y1 y1 3.6 sub store
+                 /scale1 start1 6 mul def
+                 /y1 y1 scale1 add store
+                 /len height -6 mul 2 add def
+                 x1 y1 moveto
+                 0.35 setlinewidth
+                 0 len rlineto
+                 stroke
+                 x1 y1 len add moveto
+                 1 0 rlineto
+                 -1 -3 rlineto
+                 -1 3 rlineto
+                 1 0 rlineto
+                 fill
+                 grestore end
+               } bind def
+
+               /harmonics {
+                  5 dict begin gsave
+                  /fret exch def
+                  /y1 exch def
+                  /x1 exch def
+                  /x1 x1 3.3 sub store
+                  /y1 y1 2.3 add store
+                  /x2 x1 10.7 add store
+                  fret 9 gt {
+                     /x1 x1 1.5 sub store
+                     /x2 x2 1.9 add store
+                  }{} ifelse
+                  0.5 setlinewidth
+                  x1 y1 moveto
+                  x1 3.5 add y1 1.5 add lineto
+                  x1 y1 moveto
+                  x1 3.5 add y1 1.5 sub lineto
+                  x2 y1 moveto
+                  x2 3.5 sub y1 1.5 add lineto
+                  x2 y1 moveto
+                  x2 3.5 sub y1 1.5 sub lineto
+                  stroke
+                  grestore end
+               } bind def
+
+               /harmonicsgrace {
+                  5 dict begin gsave
+                  /fret exch def
+                  /y1 exch def
+                  /x1 exch def
+                  /x1 x1 2.5 sub store
+                  /y1 y1 2.3 add store
+                  /x2 x1 7.7 add store
+                  fret 9 gt {
+                     /x1 x1 0.9 sub store
+                     /x2 x2 1.2 add store
+                  }{} ifelse
+                  0.4 setlinewidth
+                  x1 y1 moveto
+                  x1 2.5 add y1 1.1 add lineto
+                  x1 y1 moveto
+                  x1 2.5 add y1 1.1 sub lineto
+                  x2 y1 moveto
+                  x2 2.5 sub y1 1.1 add lineto
+                  x2 y1 moveto
+                  x2 2.5 sub y1 1.1 sub lineto
+                  stroke
+                  grestore end
+               } bind def
+
+               /pluckcurve {
+                  2 dict begin gsave
+                  /y1 exch def
+                  /x1 exch def
+                  0.1 setlinewidth
+                  x1 y1 moveto
+                  x1 1 sub y1 1 add x1 1 sub y1 1.5 add x1 y1 3 add curveto
+                  x1 1.5 add y1 4 add x1 1.5 add y1 4.5 add x1 y1 6 add curveto
+                  x1 0.15 sub y1 6.1 add x1 0.4 sub y1 5.85 add x1 0.3 sub y1 5.7 add curveto
+                  x1 0.1 add y1 5.2 add x1 0.1 add y1 4.8 add x1 0.5 sub y1 4 add curveto
+                  x1 2.3 sub y1 2.3 add x1 2.3 sub y1 2.2 add x1 0.3 sub y1 0.3 sub curveto
+                  x1 0.15 sub y1 0.4 sub x1 0.1 add y1 0.15 sub x1 y1 curveto
+                  fill
+                  grestore end
+               } bind def
+
+               /pluckcurvegrace {
+                  2 dict begin gsave
+                  /y1 exch def
+                  /x1 exch def
+                  0.1 setlinewidth
+                  x1 y1 moveto
+                  x1 0.7 sub y1 1 add x1 0.7 sub y1 1.5 add x1 y1 3 add curveto
+                  x1 1.3 add y1 4 add x1 1.3 add y1 4.5 add x1 y1 6 add curveto
+                  x1 0.1 sub y1 6.1 add x1 0.3 sub y1 5.85 add x1 0.2 sub y1 5.7 add curveto
+                  x1 0.07 add y1 5.2 add x1 0.07 add y1 4.8 add x1 0.3 sub y1 4 add curveto
+                  x1 1.6 sub y1 2.3 add x1 1.6 sub y1 2.2 add x1 0.2 sub y1 0.3 sub curveto
+                  x1 0.1 sub y1 0.4 sub x1 0.07 add y1 0.15 sub x1 y1 curveto
+                  fill
+                  grestore end
+               } bind def
+
+               /arrowup {
+                  2 dict begin gsave
+                  /y1 exch def
+                  /x1 exch def
+                  0.1 setlinewidth
+                  x1 2 add y1 moveto
+                  x1 y1 4 add lineto
+                  x1 2 sub y1 lineto
+                  x1 2 add y1 lineto
+                  fill
+                  grestore end
+               } bind def
+
+               /arrowupgrace {
+                  2 dict begin gsave
+                  /y1 exch def
+                  /x1 exch def
+                  0.1 setlinewidth
+                  x1 1.5 add y1 moveto
+                  x1 y1 3 add lineto
+                  x1 1.5 sub y1 lineto
+                  x1 1.5 add y1 lineto
+                  fill
+                  grestore end
+               } bind def
+
+               /pluckup {
+                  4 dict begin gsave
+                  /start1 exch def
+                  /height1 exch def
+                  /y1 exch def
+                  /x1 exch def
+                  /x1 x1 2 sub store
+                  /y1 y1 3.5 sub start1 1 sub 6 mul add store
+                  1 1 height1 {
+                     /num exch def
+                     x1 num 1 sub 6 mul y1 add pluckcurve
+                  } for
+                  x1 height1 6 mul y1 add 0.3 sub arrowup
+                  grestore end
+               } bind def
+
+               /pluckupgrace {
+                  4 dict begin gsave
+                  /start1 exch def
+                  /height1 exch def
+                  /y1 exch def
+                  /x1 exch def
+                  /x1 x1 2 sub store
+                  /y1 y1 3.5 sub start1 1 sub 6 mul add store
+                  1 1 height1 {
+                     /num exch def
+                     x1 num 1 sub 6 mul y1 add pluckcurvegrace
+                  } for
+                  x1 height1 6 mul y1 add 0.3 sub arrowupgrace
+                  grestore end
+               } bind def
+
+               /arrowdown {
+                  2 dict begin gsave
+                  /y1 exch def
+                  /x1 exch def
+                  0.1 setlinewidth
+                  x1 2 add y1 moveto
+                  x1 y1 4 sub lineto
+                  x1 2 sub y1 lineto
+                  x1 2 add y1 lineto
+                  fill
+                  grestore end
+               } bind def
+
+               /arrowdowngrace {
+                  2 dict begin gsave
+                  /y1 exch def
+                  /x1 exch def
+                  0.1 setlinewidth
+                  x1 1.5 add y1 moveto
+                  x1 y1 3 sub lineto
+                  x1 1.5 sub y1 lineto
+                  x1 1.5 add y1 lineto
+                  fill
+                  grestore end
+               } bind def
+
+               /pluckdown {
+                  4 dict begin gsave
+                  /start1 exch def
+                  /height1 exch def
+                  /y1 exch def
+                  /x1 exch def
+                  /x1 x1 2 sub store
+                  /y1 y1 3 sub start1 1 sub 6 mul add store
+                  1 1 height1 {
+                     /num exch def
+                     x1 num 1 sub -6 mul y1 add pluckcurve
+                  } for
+                  x1 height1 1 sub -6 mul y1 add arrowdown
+                  grestore end
+               } bind def
+
+               /pluckdowngrace {
+                  4 dict begin gsave
+                  /start1 exch def
+                  /height1 exch def
+                  /y1 exch def
+                  /x1 exch def
+                  /x1 x1 2 sub store
+                  /y1 y1 3.5 sub start1 1 sub 6 mul add store
+                  1 1 height1 {
+                     /num exch def
+                     x1 num 1 sub -6 mul y1 add pluckcurvegrace
+                  } for
+                  x1 height1 1 sub -6 mul y1 add arrowdowngrace
+                  grestore end
+               } bind def
+
+               %%EndProlog
+
+                (Blueberry) title (Hugo Hua) composer 73 647 7 25.2 70 252 (images/Staves/Staff.jpg) 3 printimage 84 660 4 timesignature 84 651 4 timesignature 70 645 1 guitartablines 105 642.7 12 guitarfretnumber  105 648.7 19 guitarfretnumber  105 654.5 (x) guitarfretnumber  105 660.7 10 guitarfretnumber  124.24137931034483 648.7 11 guitarfretnumber  143.48275862068965 643.5 14 guitarfretnumbergrace  143.48275862068965 649.5 7 guitarfretnumbergrace  143.48275862068965 655.5 2 guitarfretnumbergrace  143.48275862068965 661.5 10 guitarfretnumbergrace  151.5 643.5 9 guitarfretnumbergrace  159.51724137931035 642.7 20 guitarfretnumber  178.75862068965517 642.7 19 guitarfretnumber  193 645 30.4 0.7 barline    0.7 setlinewidth 107 677 moveto 0 10 rlineto stroke   0.7 setlinewidth 126.24137931034483 677 moveto 0 10 rlineto stroke   0.7 setlinewidth 161.51724137931035 677 moveto 0 10 rlineto stroke   0.7 setlinewidth 180.75862068965517 677 moveto 0 10 rlineto stroke        0.5 setlinewidth 144.73275862068965 677 moveto 0 8 rlineto stroke   0.5 setlinewidth 152.75 677 moveto 0 8 rlineto stroke    153.5 687 160.51724137931035 689 graceCurve   0.4 setlinewidth 142.98275862068965 678 moveto 4 4.4 rlineto stroke   198 661.5 9 guitarfretnumbergrace  204.39665003563792 643.5 11 guitarfretnumbergrace  210.79330007127584 648.7 11 guitarfretnumber  229.9832501781896 643.5 0 guitarfretnumbergrace  229.9832501781896 649.5 7 guitarfretnumbergrace  229.9832501781896 655.5 2 guitarfretnumbergrace  229.9832501781896 661.5 (x) guitarfretnumbergrace  237.97906272273698 642.7 0 guitarfretnumber  237.97906272273698 648.5 (x) guitarfretnumber  237.97906272273698 654.7 2 guitarfretnumber  237.97906272273698 660.7 10 guitarfretnumber  257.16901282965074 642.7 0 guitarfretnumber  257.16901282965074 648.7 7 guitarfretnumber  257.16901282965074 654.5 (x) guitarfretnumber  257.16901282965074 660.7 9 guitarfretnumber  257.16901282965074 666.7 5 guitarfretnumber  276.35896293656447 642.7 12 guitarfretnumber  276.35896293656447 648.7 19 guitarfretnumber  276.35896293656447 654.7 14 guitarfretnumber  276.35896293656447 660.7 19 guitarfretnumber  276.35896293656447 666.7 17 guitarfretnumber  290.54891304347825 645 30.4 0.7 barline    0.7 setlinewidth 212.79330007127584 677 moveto 0 10 rlineto stroke   0.7 setlinewidth 239.97906272273698 677 moveto 0 10 rlineto stroke   0.7 setlinewidth 259.16901282965074 677 moveto 0 10 rlineto stroke   0.7 setlinewidth 278.35896293656447 677 moveto 0 10 rlineto stroke      0.5 setlinewidth 199.25 677 moveto 0 8 rlineto stroke   0.5 setlinewidth 205.64665003563792 677 moveto 0 8 rlineto stroke   1.1 setlinewidth 199 685 moveto 205.89665003563792 685 lineto stroke   206.39665003563792 687 211.79330007127584 689 graceCurve   0.4 setlinewidth 197.5 678 moveto 4 4.4 rlineto stroke 0.5 setlinewidth 231.2332501781896 677 moveto 0 8 rlineto stroke    231.9832501781896 687 238.97906272273698 689 graceCurve   0.4 setlinewidth 229.4832501781896 678 moveto 4 4.4 rlineto stroke    295.54891304347825 642.5 (x) guitarfretnumber  314.78076408834306 649.5 5 guitarfretnumbergrace  314.78076408834306 655.5 11 guitarfretnumbergrace  320.6571630187184 649.5 6 guitarfretnumbergrace  320.6571630187184 655.5 11 guitarfretnumbergrace  326.3198747152619 648.7 5 guitarfretnumber  326.3198747152619 654.7 11 guitarfretnumber  345.55172576012677 649.5 5 guitarfretnumbergrace  350.89390660592255 666.7 6 guitarfretnumber  370.12575765078736 642.5 (x) guitarfretnumber  384.3576086956522 645 30.4 0.7 barline    0.7 setlinewidth 297.54891304347825 677 moveto 0 10 rlineto stroke   0.7 setlinewidth 328.3198747152619 677 moveto 0 10 rlineto stroke   0.7 setlinewidth 352.89390660592255 677 moveto 0 10 rlineto stroke   0.7 setlinewidth 372.12575765078736 677 moveto 0 10 rlineto stroke       0.5 setlinewidth 316.03076408834306 677 moveto 0 8 rlineto stroke   1 setlinecap 1.1 setlinewidth 317.78076408834306 678 moveto 0 0 rlineto stroke 0 setlinecap  0.5 setlinewidth 321.9071630187184 677 moveto 0 8 rlineto stroke   1.1 setlinewidth 315.78076408834306 685 moveto 322.1571630187184 685 lineto stroke   1.1 setlinewidth 315.78076408834306 683.5 moveto 322.1571630187184 683.5 lineto stroke   322.6571630187184 687 327.3198747152619 689 graceCurve   0.4 setlinewidth 314.28076408834306 678 moveto 4 4.4 rlineto stroke 0.5 setlinewidth 346.80172576012677 677 moveto 0 8 rlineto stroke   0.5 setlinewidth 346.80172576012677 684 moveto 0 0 rlineto stroke  346.55172576012677 682 drawFlagGrace  346.55172576012677 684.2 drawFlagGrace  346.55172576012677 686.4 drawFlagGrace  347.55172576012677 687 351.89390660592255 689 graceCurve   0.4 setlinewidth 345.05172576012677 678 moveto 4 4.4 rlineto stroke   389.3576086956522 660.7 9 guitarfretnumber  402.227704135737 648.7 8 guitarfretnumber  415.0977995758218 672.7 10 guitarfretnumber  429.57665694591725 648.7 5 guitarfretnumber  438.6929745493107 642.7 0 guitarfretnumber  463.36065747614 672.7 10 guitarfretnumber  472.30326086956524 645 30.4 0.7 barline    0.7 setlinewidth 391.3576086956522 677 moveto 0 10 rlineto stroke   0.7 setlinewidth 404.227704135737 677 moveto 0 10 rlineto stroke   1.6 setlinewidth 391.00760869565215 687 moveto 404.577704135737 687 lineto stroke   0.7 setlinewidth 417.0977995758218 678 moveto 0 9 rlineto stroke    1 setlinecap 1.4 setlinewidth 419.2977995758218 678.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 431.57665694591725 677 moveto 0 10 rlineto stroke   1.6 setlinewidth 416.7477995758218 687 moveto 431.9266569459173 687 lineto stroke   0.7 setlinewidth 440.6929745493107 677 moveto 0 10 rlineto stroke   1.6 setlinewidth 428.07665694591725 687 moveto 431.27665694591724 687 lineto stroke   1.6 setlinewidth 428.07665694591725 684.6 moveto 431.27665694591724 684.6 lineto stroke   1 setlinecap 1.4 setlinewidth 442.8929745493107 678.4 moveto 0 0 rlineto stroke 0 setlinecap  1 setlinecap 1.4 setlinewidth 444.59297454931067 678.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 465.36065747614 678 moveto 0 9 rlineto stroke   0.7 setlinewidth 465.36065747614 687 moveto 0 3 rlineto stroke  465.01065747613995 685 drawFlag  465.01065747613995 689 drawFlag           477.30326086956524 642.7 0 guitarfretnumber  496.5482586129081 648.7 8 guitarfretnumber  506.81225740935764 666.7 2 guitarfretnumber  514.4033398525651 672.7 3 guitarfretnumber  520.2837558296976 660.7 6 guitarfretnumber  526.1641718068302 666.7 6 guitarfretnumber  532.0445877839627 666.7 2 guitarfretnumber  541.1325033849857 654.7 0 guitarfretnumber  565 645 30.4 0.7 barline    0.7 setlinewidth 479.30326086956524 677 moveto 0 10 rlineto stroke   0.7 setlinewidth 498.5482586129081 677 moveto 0 10 rlineto stroke   1 setlinecap 1.4 setlinewidth 500.7482586129081 678.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 508.81225740935764 677 moveto 0 10 rlineto stroke   1.6 setlinewidth 498.1982586129081 687 moveto 509.16225740935766 687 lineto stroke   1.6 setlinewidth 498.1982586129081 684.6 moveto 509.16225740935766 684.6 lineto stroke   1 setlinecap 1.4 setlinewidth 511.01225740935763 678.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 516.4033398525651 678 moveto 0 9 rlineto stroke   1.6 setlinewidth 508.4622574093576 687 moveto 516.7533398525651 687 lineto stroke   1.6 setlinewidth 508.4622574093576 684.6 moveto 516.7533398525651 684.6 lineto stroke   1.6 setlinewidth 508.4622574093576 682.2 moveto 516.7533398525651 682.2 lineto stroke   0.7 setlinewidth 522.2837558296976 677 moveto 0 10 rlineto stroke   1.6 setlinewidth 516.053339852565 687 moveto 522.6337558296976 687 lineto stroke   1.6 setlinewidth 516.053339852565 684.6 moveto 522.6337558296976 684.6 lineto stroke   1.6 setlinewidth 516.053339852565 682.2 moveto 522.6337558296976 682.2 lineto stroke   1.6 setlinewidth 516.053339852565 679.8 moveto 522.6337558296976 679.8 lineto stroke   0.7 setlinewidth 528.1641718068302 677 moveto 0 10 rlineto stroke   1.6 setlinewidth 521.9337558296976 687 moveto 528.5141718068302 687 lineto stroke   1.6 setlinewidth 521.9337558296976 684.6 moveto 528.5141718068302 684.6 lineto stroke   1.6 setlinewidth 521.9337558296976 682.2 moveto 528.5141718068302 682.2 lineto stroke   1.6 setlinewidth 521.9337558296976 679.8 moveto 528.5141718068302 679.8 lineto stroke   0.7 setlinewidth 534.0445877839627 677 moveto 0 10 rlineto stroke   1.6 setlinewidth 527.8141718068301 687 moveto 534.3945877839627 687 lineto stroke   1.6 setlinewidth 527.8141718068301 684.6 moveto 534.3945877839627 684.6 lineto stroke   0.7 setlinewidth 543.1325033849857 677 moveto 0 10 rlineto stroke              65 685 (1) measureNumber      105 645 4 1 arrow      103.3 643.2 12 openP   108.5 643.2 12 closeP    105 648.7 19 sup   103.3 649.2 19 openP   108.5 649.2 19 closeP    105 654.7 -1 sup   103.3 655.2 -1 openP   108.5 655.2 -1 closeP    105 660.7 10 sup   103.3 661.2 10 openP   108.5 661.2 10 closeP         122.54137931034482 649.2 11 openP   127.74137931034483 649.2 11 closeP         142.08275862068965 643.7 14 openPG   146.08275862068965 643.7 14 closePG    143.48275862068965 648.7 7 supgrace     143.48275862068965 654.7 2 supgrace     143.48275862068965 660.7 10 supgrace          151.5 642.7 9 sdngrace          159.51724137931035 645 1 1 pluckdown                 198 645 1 4 pluckupgrace    196.6 661.7 9 openPG   200.6 661.7 9 closePG         202.9966500356379 643.7 11 openPG   206.9966500356379 643.7 11 closePG         124.24137931034483 648.7 210.79330007127584 648.7 11 tie          229.9832501781896 642.7 0 sdngrace     229.9832501781896 648.7 7 sdngrace     229.9832501781896 654.7 2 sdngrace     229.9832501781896 660.7 -1 sdngrace         237.97906272273698 645 4 1 pluckup    237.97906272273698 642.7 0 sdn     237.97906272273698 648.7 -1 sdn     237.97906272273698 654.7 2 sdn     237.97906272273698 660.7 10 sdn         257.16901282965074 645 5 5 pluckdown              276.35896293656447 645 5 1 arrow     0 12 257.16901282965074 642.7 276.35896293656447 642.7 slideup    7 19 257.16901282965074 648.7 276.35896293656447 648.7 slideup    -1 14 257.16901282965074 654.7 276.35896293656447 654.7 slideup    9 19 257.16901282965074 660.7 276.35896293656447 660.7 slideup    5 17 257.16901282965074 666.7 276.35896293656447 666.7 slideup                             314.78076408834306 654.7 320.6571630187184 654.7 11 tiegrace          314.78076408834306 648.7 326.3198747152619 648.7 5 tiegracefirst    320.6571630187184 654.7 326.3198747152619 654.7 11 tiegracefirst         326.3198747152619 648.7 345.55172576012677 648.7 5 tiegracesecond                 295.54891304347825 642.7 370.12575765078736 642.7 -1 tie                   400.527704135737 649.2 8 openP   405.727704135737 649.2 8 closeP     415.0977995758218 645 1 6 arrow                       463.36065747614 645 1 6 arrow                                                        6 2 526.1641718068302 666.7 532.0445877839627 666.7 slidedown  506.81225740935764 666.7 532.0445877839627 666.7 2 tie           514.4033398525651 645 565 645  slur 53 572 7 25.2 70 252 (images/Staves/Staff.jpg) 3 printimage 50 570 0 guitartablines 75 591.7 4 guitarfretnumber  89.10518156211106 579.7 4 guitarfretnumber  103.21036312422211 597.7 10 guitarfretnumber  119.07869238159705 567.7 10 guitarfretnumber  119.07869238159705 591.7 5 guitarfretnumber  119.07869238159705 579.7 2 guitarfretnumber  129.06986265475905 567.7 10 guitarfretnumber  156.10479398213857 597.7 10 guitarfretnumber  166.38540734109222 570 30.4 0.7 barline    0.7 setlinewidth 77 602 moveto 0 10 rlineto stroke   0.7 setlinewidth 91.10518156211106 602 moveto 0 10 rlineto stroke   1.6 setlinewidth 76.65 612 moveto 91.45518156211105 612 lineto stroke   0.7 setlinewidth 105.21036312422211 603 moveto 0 9 rlineto stroke    1 setlinecap 1.4 setlinewidth 107.41036312422212 603.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 121.07869238159705 602 moveto 0 10 rlineto stroke   1.6 setlinewidth 104.86036312422212 612 moveto 121.42869238159705 612 lineto stroke   0.7 setlinewidth 131.06986265475905 602 moveto 0 10 rlineto stroke   1.6 setlinewidth 117.57869238159705 612 moveto 120.77869238159705 612 lineto stroke   1.6 setlinewidth 117.57869238159705 609.6 moveto 120.77869238159705 609.6 lineto stroke   1 setlinecap 1.4 setlinewidth 133.26986265475904 603.4 moveto 0 0 rlineto stroke 0 setlinecap  1 setlinecap 1.4 setlinewidth 134.96986265475905 603.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 158.10479398213857 603 moveto 0 9 rlineto stroke   0.7 setlinewidth 158.10479398213857 612 moveto 0 3 rlineto stroke  157.75479398213858 610 drawFlag  157.75479398213858 614 drawFlag           171.38540734109222 567.7 0 guitarfretnumber  201.1279289191216 573.7 8 guitarfretnumber  209.09892470203346 579.7 0 guitarfretnumber  230.5135402382146 591.7 9 guitarfretnumber  230.5135402382146 597.7 3 guitarfretnumber  246.92815577439575 570 30.4 0.7 barline    0.7 setlinewidth 173.38540734109222 602 moveto 0 10 rlineto stroke   1 setlinecap 1.4 setlinewidth 175.5854073410922 603.4 moveto 0 0 rlineto stroke 0 setlinecap  1 setlinecap 1.4 setlinewidth 177.28540734109222 603.4 moveto 0 0 rlineto stroke 0 setlinecap  1 setlinecap 1.4 setlinewidth 178.9854073410922 603.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 203.1279289191216 602 moveto 0 10 rlineto stroke   0.7 setlinewidth 211.09892470203346 602 moveto 0 10 rlineto stroke   0.7 setlinewidth 203.1279289191216 612 moveto 0 7 rlineto stroke  202.7779289191216 610 drawFlag  202.7779289191216 614 drawFlag  202.7779289191216 618 drawFlag  0.7 setlinewidth 232.5135402382146 603 moveto 0 9 rlineto stroke           251.92815577439572 585.7 9 guitarfretnumber  265.97806624888096 573.7 8 guitarfretnumber  265.97806624888096 585.7 7 guitarfretnumber  280.0279767233662 597.7 10 guitarfretnumber  295.83412600716207 598.5 1 guitarfretnumbergrace  302.8590812444047 573.7 5 guitarfretnumber  312.8111011638317 567.7 0 guitarfretnumber  339.7400962399284 597.7 10 guitarfretnumber  349.96083258728737 570 30.4 0.7 barline    0.7 setlinewidth 253.92815577439572 602 moveto 0 10 rlineto stroke   0.7 setlinewidth 267.97806624888096 602 moveto 0 10 rlineto stroke   1.6 setlinewidth 253.57815577439573 612 moveto 268.328066248881 612 lineto stroke   0.7 setlinewidth 282.0279767233662 603 moveto 0 9 rlineto stroke    1 setlinecap 1.4 setlinewidth 284.22797672336617 603.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 304.8590812444047 602 moveto 0 10 rlineto stroke   1.6 setlinewidth 281.67797672336616 612 moveto 305.20908124440473 612 lineto stroke   0.7 setlinewidth 314.8111011638317 602 moveto 0 10 rlineto stroke   1.6 setlinewidth 301.3590812444047 612 moveto 304.5590812444047 612 lineto stroke   1.6 setlinewidth 301.3590812444047 609.6 moveto 304.5590812444047 609.6 lineto stroke   1 setlinecap 1.4 setlinewidth 317.0111011638317 603.4 moveto 0 0 rlineto stroke 0 setlinecap  1 setlinecap 1.4 setlinewidth 318.7111011638317 603.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 341.7400962399284 603 moveto 0 9 rlineto stroke   0.7 setlinewidth 341.7400962399284 612 moveto 0 3 rlineto stroke  341.39009623992837 610 drawFlag  341.39009623992837 614 drawFlag       0.5 setlinewidth 297.08412600716207 602.3 moveto 0 7.7 rlineto stroke   0.5 setlinewidth 1 1 1 setrgbcolor 297.08412600716207 609 moveto 0 1 rlineto stroke 0 0 0 setrgbcolor  296.83412600716207 608.5 drawFlagGrace  297.83412600716207 612 303.8590812444047 614 graceCurve   0.4 setlinewidth 295.33412600716207 603 moveto 4 4.4 rlineto stroke    354.9608325872874 598.5 9 guitarfretnumbergrace  361.99683126796407 597.7 9 guitarfretnumber  383.10482730999394 573.7 8 guitarfretnumber  404.2128233520238 568.5 3 guitarfretnumbergrace  404.2128233520238 574.5 11 guitarfretnumbergrace  413.0078217028696 579.7 0 guitarfretnumber  434.11581774489946 567.7 4 guitarfretnumber  450.2238137869293 570 30.4 0.7 barline    0.7 setlinewidth 363.99683126796407 603 moveto 0 9 rlineto stroke   0.7 setlinewidth 385.10482730999394 602 moveto 0 10 rlineto stroke   0.7 setlinewidth 415.0078217028696 602 moveto 0 10 rlineto stroke   0.7 setlinewidth 436.11581774489946 602 moveto 0 10 rlineto stroke      0.5 setlinewidth 356.2108325872874 602.3 moveto 0 7.7 rlineto stroke   0.5 setlinewidth 1 1 1 setrgbcolor 356.2108325872874 609 moveto 0 1 rlineto stroke 0 0 0 setrgbcolor  355.9608325872874 608.5 drawFlagGrace  356.9608325872874 612 362.99683126796407 614 graceCurve   0.4 setlinewidth 354.4608325872874 603 moveto 4 4.4 rlineto stroke  0.5 setlinewidth 405.4628233520238 602 moveto 0 8 rlineto stroke    406.2128233520238 612 414.0078217028696 614 graceCurve   0.4 setlinewidth 403.7128233520238 603 moveto 4 4.4 rlineto stroke   455.2238137869293 574.5 11 guitarfretnumbergrace  461.04410720544206 598.5 10 guitarfretnumbergrace  467.21361822906556 574.5 7 guitarfretnumbergrace  474.5471879363916 585.7 9 guitarfretnumber  488.5158921408221 573.7 8 guitarfretnumber  488.5158921408221 579.7 2 guitarfretnumber  502.4845963452526 597.7 10 guitarfretnumber  518.199388575237 573.7 5 guitarfretnumber  528.0938873867086 567.7 0 guitarfretnumber  554.8672371118671 597.7 10 guitarfretnumber  565.0000000000001 570 30.4 0.7 barline    0.7 setlinewidth 476.5471879363916 602 moveto 0 10 rlineto stroke   0.7 setlinewidth 490.5158921408221 602 moveto 0 10 rlineto stroke   1.6 setlinewidth 476.1971879363916 612 moveto 490.8658921408221 612 lineto stroke   0.7 setlinewidth 504.4845963452526 603 moveto 0 9 rlineto stroke    1 setlinecap 1.4 setlinewidth 506.6845963452526 603.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 520.199388575237 602 moveto 0 10 rlineto stroke   1.6 setlinewidth 504.1345963452526 612 moveto 520.549388575237 612 lineto stroke   0.7 setlinewidth 530.0938873867086 602 moveto 0 10 rlineto stroke   1.6 setlinewidth 516.699388575237 612 moveto 519.899388575237 612 lineto stroke   1.6 setlinewidth 516.699388575237 609.6 moveto 519.899388575237 609.6 lineto stroke   1 setlinecap 1.4 setlinewidth 532.2938873867087 603.4 moveto 0 0 rlineto stroke 0 setlinecap  1 setlinecap 1.4 setlinewidth 533.9938873867086 603.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 556.8672371118671 603 moveto 0 9 rlineto stroke   0.7 setlinewidth 556.8672371118671 612 moveto 0 3 rlineto stroke  556.5172371118671 610 drawFlag  556.5172371118671 614 drawFlag    0.5 setlinewidth 456.4738137869293 602 moveto 0 8 rlineto stroke   0.5 setlinewidth 462.29410720544206 602.3 moveto 0 7.7 rlineto stroke   1.1 setlinewidth 456.2238137869293 610 moveto 462.54410720544206 610 lineto stroke   1.1 setlinewidth 456.2238137869293 608.5 moveto 462.54410720544206 608.5 lineto stroke   1.1 setlinewidth 456.32381378692935 610 moveto 458.82381378692935 610 lineto stroke   1.1 setlinewidth 456.32381378692935 608.5 moveto 458.82381378692935 608.5 lineto stroke   1.1 setlinewidth 456.32381378692935 607 moveto 458.82381378692935 607 lineto stroke   0.5 setlinewidth 468.46361822906556 602 moveto 0 8 rlineto stroke   1.1 setlinewidth 462.04410720544206 610 moveto 468.71361822906556 610 lineto stroke   1 setlinecap 1.1 setlinewidth 470.21361822906556 603 moveto 0 0 rlineto stroke 0 setlinecap  469.21361822906556 612 475.5471879363916 614 graceCurve   0.4 setlinewidth 454.7238137869293 603 moveto 4 4.4 rlineto stroke      45 610 (6) measureNumber    50 570 75 570 slur                                119.07869238159705 579.7 2 sdn         119.07869238159705 567.7 129.06986265475905 567.7 10 tie                                 209.09892470203346 579.7 0 sdn            230.5135402382146 597.7 3 sup                                                                 10 9 339.7400962399284 597.7 354.9608325872874 597.7 slidedownsecondgrace                             339.7400962399284 570 413.0078217028696 570 slur             3 4 404.2128233520238 567.7 434.11581774489946 567.7 slideupfirstgrace           404.2128233520238 573.7 455.2238137869293 573.7 11 tiegrace   455.2238137869293 573.7 11 supgrace          461.04410720544206 597.7 10 supgrace      467.21361822906556 570 1 2 arrowGrace      467.21361822906556 573.7 7 supgrace               488.5158921408221 570 2 3 arrowDown                                    53 497 7 25.2 70 252 (images/Staves/Staff.jpg) 3 printimage 50 495 0 guitartablines 75 492.7 0 guitarfretnumber  97.92217945633871 498.7 8 guitarfretnumber  120.84435891267742 504.7 0 guitarfretnumber  143.76653836901613 516.7 9 guitarfretnumber  161.68871782535484 495 30.4 0.7 barline    0.7 setlinewidth 77 527 moveto 0 10 rlineto stroke   0.7 setlinewidth 99.92217945633871 527 moveto 0 10 rlineto stroke   0.7 setlinewidth 122.84435891267742 527 moveto 0 10 rlineto stroke   0.7 setlinewidth 145.76653836901613 527 moveto 0 10 rlineto stroke           166.68871782535481 510.7 9 guitarfretnumber  181.8491583400318 498.7 8 guitarfretnumber  197.00959885470877 498.7 8 guitarfretnumber  214.06509443372036 498.7 5 guitarfretnumber  224.80373979828323 492.7 0 guitarfretnumber  253.86125078474743 522.7 10 guitarfretnumber  265.2850613423142 495 30.4 0.7 barline    0.7 setlinewidth 168.68871782535481 527 moveto 0 10 rlineto stroke   0.7 setlinewidth 183.8491583400318 527 moveto 0 10 rlineto stroke   1.6 setlinewidth 168.33871782535482 537 moveto 184.1991583400318 537 lineto stroke   0.7 setlinewidth 199.00959885470877 527 moveto 0 10 rlineto stroke    1 setlinecap 1.4 setlinewidth 201.20959885470876 528.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 216.06509443372036 527 moveto 0 10 rlineto stroke   1.6 setlinewidth 198.65959885470878 537 moveto 216.41509443372036 537 lineto stroke   0.7 setlinewidth 226.80373979828323 527 moveto 0 10 rlineto stroke   1.6 setlinewidth 212.56509443372036 537 moveto 215.76509443372035 537 lineto stroke   1.6 setlinewidth 212.56509443372036 534.6 moveto 215.76509443372035 534.6 lineto stroke   1 setlinecap 1.4 setlinewidth 229.00373979828322 528.4 moveto 0 0 rlineto stroke 0 setlinecap  1 setlinecap 1.4 setlinewidth 230.70373979828324 528.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 255.86125078474743 528 moveto 0 9 rlineto stroke   0.7 setlinewidth 255.86125078474743 537 moveto 0 3 rlineto stroke  255.51125078474743 535 drawFlag  255.51125078474743 539 drawFlag           270.2850613423142 492.7 0 guitarfretnumber  293.09804925032256 517.5 6 guitarfretnumbergrace  300.32216208785854 498.7 8 guitarfretnumber  323.13514999586687 504.7 0 guitarfretnumber  345.94813790387525 516.7 9 guitarfretnumber  363.76112581188363 495 30.4 0.7 barline    0.7 setlinewidth 272.2850613423142 527 moveto 0 10 rlineto stroke   0.7 setlinewidth 302.32216208785854 527 moveto 0 10 rlineto stroke   0.7 setlinewidth 325.13514999586687 527 moveto 0 10 rlineto stroke   0.7 setlinewidth 347.94813790387525 527 moveto 0 10 rlineto stroke       0.5 setlinewidth 294.34804925032256 527 moveto 0 8 rlineto stroke   1 setlinecap 1.1 setlinewidth 296.09804925032256 528 moveto 0 0 rlineto stroke 0 setlinecap  1 setlinecap 1.1 setlinewidth 297.49804925032254 528 moveto 0 0 rlineto stroke 0 setlinecap  294.09804925032256 532 drawFlagGrace  294.09804925032256 534.2 drawFlagGrace  295.09804925032256 537 301.32216208785854 539 graceCurve   0.4 setlinewidth 292.59804925032256 528 moveto 4 4.4 rlineto stroke    368.7611258118836 510.7 9 guitarfretnumber  383.92156632656054 498.7 8 guitarfretnumber  399.0820068412375 522.7 10 guitarfretnumber  416.1375024202491 498.7 5 guitarfretnumber  426.87614778481196 492.7 0 guitarfretnumber  455.93365877127616 516.7 5 guitarfretnumber  455.93365877127616 498.7 5 guitarfretnumber  455.93365877127616 504.7 2 guitarfretnumber  467.35746932884285 495 30.4 0.7 barline    0.7 setlinewidth 370.7611258118836 527 moveto 0 10 rlineto stroke   0.7 setlinewidth 385.92156632656054 527 moveto 0 10 rlineto stroke   1.6 setlinewidth 370.41112581188355 537 moveto 386.27156632656056 537 lineto stroke   0.7 setlinewidth 401.0820068412375 528 moveto 0 9 rlineto stroke    1 setlinecap 1.4 setlinewidth 403.2820068412375 528.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 418.1375024202491 527 moveto 0 10 rlineto stroke   1.6 setlinewidth 400.7320068412375 537 moveto 418.48750242024914 537 lineto stroke   0.7 setlinewidth 428.87614778481196 527 moveto 0 10 rlineto stroke   1.6 setlinewidth 414.6375024202491 537 moveto 417.8375024202491 537 lineto stroke   1.6 setlinewidth 414.6375024202491 534.6 moveto 417.8375024202491 534.6 lineto stroke   1 setlinecap 1.4 setlinewidth 431.07614778481195 528.4 moveto 0 0 rlineto stroke 0 setlinecap  1 setlinecap 1.4 setlinewidth 432.77614778481194 528.4 moveto 0 0 rlineto stroke 0 setlinecap  0.7 setlinewidth 457.93365877127616 527 moveto 0 10 rlineto stroke   0.7 setlinewidth 457.93365877127616 537 moveto 0 3 rlineto stroke  457.58365877127613 535 drawFlag  457.58365877127613 539 drawFlag           472.3574693288429 493.5 0 guitarfretnumbergrace  478.69789339839855 492.7 0 guitarfretnumber  478.69789339839855 498.7 5 guitarfretnumber  478.69789339839855 504.7 2 guitarfretnumber  501.5234200487989 510.7 7 guitarfretnumber  524.3489466991992 516.7 6 guitarfretnumber  547.1744733495996 498.7 5 guitarfretnumber  564.9999999999999 495 30.4 0.7 barline    0.7 setlinewidth 480.69789339839855 527 moveto 0 10 rlineto stroke   0.7 setlinewidth 503.5234200487989 527 moveto 0 10 rlineto stroke   0.7 setlinewidth 526.3489466991992 527 moveto 0 10 rlineto stroke   0.7 setlinewidth 549.1744733495996 527 moveto 0 10 rlineto stroke      0.5 setlinewidth 473.6074693288429 527 moveto 0 8 rlineto stroke   0.5 setlinewidth 473.6074693288429 534 moveto 0 0 rlineto stroke  473.3574693288429 532 drawFlagGrace  473.3574693288429 534.2 drawFlagGrace  473.3574693288429 536.4 drawFlagGrace  473.3574693288429 538.3 drawFlagGrace  474.3574693288429 537 479.69789339839855 539 graceCurve   0.4 setlinewidth 471.8574693288429 528 moveto 4 4.4 rlineto stroke    45 535 (11) measureNumber       75 495 1 1 arrowDown                             75 495 166.68871782535481 495 slurlong                    181.8491583400318 498.7 197.00959885470877 498.7 8 tie                                 268.5850613423142 493.2 0 openP   273.7850613423142 493.2 0 closeP         293.09804925032256 516.7 6 sdngrace                                             399.0820068412375 495 1 6 arrowDown                          454.23365877127617 517.2 5 openP   459.43365877127616 517.2 5 closeP              426.87614778481196 492.7 472.3574693288429 492.7 0 tiegracesecond     455.93365877127616 495 478.69789339839855 495 slur       476.99789339839856 493.2 0 openP   482.19789339839855 493.2 0 closeP                            53 422 7 25.2 70 252 (images/Staves/Staff.jpg) 3 printimage 50 420 0 guitartablines 75 418.5 0 guitarfretnumbergrace  82.67832521003014 430.5 3 guitarfretnumbergrace  82.67832521003014 424.5 7 guitarfretnumbergrace  90.35665042006028 418.5 0 guitarfretnumbergrace  90.35665042006028 424.5 7 guitarfretnumbergrace  90.35665042006028 430.5 2 guitarfretnumbergrace  96.49931058808438 442.5 11 guitarfretnumbergrace  96.49931058808438 424.5 7 guitarfretnumbergrace  102.64197075610849 418.5 10 guitarfretnumbergrace  102.64197075610849 442.5 5 guitarfretnumbergrace  108.7846309241326 418.5 0 guitarfretnumbergrace  108.7846309241326 448.5 0 guitarfretnumbergrace  114.92729109215671 417.7 11 guitarfretnumber  133.35527159622907 429.7 2 guitarfretnumber  133.35527159622907 423.7 7 guitarfretnumber  151.7832521003014 417.7 0 guitarfretnumber  151.7832521003014 429.7 2 guitarfretnumber  164.06857243634963 417.7 0 guitarfretnumber  164.06857243634963 429.7 3 guitarfretnumber  164.06857243634963 435.7 9 guitarfretnumber  176.35389277239784 423.7 7 guitarfretnumber  176.35389277239784 447.7 1 guitarfretnumber  176.35389277239784 441.7 5 guitarfretnumber  188.63921310844606 417.7 0 guitarfretnumber  188.63921310844606 447.7 0 guitarfretnumber  188.63921310844606 435.7 4 guitarfretnumber  196.94831013916496 420 30.4 0.7 barline    0.7 setlinewidth 116.92729109215671 452 moveto 0 10 rlineto stroke   0.7 setlinewidth 135.35527159622907 452 moveto 0 10 rlineto stroke   0.7 setlinewidth 153.7832521003014 452 moveto 0 10 rlineto stroke   0.7 setlinewidth 166.06857243634963 452 moveto 0 10 rlineto stroke   1.6 setlinewidth 153.43325210030142 462 moveto 166.41857243634962 462 lineto stroke   0.7 setlinewidth 178.35389277239784 453 moveto 0 9 rlineto stroke    0.7 setlinewidth 190.63921310844606 453 moveto 0 9 rlineto stroke   1.6 setlinewidth 178.00389277239785 462 moveto 190.98921310844605 462 lineto stroke     0.5 setlinewidth 76.25 452 moveto 0 8 rlineto stroke   0.5 setlinewidth 83.92832521003014 452 moveto 0 8 rlineto stroke   0.5 setlinewidth 91.60665042006028 452 moveto 0 8 rlineto stroke   0.5 setlinewidth 97.74931058808438 452 moveto 0 8 rlineto stroke   1.1 setlinewidth 91.35665042006028 460 moveto 97.99931058808438 460 lineto stroke   0.5 setlinewidth 103.89197075610849 452 moveto 0 8 rlineto stroke   1.1 setlinewidth 97.49931058808438 460 moveto 104.14197075610849 460 lineto stroke   0.5 setlinewidth 110.0346309241326 452.3 moveto 0 7.7 rlineto stroke   1.1 setlinewidth 103.64197075610849 460 moveto 110.2846309241326 460 lineto stroke   110.7846309241326 462 115.92729109215671 464 graceCurve   0.4 setlinewidth 74.5 453 moveto 4 4.4 rlineto stroke       201.94831013916502 418.5 4 guitarfretnumbergrace  209.62663534919517 436.5 10 guitarfretnumbergrace  209.62663534919517 442.5 5 guitarfretnumbergrace  217.30496055922532 418.5 1 guitarfretnumbergrace  217.30496055922532 424.5 9 guitarfretnumbergrace  217.30496055922532 430.5 2 guitarfretnumbergrace  223.44762072724944 424.5 5 guitarfretnumbergrace  223.44762072724944 442.5 0 guitarfretnumbergrace  229.59028089527357 418.5 1 guitarfretnumbergrace  229.59028089527357 442.5 0 guitarfretnumbergrace  235.7329410632977 418.5 5 guitarfretnumbergrace  235.7329410632977 448.5 0 guitarfretnumbergrace  241.8756012313218 417.7 11 guitarfretnumber  260.3035817353941 417.7 0 guitarfretnumber  260.3035817353941 423.7 7 guitarfretnumber  278.7315622394665 423.7 7 guitarfretnumber  278.7315622394665 435.7 9 guitarfretnumber  291.0168825755147 429.7 2 guitarfretnumber  291.0168825755147 441.7 6 guitarfretnumber  291.0168825755147 447.7 0 guitarfretnumber  303.302202911563 417.7 0 guitarfretnumber  303.302202911563 435.7 10 guitarfretnumber  303.302202911563 441.7 5 guitarfretnumber  315.5875232476112 417.7 0 guitarfretnumber  315.5875232476112 447.7 0 guitarfretnumber  315.5875232476112 435.7 4 guitarfretnumber  323.89662027833015 420 30.4 0.7 barline    0.7 setlinewidth 243.8756012313218 452 moveto 0 10 rlineto stroke   0.7 setlinewidth 262.3035817353941 452 moveto 0 10 rlineto stroke   0.7 setlinewidth 280.7315622394665 452 moveto 0 10 rlineto stroke   0.7 setlinewidth 293.0168825755147 453 moveto 0 9 rlineto stroke   1.6 setlinewidth 280.38156223946646 462 moveto 293.36688257551475 462 lineto stroke   0.7 setlinewidth 305.302202911563 452 moveto 0 10 rlineto stroke    0.7 setlinewidth 317.5875232476112 453 moveto 0 9 rlineto stroke   1.6 setlinewidth 304.95220291156295 462 moveto 317.93752324761124 462 lineto stroke     0.5 setlinewidth 203.19831013916502 452 moveto 0 8 rlineto stroke   0.5 setlinewidth 210.87663534919517 452 moveto 0 8 rlineto stroke   0.5 setlinewidth 218.55496055922532 452 moveto 0 8 rlineto stroke   0.5 setlinewidth 224.69762072724944 452 moveto 0 8 rlineto stroke   1.1 setlinewidth 218.30496055922532 460 moveto 224.94762072724944 460 lineto stroke   0.5 setlinewidth 230.84028089527357 452 moveto 0 8 rlineto stroke   1.1 setlinewidth 224.44762072724944 460 moveto 231.09028089527357 460 lineto stroke   0.5 setlinewidth 236.9829410632977 452.3 moveto 0 7.7 rlineto stroke   1.1 setlinewidth 230.59028089527357 460 moveto 237.2329410632977 460 lineto stroke   237.7329410632977 462 242.8756012313218 464 graceCurve   0.4 setlinewidth 201.44831013916502 453 moveto 4 4.4 rlineto stroke       328.89662027833003 418.5 (x) guitarfretnumbergrace  335.0671645800871 424.5 1 guitarfretnumbergrace  341.2377088818441 430.5 8 guitarfretnumbergrace  347.4082531836012 436.5 6 guitarfretnumbergrace  353.5787974853582 442.5 10 guitarfretnumbergrace  359.74934178711527 448.5 1 guitarfretnumbergrace  365.9198860888723 424.5 10 guitarfretnumbergrace  365.9198860888723 448.5 11 guitarfretnumbergrace  372.09043039062936 417.7 0 guitarfretnumber  390.6020632959003 423.7 10 guitarfretnumber  402.9431518994143 435.7 0 guitarfretnumber  402.9431518994143 447.5 (x) guitarfretnumber  415.28424050292836 417.7 0 guitarfretnumber  438.051689860835 420 30.4 0.7 barline    0.7 setlinewidth 374.09043039062936 452 moveto 0 10 rlineto stroke   0.7 setlinewidth 392.6020632959003 452 moveto 0 10 rlineto stroke   0.7 setlinewidth 404.9431518994143 453 moveto 0 9 rlineto stroke   1.6 setlinewidth 392.25206329590026 462 moveto 405.29315189941434 462 lineto stroke   0.7 setlinewidth 417.28424050292836 452 moveto 0 10 rlineto stroke      0.5 setlinewidth 330.14662027833003 452 moveto 0 8 rlineto stroke   0.5 setlinewidth 336.3171645800871 452 moveto 0 8 rlineto stroke   1.1 setlinewidth 329.89662027833003 460 moveto 336.5671645800871 460 lineto stroke   0.5 setlinewidth 342.4877088818441 452 moveto 0 8 rlineto stroke   1.1 setlinewidth 336.0671645800871 460 moveto 342.7377088818441 460 lineto stroke   0.5 setlinewidth 348.6582531836012 452 moveto 0 8 rlineto stroke   1.1 setlinewidth 342.2377088818441 460 moveto 348.9082531836012 460 lineto stroke   0.5 setlinewidth 354.8287974853582 452 moveto 0 8 rlineto stroke   1.1 setlinewidth 348.4082531836012 460 moveto 355.0787974853582 460 lineto stroke   0.5 setlinewidth 360.99934178711527 452.3 moveto 0 7.7 rlineto stroke   1.1 setlinewidth 354.5787974853582 460 moveto 361.24934178711527 460 lineto stroke   0.5 setlinewidth 367.1698860888723 452.3 moveto 0 7.7 rlineto stroke   1.1 setlinewidth 360.74934178711527 460 moveto 367.4198860888723 460 lineto stroke   367.9198860888723 462 373.09043039062936 464 graceCurve   0.4 setlinewidth 328.39662027833003 453 moveto 4 4.4 rlineto stroke     443.05168986083504 418.5 0 guitarfretnumbergrace  450.7300150708652 418.5 1 guitarfretnumbergrace  450.7300150708652 424.5 7 guitarfretnumbergrace  458.40834028089535 442.5 5 guitarfretnumbergrace  458.40834028089535 424.5 7 guitarfretnumbergrace  458.40834028089535 430.5 2 guitarfretnumbergrace  464.55100044891947 418.5 0 guitarfretnumbergrace  464.55100044891947 436.5 9 guitarfretnumbergrace  470.6936606169436 424.5 7 guitarfretnumbergrace  470.6936606169436 448.5 0 guitarfretnumbergrace  476.8363207849677 418.5 0 guitarfretnumbergrace  476.8363207849677 448.5 0 guitarfretnumbergrace  482.97898095299183 435.7 8 guitarfretnumber  501.40696145706414 429.7 2 guitarfretnumber  501.40696145706414 423.7 7 guitarfretnumber  519.8349419611365 429.7 2 guitarfretnumber  519.8349419611365 441.7 5 guitarfretnumber  532.1202622971847 423.7 7 guitarfretnumber  532.1202622971847 429.7 3 guitarfretnumber  532.1202622971847 441.7 5 guitarfretnumber  544.4055826332329 417.7 0 guitarfretnumber  544.4055826332329 435.7 10 guitarfretnumber  544.4055826332329 441.7 5 guitarfretnumber  556.6909029692812 417.7 0 guitarfretnumber  556.6909029692812 447.7 0 guitarfretnumber  556.6909029692812 435.7 4 guitarfretnumber  565.0000000000001 420 30.4 0.7 barline    0.7 setlinewidth 484.97898095299183 452 moveto 0 10 rlineto stroke   0.7 setlinewidth 503.40696145706414 452 moveto 0 10 rlineto stroke   0.7 setlinewidth 521.8349419611365 452 moveto 0 10 rlineto stroke   0.7 setlinewidth 534.1202622971847 452 moveto 0 10 rlineto stroke   1.6 setlinewidth 521.4849419611364 462 moveto 534.4702622971847 462 lineto stroke   0.7 setlinewidth 546.4055826332329 452 moveto 0 10 rlineto stroke    0.7 setlinewidth 558.6909029692812 453 moveto 0 9 rlineto stroke   1.6 setlinewidth 546.0555826332329 462 moveto 559.0409029692812 462 lineto stroke     0.5 setlinewidth 444.30168986083504 452 moveto 0 8 rlineto stroke   0.5 setlinewidth 451.9800150708652 452 moveto 0 8 rlineto stroke   0.5 setlinewidth 459.65834028089535 452 moveto 0 8 rlineto stroke   0.5 setlinewidth 465.80100044891947 452 moveto 0 8 rlineto stroke   1.1 setlinewidth 459.40834028089535 460 moveto 466.05100044891947 460 lineto stroke   0.5 setlinewidth 471.9436606169436 452.3 moveto 0 7.7 rlineto stroke   1.1 setlinewidth 465.55100044891947 460 moveto 472.1936606169436 460 lineto stroke   0.5 setlinewidth 478.0863207849677 452.3 moveto 0 7.7 rlineto stroke   1.1 setlinewidth 471.6936606169436 460 moveto 478.3363207849677 460 lineto stroke   478.8363207849677 462 483.97898095299183 464 graceCurve   0.4 setlinewidth 442.55168986083504 453 moveto 4 4.4 rlineto stroke      45 460 (16) measureNumber      75 420 1 1 arrowGrace         82.67832521003014 420 2 2 arrowGrace           90.35665042006028 420 3 1 arrowGrace     75 417.7 90.35665042006028 417.7 0 tiegrace          96.49931058808438 420 4 2 arrowGrace           102.64197075610849 420 5 1 arrowGrace           108.7846309241326 420 6 1 arrowGrace            114.92729109215671 420 1 1 arrow         133.35527159622907 420 2 2 arrow           151.7832521003014 420 3 1 arrow           164.06857243634963 420 4 1 arrow             176.35389277239784 420 5 2 arrow             188.63921310844606 420 6 1 arrow                201.94831013916502 420 1 1 arrowDownGrace         209.62663534919517 420 2 5 arrowDownGrace           217.30496055922532 420 3 3 arrowDownGrace             223.44762072724944 420 4 5 arrowDownGrace           229.59028089527357 420 5 5 arrowDownGrace           235.7329410632977 420 6 6 arrowDownGrace            241.8756012313218 420 1 1 arrowDown         260.3035817353941 420 2 2 arrowDown           278.7315622394665 420 3 4 arrowDown           291.0168825755147 420 4 6 arrowDown       291.0168825755147 441.7 6 sdn         303.302202911563 420 5 5 arrowDown             315.5875232476112 420 6 6 arrowDown    0 0 303.302202911563 417.7 315.5875232476112 417.7 slideup                 328.89662027833003 417.7 -1 harmonicsgrace         335.0671645800871 423.7 1 harmonicsgrace         341.2377088818441 429.7 8 harmonicsgrace         347.4082531836012 435.7 6 harmonicsgrace         353.5787974853582 441.7 10 harmonicsgrace         359.74934178711527 447.7 1 harmonicsgrace         365.9198860888723 423.7 10 harmonicsgrace    365.9198860888723 447.7 11 harmonicsgrace          372.09043039062936 417.7 0 harmonics         390.6020632959003 423.7 10 harmonics         402.9431518994143 435.7 0 harmonics                 443.05168986083504 420 1 1 pluckupgrace         450.7300150708652 420 2 1 pluckupgrace           458.40834028089535 420 4 2 pluckupgrace             464.55100044891947 420 4 1 pluckupgrace   443.05168986083504 417.7 464.55100044891947 417.7 0 tiegrace          470.6936606169436 420 5 2 pluckupgrace           476.8363207849677 420 6 1 pluckupgrace            482.97898095299183 420 1 4 pluckup         501.40696145706414 420 2 2 pluckup           519.8349419611365 420 3 3 pluckup           532.1202622971847 420 4 2 pluckup             544.4055826332329 420 5 1 pluckup             556.6909029692812 420 6 1 pluckup         53 347 7 25.2 70 252 (images/Staves/Staff.jpg) 3 printimage 50 345 0 guitartablines 75 343.5 0 guitarfretnumbergrace  91.50511786600497 355.5 3 guitarfretnumbergrace  91.50511786600497 349.5 7 guitarfretnumbergrace  108.01023573200993 367.5 5 guitarfretnumbergrace  108.01023573200993 349.5 7 guitarfretnumbergrace  108.01023573200993 355.5 2 guitarfretnumbergrace  121.2143300248139 343.5 0 guitarfretnumbergrace  121.2143300248139 361.5 9 guitarfretnumbergrace  134.41842431761788 343.5 0 guitarfretnumbergrace  134.41842431761788 367.5 5 guitarfretnumbergrace  147.62251861042185 343.5 0 guitarfretnumbergrace  147.62251861042185 373.5 0 guitarfretnumbergrace  160.82661290322582 360.7 8 guitarfretnumber  200.4388957816377 354.7 2 guitarfretnumber  200.4388957816377 348.7 7 guitarfretnumber  240.05117866004963 354.7 2 guitarfretnumber  240.05117866004963 366.7 5 guitarfretnumber  266.4593672456576 348.7 7 guitarfretnumber  266.4593672456576 354.7 3 guitarfretnumber  266.4593672456576 366.7 5 guitarfretnumber  292.8675558312655 342.7 0 guitarfretnumber  292.8675558312655 360.7 10 guitarfretnumber  292.8675558312655 366.7 5 guitarfretnumber  319.27574441687347 342.7 0 guitarfretnumber  319.27574441687347 372.7 0 guitarfretnumber  319.27574441687347 360.7 4 guitarfretnumber  342.8846153846154 345 30.4 0.7 barline    0.7 setlinewidth 162.82661290322582 377 moveto 0 10 rlineto stroke   0.7 setlinewidth 202.4388957816377 377 moveto 0 10 rlineto stroke   0.7 setlinewidth 242.05117866004963 377 moveto 0 10 rlineto stroke   0.7 setlinewidth 268.4593672456576 377 moveto 0 10 rlineto stroke   1.6 setlinewidth 241.70117866004964 387 moveto 268.8093672456576 387 lineto stroke   0.7 setlinewidth 294.8675558312655 377 moveto 0 10 rlineto stroke    0.7 setlinewidth 321.27574441687347 378 moveto 0 9 rlineto stroke   1.6 setlinewidth 294.5175558312655 387 moveto 321.6257444168735 387 lineto stroke     0.5 setlinewidth 76.25 377 moveto 0 8 rlineto stroke   0.5 setlinewidth 92.75511786600497 377 moveto 0 8 rlineto stroke   0.5 setlinewidth 109.26023573200993 377 moveto 0 8 rlineto stroke   0.5 setlinewidth 122.4643300248139 377 moveto 0 8 rlineto stroke   1.1 setlinewidth 109.01023573200993 385 moveto 122.7143300248139 385 lineto stroke   0.5 setlinewidth 135.66842431761788 377 moveto 0 8 rlineto stroke   1.1 setlinewidth 122.2143300248139 385 moveto 135.91842431761788 385 lineto stroke   0.5 setlinewidth 148.87251861042185 377.3 moveto 0 7.7 rlineto stroke   1.1 setlinewidth 135.41842431761788 385 moveto 149.12251861042185 385 lineto stroke   149.62251861042185 387 161.82661290322582 389 graceCurve   0.4 setlinewidth 74.5 378 moveto 4 4.4 rlineto stroke       377.9038461538462 360.8 halfWholeRest  416.92307692307696 345 30.4 0.7 barline           451.94230769230774 360.8 halfWholeRest  490.9615384615385 345 30.4 0.7 barline           525.9807692307693 360.8 halfWholeRest  565 345 30.4 0.7 barline          45 385 (20) measureNumber         75 345 1 1 pluckdowngrace         91.50511786600497 345 2 3 pluckdowngrace           108.01023573200993 345 4 5 pluckdowngrace             121.2143300248139 345 4 4 pluckdowngrace  75 342.7 121.2143300248139 342.7 0 tiegrace           134.41842431761788 345 5 5 pluckdowngrace           147.62251861042185 345 6 6 pluckdowngrace            160.82661290322582 345 1 4 pluckdown         200.4388957816377 345 2 3 pluckdown           240.05117866004963 345 3 5 pluckdown           266.4593672456576 345 4 5 pluckdown             292.8675558312655 345 5 5 pluckdown             319.27574441687347 345 6 6 pluckdown                  showpage 

@@ -17,23 +17,31 @@ sld = slide down
 slu = slide up
 sli = slide
 tie = tie
+upf = up fret
 *)
 
 type Pitch =
 | A | ASharp | AFlat | ANat | B | BSharp | BFlat | BNat | C | CSharp | CFlat | CNat | D | DSharp | DFlat | DNat | E | ESharp | EFlat | ENat | F | FSharp | FFlat | FNat | G | GSharp | GFlat | GNat | NoPitch
 
 type MultiProperty =
-| Gra | Har | Stu | Std | Plu | Pld | Sls | Sle
+| Gra | Stu | Std | Plu | Pld | Sls | Sle
 
 type EitherProperty =
-| Par | Sld | Sli | Tie | Slu
+| Par | Sld | Sli | Tie | Slu | Har | Upf
 
 type Property =
 | Multi of MultiProperty
 | Either of EitherProperty
 
 type RhythmNumber =
-| X0 | X1 | X2 | X4 | X8 | X16 | X32 | X64
+| X0
+| X1
+| X2
+| X4
+| X8
+| X16
+| X32
+| X64
 
 type Rhythm =
 | R of RhythmNumber * int          //int is the number of dots
@@ -147,21 +155,22 @@ let sli = pstr "sli" >>% Sli
 let slu = pstr "slu" >>% Slu
 let par = pstr "par" >>% Par
 let tie = pstr "tie" >>% Tie
+let upf = pstr "upf" >>% Upf
 
 
 
 // Properties
 let slash = pchar '/' <!> "slash"
 
-let eitherProperty = pchar '/' >>. (par <|> sld <|> sli <|> tie <|> slu)
+let eitherProperty = pchar '/' >>. (par <|> sld <|> sli <|> tie <|> slu <|> har <|> upf)
 
-let multiProperty = slash >>. (stu <|> std <|> plu <|> pld <|> har <|> gra <|> sls <|> sle) <!> "multiProperty" <??> "stu (strum up), std (strum down), plu (pluck up), pld (pluck down), har (harmonic), gra (grace note), sls (slur start), or sle (slur end). Any other properties should be included with each individual note inside the parentheses"
+let multiProperty = slash >>. (stu <|> std <|> plu <|> pld <|> gra <|> sls <|> sle) <!> "multiProperty" <??> "stu (strum up), std (strum down), plu (pluck up), pld (pluck down), har (harmonic), gra (grace note), sls (slur start), or sle (slur end). Any other properties should be included with each individual note inside the parentheses"
 
 let eitherProperties = many eitherProperty
 
 let multiProperties = many multiProperty <!> "multiProperties"
 
-let anyProperty = pchar '/' >>. ((par |>> Either) <|> (slu |>> Either) <|> (sld |>> Either) <|> (sli |>> Either) <|> (tie |>> Either) <|> (stu |>> Multi) <|> (std |>> Multi) <|> (plu |>> Multi) <|> (pld |>> Multi) <|> (har |>> Multi) <|> (gra |>> Multi) <|> (sls |>> Multi) <|> (sle |>> Multi)) <!> "anyproperty"
+let anyProperty = pchar '/' >>. ((par |>> Either) <|> (slu |>> Either) <|> (sld |>> Either) <|> (sli |>> Either)  <|> (har |>> Either) <|> (tie |>> Either) <|> (upf |>> Either) <|> (stu |>> Multi) <|> (std |>> Multi) <|> (plu |>> Multi) <|> (pld |>> Multi) <|> (gra |>> Multi) <|> (sls |>> Multi) <|> (sle |>> Multi)) <!> "anyproperty"
 let anyProperties = many anyProperty <??> "property" <!> "anyProperties"
 
 
