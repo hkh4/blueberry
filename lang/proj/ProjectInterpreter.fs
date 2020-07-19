@@ -23,12 +23,12 @@ type singleNote =
 type Notehead =
 | SingleNote of singleNote * MultiProperty List
 | GroupNote of singleNote List * MultiProperty List
+| Tuplet of Element List
 | Rest
 | Barline
 | Empty
 | Buffer
-
-type Element = {
+and Element = {
    NoteInfo: Notehead
    Duration: Rhythm
    Start: float
@@ -2978,23 +2978,29 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) (outFil
 
 // ********************* DRIVER **************************
 let eval optionsList measuresList outFile =
+
    // default options
    let optionsR = {Type = "tab"; Time = (4,4); Key = "c"; Capo = 0; Title = "untitled"; Composer = "unknown"}
+
    // First, parse the options
    match (evalOption optionsList optionsR) with
+
    // If the options are valid, parse the measures
    | Some(newOption) ->
+
       // create SingleMeasure List
       match (evalAllMeasures measuresList newOption []) with
       | Some(list) ->
+
          // Take SingleMeasure List and use the widths to create list of lines
          //495 is the width of the first line. The rest are 515.
          match (divideLines list [] 495.0) with
+
          | Some(lines) ->
             // Take Line List and use heights and type to divide into pages
             match (dividePages lines [] (70.0,720.0)) with
-            | Some(pages) ->
 
+            | Some(pages) ->
                let text = "%!PS
                %%BeginProlog
                /concatenate { %given string1 and string2

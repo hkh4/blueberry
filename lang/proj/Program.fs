@@ -1,5 +1,5 @@
 ﻿// Learn more about F# at http://fsharp.org
- 
+
 open System
 open System.IO
 open FParsec
@@ -19,6 +19,7 @@ let main argv =
       match run grammar fileText with
       | Success(result, _, _) ->
          let (optionsList, measuresList) = result
+         printfn "%A" result
          match eval optionsList measuresList outFile with
          | Some(text,pages) -> 0
          | None -> 1

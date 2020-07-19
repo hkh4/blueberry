@@ -65,6 +65,8 @@ type Note =
 | Simple of simple
 | Complex of complex
 | Group of group
+| Tuplet of Note List
+
 
 type Expr =
 | ScoreOption of string * string
@@ -244,10 +246,13 @@ let groupcomplex = notesWithParens .>>.? (rhythm .>>. multiProperties) |>> (fun 
 
 let group = groupcomplex <|> groupsimple |>> Group <!> "group"
 
+let noteNoNL = (anyRest <|> group <|> singleNote) <??> "A note or a rest" <!> "note-nonewline"
 
+let tupletBody = sepBy1 noteNoNL spaces1 <!> "tuplet body"
 
+let tuplet = (between (pstr "<") (pstr ">") tupleBody) |>> Tuplet <??> "Tuplet" <!> "tuplet"
 
-let note = spaces1 >>? (anyRest <|> group <|> singleNote) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
+let note = spaces1 >>? (anyRest <|> group <|> singleNote <|> tuple) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
 
 let noteWithOptionalSpaces = note .>> optional (attempt emptyLines)
 
