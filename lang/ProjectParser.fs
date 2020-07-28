@@ -250,7 +250,7 @@ let noteNoNL = (anyRest <|> group <|> singleNote) <??> "A note or a rest" <!> "n
 
 let tupletBody = sepBy1 noteNoNL spaces1 <!> "tuplet body"
 
-let tuplet = (between (pstr "<") (pstr ">") tupleBody) |>> Tuplet <??> "Tuplet" <!> "tuplet"
+let tuplet = (between (pstr "<") (pstr ">") tupletBody) |>> Tuplet <??> "Tuplet" <!> "tuplet"
 
 let note = spaces1 >>? (anyRest <|> group <|> singleNote <|> tuple) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
 
