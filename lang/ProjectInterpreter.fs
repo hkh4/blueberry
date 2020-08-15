@@ -23,7 +23,7 @@ type singleNote =
 type Notehead =
 | SingleNote of singleNote * MultiProperty List
 | GroupNote of singleNote List * MultiProperty List
-| Tuplet of Element List
+| TupletNote of Element List
 | Rest
 | Barline
 | Empty
@@ -384,14 +384,17 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
       // Look into the Map of rhythms to widths
       let newWidthTemp = widthOfRhythms.[r]
       let newWidth =
-         match last with
-         // If this isn't the last note, return
-         | 0 -> newWidthTemp
+         match template.Width with
+         | num when num <> 0.0 -> template.Width
          | _ ->
-            // If it is the last note, and the width is less than 10, set it to 10 so that there's sufficient space before the next bar line
-            match newWidthTemp with
-            | num when num < 13.0 -> 13.0
-            | _ -> newWidthTemp
+            match last with
+            // If this isn't the last note, return
+            | 0 -> newWidthTemp
+            | _ ->
+               // If it is the last note, and the width is less than 10, set it to 10 so that there's sufficient space before the next bar line
+               match newWidthTemp with
+               | num when num < 13.0 -> 13.0
+               | _ -> newWidthTemp
       // The start of the next note is 2 ^ the difference between beat and given rhythm. e.g. if the beat is 4 and the given is 8, the difference in index is -1, and 2 ^ -1 is half a beat. If there's a dot, multiply by 1.5. 2 dots, 1.75.
       let fullNextStart = (2.0**(float differenceOfRhythm))
       // Modify the start of the next note depending on the dots
@@ -453,6 +456,263 @@ let rec divideProperties (properties: Property List) (eProperties: EitherPropert
 
 
 
+(* Parse a simple note
+
+*)
+let parseSimple (p: simple) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) : (Element * bool) option =
+
+   match p with
+   // Single Simple
+   | SingleSimple(guitarString,pitch,properties) ->
+      // split properties
+      let (eProp, mProp) = divideProperties properties [] []
+      // remove duplicates
+      let eProperties = removeDuplicates eProp
+      let mProperties = removeDuplicates mProp
+      // Notehead
+      let nInfo =
+         match pitch with
+         // the note is an X
+         | NoPitch ->
+            SingleNote(X(guitarString,eProperties),mProperties)
+         // normal note
+         | _ ->
+            SingleNote(NormalGuitarNote(guitarString,pitch,0,eProperties),mProperties)
+      // Check to see if it's a grace note
+      match (List.exists (fun e -> e = Gra) mProperties) with
+      // not a grace note
+      | false ->
+         let graceBeforeBuffer =
+            match graceBefore with
+            | [] -> graceBefore
+            | _ -> graceBefore @ [bufferElement]
+         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer }),false)
+      // grace note
+      | true ->
+         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }),true)
+   // Rest Simple
+   | RestSimple ->
+      // rests can't have grace notes
+      match graceBefore with
+      | [] ->
+         Some({ NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
+      | _ ->
+         printfn "Rests can't have grace notes!"
+         None
+
+
+
+
+let parseComplex (p: complex) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) : (Element * bool) option =
+
+   match p with
+   // Single Complex
+   | SingleComplex(guitarString,pitch,r,properties) ->
+      // split properties
+      let (eProp, mProp) = divideProperties properties [] []
+      // remove duplicates
+      let eProperties = removeDuplicates eProp
+      let mProperties = removeDuplicates mProp
+      // Notehead
+      let nInfo =
+         match pitch with
+         // the note is an X
+         | NoPitch ->
+            SingleNote(X(guitarString,eProperties),mProperties)
+         // normal note
+         | _ ->
+            SingleNote(NormalGuitarNote(guitarString,pitch,0,eProperties),mProperties)
+      defaultRhythm <- r
+      match (List.exists (fun e -> e = Gra) mProperties) with
+      // not a grace note
+      | false ->
+         let graceBeforeBuffer =
+            match graceBefore with
+            | [] -> graceBefore
+            | _ -> graceBefore @ [bufferElement]
+         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer }),false)
+      // grace note
+      | true ->
+         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }),true)
+   // Rest Complex
+   | RestComplex(r) ->
+      match graceBefore with
+      | [] ->
+         // Only update default rhythm if the rhythm is NOT X0
+         match r with
+         | R(X0,0) ->
+            Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
+         | _ ->
+            defaultRhythm <- r
+            Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
+      | _ ->
+         printfn "Rests can't have grace notes!"
+         None
+
+
+
+
+let parseGroup (g: group) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) : (Element * bool) option =
+
+   // recursive helper function to parse the notes within a group
+   let rec groupHelper (gList: GroupSimple List) (sList: singleNote List) (usedStrings: int List) : singleNote List option =
+      match gList with
+      | [] -> Some(sList)
+      | head::tail ->
+         match head with
+         | GS(guitarString,pitch,eProperties) ->
+            // check to see if this guitar string has already been used for a previous note in the group
+            match (List.exists (fun elem -> elem = guitarString) usedStrings) with
+            | true ->
+               printfn "Error! You can't specify two notes in one group that are on the same string!"
+               None
+            | false ->
+               let newSingleNote =
+                  match pitch with
+                  // X note
+                  | NoPitch -> X(guitarString,eProperties)
+                  // regular note
+                  | _ -> NormalGuitarNote(guitarString,pitch,0,eProperties)
+               // recurse
+               groupHelper tail (sList @ [newSingleNote]) (guitarString::usedStrings)
+
+   match g with
+   // gsimple: group without the rhythm
+   | GSimple(gList,mProperties) ->
+      // call the helper function to parse the notes within the group
+      match (groupHelper gList [] []) with
+      | Some(singleNoteList) ->
+         // turn it into a Group type
+         let newGroup = GroupNote(singleNoteList,mProperties)
+         match (List.exists (fun e -> e = Gra) mProperties) with
+         // not a grace note
+         | false ->
+            let graceBeforeBuffer =
+               match graceBefore with
+               | [] -> graceBefore
+               | _ -> graceBefore @ [bufferElement]
+            Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer },false)
+         // grace note
+         | true ->
+            Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },true)
+      | None -> None
+   // gcomplex: group with rhythm: does the same thing but uses r instead of the default rhythm
+   | GComplex(gList,r,mProperties) ->
+      defaultRhythm <- r
+      match (groupHelper gList [] []) with
+      | Some(singleNoteList) ->
+         // turn it into a Group type
+         let newGroup = GroupNote(singleNoteList,mProperties)
+         match (List.exists (fun e -> e = Gra) mProperties) with
+         // not a grace note
+         | false ->
+            let graceBeforeBuffer =
+               match graceBefore with
+               | [] -> graceBefore
+               | _ -> graceBefore @ [bufferElement]
+            Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer },false)
+         // grace note
+         | true ->
+            Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },true)
+      | None -> None
+
+
+
+
+let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) : (Element * bool) option =
+
+   // recursive helper to parse each note within the tuplet
+   let rec tHelper (notes: Note List) (newElements: Element List) (totalWidth: float) : (Element * bool) option =
+
+      match notes with
+      | [] ->
+         // turn the list of Elements into a single Element
+
+         let bigElement = { NoteInfo = TupletNote(newElements); Start = nextStart; Duration = r; Width = totalWidth; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }
+         Some(bigElement,false)
+
+      | head::tail ->
+
+         //parse each individual note
+         let noteOption =
+            match head with
+
+            | Simple(p) ->
+               parseSimple p baseBeat numberOfBeats nextStart last optionsR graceBefore
+
+            | Complex(p) ->
+               parseComplex p baseBeat numberOfBeats nextStart last optionsR graceBefore
+
+            | Group(g) ->
+               parseGroup g baseBeat numberOfBeats nextStart last optionsR graceBefore
+
+            | Tuplet(t,r) ->
+               printfn "Error! Can't have a tuplet within a tuplet"
+               None
+
+         match noteOption with
+
+         // will never be a grace note
+         | Some(note,b) ->
+            // Check to see if a note has a valid number of dots. 8th notes and longer can up to 3 dots. 16th can have 2, 32nd can have 1, 64th cannot have any
+            match note.Duration with
+            | R(x,n) when n > 3 ->
+               printfn "Notes cannot have more than 3 dots"
+               None
+            | R(x,n) when x = X0 && n > 0 ->
+               printfn "0 rhythms cannot have dots"
+               None
+            | R(x,n) when x = X64 && n > 0 ->
+               printfn "64th notes cannot have any dots"
+               None
+            | R(x,n) when x = X32 && n > 1 ->
+               printfn "32nd notes can only have up to 1 dot"
+               None
+            | R(x,n) when x = X16 && n > 2 ->
+               printfn "16th notes can only have up to 2 dots"
+               None
+            | _ ->
+               // Don't care about the start for tuplet notes
+               // Look into the Map of rhythms to widths
+               // Should be smaller for tuplet notes, so divide by 1.2
+               let newWidthTemp = widthOfRhythms.[note.Duration] / 1.2
+   
+               let newWidth =
+                  match last with
+                  // If this isn't the last note, return
+                  | 0 -> newWidthTemp
+                  | _ ->
+                     // If it is the last note, and the width is less than 10, set it to 10 so that there's sufficient space before the next bar line
+                     // But, since it's a tuplet, only do this for the last note of the tuplet
+                     match tail with
+                     | head::tail -> newWidthTemp
+                     | [] ->
+                        match newWidthTemp with
+                        | num when num < 13.0 -> 13.0
+                        | _ -> newWidthTemp
+
+               // add grace notes to the first note
+               let newNote =
+                  match newElements with
+                  // empty, this is the first note
+                  | [] ->
+                     // the grace notes should be placed into the first note
+                     let graceBeforeBuffer =
+                        match graceBefore with
+                        | [] -> graceBefore
+                        | _ -> graceBefore @ [bufferElement]
+                     { note with Width = newWidth; GraceNotes = graceBeforeBuffer }
+                  | _ -> { note with Width = newWidth }
+
+               tHelper tail (newElements @ [newNote]) (totalWidth + newWidth)
+
+         | None -> None
+
+
+   tHelper t [] 0.0
+
+
+
 (* Evaluate a single note
 1) measureNumber is the number of the current measure
 2) n is the current Note
@@ -470,154 +730,16 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
       match n with // figure out the type of the note
 
       | Simple(p) ->
-         match p with
-         // Single Simple
-         | SingleSimple(guitarString,pitch,properties) ->
-            // split properties
-            let (eProp, mProp) = divideProperties properties [] []
-            // remove duplicates
-            let eProperties = removeDuplicates eProp
-            let mProperties = removeDuplicates mProp
-            // Notehead
-            let nInfo =
-               match pitch with
-               // the note is an X
-               | NoPitch ->
-                  SingleNote(X(guitarString,eProperties),mProperties)
-               // normal note
-               | _ ->
-                  SingleNote(NormalGuitarNote(guitarString,pitch,0,eProperties),mProperties)
-            // Check to see if it's a grace note
-            match (List.exists (fun e -> e = Gra) mProperties) with
-            // not a grace note
-            | false ->
-               let graceBeforeBuffer =
-                  match graceBefore with
-                  | [] -> graceBefore
-                  | _ -> graceBefore @ [bufferElement]
-               Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer }),false)
-            // grace note
-            | true ->
-               Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }),true)
-         // Rest Simple
-         | RestSimple ->
-            // rests can't have grace notes
-            match graceBefore with
-            | [] ->
-               Some({ NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
-            | _ ->
-               printfn "Rests can't have grace notes!"
-               None
+         parseSimple p baseBeat numberOfBeats nextStart last optionsR graceBefore
 
       | Complex(p) ->
-         match p with
-         // Single Complex
-         | SingleComplex(guitarString,pitch,r,properties) ->
-            // split properties
-            let (eProp, mProp) = divideProperties properties [] []
-            // remove duplicates
-            let eProperties = removeDuplicates eProp
-            let mProperties = removeDuplicates mProp
-            // Notehead
-            let nInfo =
-               match pitch with
-               // the note is an X
-               | NoPitch ->
-                  SingleNote(X(guitarString,eProperties),mProperties)
-               // normal note
-               | _ ->
-                  SingleNote(NormalGuitarNote(guitarString,pitch,0,eProperties),mProperties)
-            defaultRhythm <- r
-            match (List.exists (fun e -> e = Gra) mProperties) with
-            // not a grace note
-            | false ->
-               let graceBeforeBuffer =
-                  match graceBefore with
-                  | [] -> graceBefore
-                  | _ -> graceBefore @ [bufferElement]
-               Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer }),false)
-            // grace note
-            | true ->
-               Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }),true)
-         // Rest Complex
-         | RestComplex(r) ->
-            match graceBefore with
-            | [] ->
-               // Only update default rhythm if the rhythm is NOT X0
-               match r with
-               | R(X0,0) ->
-                  Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
-               | _ ->
-                  defaultRhythm <- r
-                  Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
-            | _ ->
-               printfn "Rests can't have grace notes!"
-               None
+         parseComplex p baseBeat numberOfBeats nextStart last optionsR graceBefore
 
-      // Groups
       | Group(g) ->
+         parseGroup g baseBeat numberOfBeats nextStart last optionsR graceBefore
 
-         // recursive helper function to parse the notes within a group
-         let rec groupHelper (gList: GroupSimple List) (sList: singleNote List) (usedStrings: int List) : singleNote List option =
-            match gList with
-            | [] -> Some(sList)
-            | head::tail ->
-               match head with
-               | GS(guitarString,pitch,eProperties) ->
-                  // check to see if this guitar string has already been used for a previous note in the group
-                  match (List.exists (fun elem -> elem = guitarString) usedStrings) with
-                  | true ->
-                     printfn "Error! You can't specify two notes in one group that are on the same string!"
-                     None
-                  | false ->
-                     let newSingleNote =
-                        match pitch with
-                        // X note
-                        | NoPitch -> X(guitarString,eProperties)
-                        // regular note
-                        | _ -> NormalGuitarNote(guitarString,pitch,0,eProperties)
-                     // recurse
-                     groupHelper tail (sList @ [newSingleNote]) (guitarString::usedStrings)
-
-         match g with
-         // gsimple: group without the rhythm
-         | GSimple(gList,mProperties) ->
-            // call the helper function to parse the notes within the group
-            match (groupHelper gList [] []) with
-            | Some(singleNoteList) ->
-               // turn it into a Group type
-               let newGroup = GroupNote(singleNoteList,mProperties)
-               match (List.exists (fun e -> e = Gra) mProperties) with
-               // not a grace note
-               | false ->
-                  let graceBeforeBuffer =
-                     match graceBefore with
-                     | [] -> graceBefore
-                     | _ -> graceBefore @ [bufferElement]
-                  Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer },false)
-               // grace note
-               | true ->
-                  Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },true)
-            | None -> None
-         // gcomplex: group with rhythm: does the same thing but uses r instead of the default rhythm
-         | GComplex(gList,r,mProperties) ->
-            defaultRhythm <- r
-            match (groupHelper gList [] []) with
-            | Some(singleNoteList) ->
-               // turn it into a Group type
-               let newGroup = GroupNote(singleNoteList,mProperties)
-               match (List.exists (fun e -> e = Gra) mProperties) with
-               // not a grace note
-               | false ->
-                  let graceBeforeBuffer =
-                     match graceBefore with
-                     | [] -> graceBefore
-                     | _ -> graceBefore @ [bufferElement]
-                  Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer },false)
-               // grace note
-               | true ->
-                  Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },true)
-            | None -> None
+      | Tuplet(t,r) ->
+         parseTuplet t r baseBeat numberOfBeats nextStart last optionsR graceBefore
 
 
    match noteOption with
@@ -641,6 +763,7 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
          printfn "16th notes can only have up to 2 dots"
          None
       | _ ->
+
          // Call widthStart to create the note element object with updated width
          match (widthStart note (note.Duration) nextStart baseBeat numberOfBeats last note.GraceNotes) with
          | Some(newNote,newNextStart) ->
@@ -864,7 +987,7 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
             X0
 
       match (evalMeasureHelper b c [] baseBeat numberOfBeats acc 1.0 optionsR []) with
-      // tuple: first element is the total width of all the elements added together, second is the list of elements
+
       | Some(width,list) ->
          // update the notes based on the key
          let listWithUpdatedKeys = parseKey list optionsR.Key
@@ -2991,9 +3114,12 @@ let eval optionsList measuresList outFile =
       // create SingleMeasure List
       match (evalAllMeasures measuresList newOption []) with
       | Some(list) ->
+         printfn "%A" list
+         Some(list,"hi")
 
          // Take SingleMeasure List and use the widths to create list of lines
          //495 is the width of the first line. The rest are 515.
+         (*
          match (divideLines list [] 495.0) with
 
          | Some(lines) ->
@@ -4215,6 +4341,7 @@ let eval optionsList measuresList outFile =
                | None -> None
             | None -> None
          | None -> None
+         *)
       | None -> None
    | None ->None
 

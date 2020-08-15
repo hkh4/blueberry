@@ -6,6 +6,9 @@
 
 1:
    1e4
+   <4g16 5f32>8
+   <1gb64 2g8 3e8>16.
+   <3e4 3e4>32
    1e4
-   1e4
-   <2e/sls 4f8/gra/sle 1d/par (1e 2e 3e/har)/pld>
+   1e4/gra
+   <2e8/sls 4f16/sle (1e 2e 3e/har)8/pld>4

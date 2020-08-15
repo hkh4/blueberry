@@ -19,7 +19,7 @@ let main argv =
       match run grammar fileText with
       | Success(result, _, _) ->
          let (optionsList, measuresList) = result
-         printfn "%A" result
+         //printfn "%A" result
          match eval optionsList measuresList outFile with
          | Some(text,pages) -> 0
          | None -> 1

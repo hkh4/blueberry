@@ -65,7 +65,7 @@ type Note =
 | Simple of simple
 | Complex of complex
 | Group of group
-| Tuplet of Note List
+| Tuplet of Note List * Rhythm
 
 
 type Expr =
@@ -250,9 +250,9 @@ let noteNoNL = (anyRest <|> group <|> singleNote) <??> "A note or a rest" <!> "n
 
 let tupletBody = sepBy1 noteNoNL spaces1 <!> "tuplet body"
 
-let tuplet = (between (pstr "<") (pstr ">") tupletBody) |>> Tuplet <??> "Tuplet" <!> "tuplet"
+let tuplet = (between (pstr "<") (pstr ">") tupletBody) .>>. rhythm |>> Tuplet <??> "Tuplet" <!> "tuplet"
 
-let note = spaces1 >>? (anyRest <|> group <|> singleNote <|> tuple) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
+let note = spaces1 >>? (anyRest <|> group <|> singleNote <|> tuplet) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
 
 let noteWithOptionalSpaces = note .>> optional (attempt emptyLines)
 
