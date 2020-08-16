@@ -139,12 +139,6 @@ let widthOfGraceRhythms =
 // Changeable default
 let mutable defaultRhythm = R(X4,0)
 
-// get last item of a list
-let rec lastItemOfList list =
-  match list with
-  | [x] -> x   // The last element of one-element list is the one element
-  | _::tail -> lastItemOfList tail   // The last element of a longer list is the last element of its tail
-  | _ -> failwith "Empty list"   // Otherwise fail
 
 // Number of beams by rhythm
 let numberOfBeams =
@@ -212,7 +206,7 @@ let removeDuplicates (l: 'a List) =
    helper l []
 
 
-// Buffer for beaming grace notes
+// Buffer for beaming grace notes and for tuplets
 let bufferElement = { NoteInfo = Buffer; Duration = Other; Start = 0.0; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = 0; GraceNotes = [] }
 
 
@@ -669,7 +663,9 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
       | [] ->
          // turn the list of Elements into a single Element
 
-         let bigElement = { NoteInfo = TupletNote(newElements); Start = nextStart; Duration = r; Width = totalWidth; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }
+         let elementsWithBuffer = newElements @ [bufferElement]
+
+         let bigElement = { NoteInfo = TupletNote(elementsWithBuffer); Start = nextStart; Duration = r; Width = totalWidth; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }
          Some(bigElement,false)
 
       | head::tail ->
@@ -1702,7 +1698,7 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
          let newText = beam nList [] (0.0,0.0) Other 0.0 timeSignature 0 Other false
 
          // find the last note for its information
-         let lastItem = lastItemOfList nList
+         let lastItem = nList.Item(nList.Length - 1)
 
          beam tail (text @ newText @ endPieces) (0.0,0.0) Other 0.0 timeSignature 0 Other false
 
