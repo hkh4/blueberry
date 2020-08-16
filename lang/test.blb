@@ -1,14 +1,21 @@
 -type tab
 -title Blueberry
 -composer Hugo Hua
--key c
+-key d#m
 -time 4-4
 
 1:
    1e4
-   <4g16 5f32>8
-   <1gb64 2g8 3e8>16.
-   <3e4 3e4>32
+   <1gb64 2g8 3e8>4
+   3e4/gra
    1e4
    1e4/gra
    <2e8/sls 4f16/sle (1e 2e 3e/har)8/pld>4
+2:
+   6e64/sls
+   (2f# 5gb)32./plu
+   4e#4
+   3ab8./sle
+   <2ab8 4f#16 1a16 4d8>4
+   3d8.
+   1d16

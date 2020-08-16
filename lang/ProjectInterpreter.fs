@@ -139,6 +139,13 @@ let widthOfGraceRhythms =
 // Changeable default
 let mutable defaultRhythm = R(X4,0)
 
+// get last item of a list
+let rec lastItemOfList list =
+  match list with
+  | [x] -> x   // The last element of one-element list is the one element
+  | _::tail -> lastItemOfList tail   // The last element of a longer list is the last element of its tail
+  | _ -> failwith "Empty list"   // Otherwise fail
+
 // Number of beams by rhythm
 let numberOfBeams =
    Map.empty.
@@ -384,7 +391,9 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
       // Look into the Map of rhythms to widths
       let newWidthTemp = widthOfRhythms.[r]
       let newWidth =
+
          match template.Width with
+         // if the width isn't set to 0, then it must be a tuplet note. Don't do any adjusting
          | num when num <> 0.0 -> template.Width
          | _ ->
             match last with
@@ -409,25 +418,57 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
             -1.0
       let newNextStart = nextStart + startWithDotsAdded
 
+      // helper function to add up the widths of all the grace notes, and also update the widths of those grace notes. Returns the total width and the new list of grace notes with updated widths
+      let rec graceWidthHelper (graceToAdd: Element List) (newGrace: Element List) (acc: float) : float * Element List =
+         match graceToAdd with
+         | [] -> (acc,newGrace)
+         | head::tail ->
+            let graceWidth = widthOfGraceRhythms.[head.Duration]
+            let newHead = { head with Width = graceWidth }
+            let newList = newGrace @ [newHead]
+            graceWidthHelper tail newList (acc + graceWidth)
+
+
       // If the note has grace notes, increase its width some more
       match graceNotes with
       // no grace notes
       | [] ->
-         // Return the new element with updated width, and the next start
-         Some({ template with Width = newWidth },newNextStart)
-      // has grace notes
-      | graceList ->
-         // go through the list of grace notes, find their widths and add them
 
-         // helper function to add up the widths of all the grace notes, and also update the widths of those grace notes. Returns the total width and the new list of grace notes with updated widths
-         let rec graceWidthHelper (graceToAdd: Element List) (newGrace: Element List) (acc: float) : float * Element List =
-            match graceToAdd with
-            | [] -> (acc,newGrace)
-            | head::tail ->
-               let graceWidth = widthOfGraceRhythms.[head.Duration]
-               let newHead = { head with Width = graceWidth }
-               let newList = newGrace @ [newHead]
-               graceWidthHelper tail newList (acc + graceWidth)
+         // Check if it's a tupletNote; if so, check for grace notes in the first note of the tuplet
+         match template.NoteInfo with
+         | TupletNote(nList) ->
+
+            // Get the first note
+            let firstNote = nList.Head
+
+            // See if it has grace notes; if so, call the helper and return the new note and the additional width
+            let (newFirstNote, extraWidth) =
+               match firstNote.GraceNotes with
+               | [] -> (firstNote,0.0)
+               | gNotes ->
+                  // call the helper
+                  let (extra, newGrace) = graceWidthHelper gNotes [] 0.0
+                  // update the width of this note
+                  let widthWithGrace = firstNote.Width + extra
+                  let updatedFirstNote = { firstNote with Width = widthWithGrace; GraceNotes = newGrace }
+                  (updatedFirstNote, extra)
+
+            // update the width of the entire tuplet
+            let newTupletWidth = template.Width + extraWidth
+
+            // new tuplet notes
+            let newTupletNotes = newFirstNote::nList.Tail
+            let newNInfo = TupletNote(newTupletNotes)
+
+            Some({ template with Width = newTupletWidth; NoteInfo = newNInfo }, newNextStart)
+
+         // not a tupletNote - do nothing
+         | _ ->
+            // Return the new element with updated width, and the next start
+            Some({ template with Width = newWidth },newNextStart)
+      // has grace notes
+
+      | graceList ->
 
          // call the helper
          let (extra,newGrace) = graceWidthHelper graceList [] 0.0
@@ -676,7 +717,7 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
                // Look into the Map of rhythms to widths
                // Should be smaller for tuplet notes, so divide by 1.2
                let newWidthTemp = widthOfRhythms.[note.Duration] / 1.2
-   
+
                let newWidth =
                   match last with
                   // If this isn't the last note, return
@@ -696,13 +737,15 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
                   match newElements with
                   // empty, this is the first note
                   | [] ->
+
                      // the grace notes should be placed into the first note
                      let graceBeforeBuffer =
                         match graceBefore with
                         | [] -> graceBefore
                         | _ -> graceBefore @ [bufferElement]
                      { note with Width = newWidth; GraceNotes = graceBeforeBuffer }
-                  | _ -> { note with Width = newWidth }
+                  | _ ->
+                     { note with Width = newWidth; GraceNotes = [] }
 
                tHelper tail (newElements @ [newNote]) (totalWidth + newWidth)
 
@@ -710,6 +753,7 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
 
 
    tHelper t [] 0.0
+
 
 
 
@@ -789,7 +833,7 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
                   printfn "Error! Too many beats in measure %i" measureNumber
                   None
                   // Just right
-               | _ -> Some({ newNote with LastNote = 1 },newNextStart,[])
+               | _ -> Some({ newNote with LastNote = 0 },newNextStart,[])
          | None -> None
    | Some(note,b) ->
       Some(note,nextStart,(graceBefore @ [note]))
@@ -821,6 +865,7 @@ let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : El
          match tail with
          | [] -> evalNote measureNumber head baseBeat numberOfBeats nextStart 1 optionsR graceBefore
          | _ -> evalNote measureNumber head baseBeat numberOfBeats nextStart 0 optionsR graceBefore
+
       match el with
       | Some(n,newNextStart,newGraceBefore) ->
          match newGraceBefore with
@@ -843,7 +888,7 @@ let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : El
 2) key is the key of the measure
 RETURNS the updated list of elements
 *)
-let parseKey (l: Element List) (key: string) : Element List =
+let rec parseKey (l: Element List) (key: string) : Element List =
    // A map which maps the pitches to be changed to what they should be changed to
    let mapOfChanges : Map<Pitch,Pitch> =
       match key with
@@ -946,6 +991,17 @@ let parseKey (l: Element List) (key: string) : Element List =
             let newList = updatedList @ [newElement]
             parseKeyHelper tail newList mapOfChanges
          // for all other types of Notes, no pitch change needed
+         | TupletNote(nList) ->
+
+            // First, change the key of all the notes within the tuple
+            let newTupletNotes = parseKey nList key
+
+            // Create the new tuple
+            let newNInfo = TupletNote(newTupletNotes)
+            let newElement = { head with NoteInfo = newNInfo }
+            let newList = updatedList @ [newElement]
+            parseKeyHelper tail newList mapOfChanges
+
          | _ ->
             let newList = updatedList @ [newHead]
             parseKeyHelper tail newList mapOfChanges
@@ -989,15 +1045,20 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
       match (evalMeasureHelper b c [] baseBeat numberOfBeats acc 1.0 optionsR []) with
 
       | Some(width,list) ->
+
          // update the notes based on the key
          let listWithUpdatedKeys = parseKey list optionsR.Key
+
          // Add empty space at the beginning and barline at the end
          let empty = { NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0); Capo = 0; GraceNotes = [] }
+
          // Barline at the end of the measure
          let bar = { NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = 0; GraceNotes = [] }
          let newList = [empty] @ listWithUpdatedKeys @ [bar]
+
          // Add 5 to the width because of the empty space at the beginning
          let newWidth = width + 5.0
+
          // create instance of SingleMeasure
          let mes = { Time = optionsR.Time; Key = optionsR.Key; MeasureNumber = b; Elements = newList; Width = newWidth }
 
@@ -1020,7 +1081,8 @@ RETURNS: list of SingleMeasure evaluated by helpers
 let rec evalAllMeasures (measuresList : Expr List) (optionsR : optionsRecord) (singleMeasureList : SingleMeasure List) : SingleMeasure List option =
    match measuresList with
    // Base case : return SingleMeasure List
-   | [] -> Some(singleMeasureList)
+   | [] ->
+      Some(singleMeasureList)
    | head::tail ->
       // Create a single SingleMeasure
       match (evalMeasure head optionsR) with
@@ -1579,7 +1641,9 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
       // since the last element is always a barline, or a buffer in the case of the grace notes, nothing should have to be done at the end
       text
    | head::tail ->
+
       match head.NoteInfo with
+
       | SingleNote(n,mProperties) ->
          match n with
          // guitar note - beam
@@ -1590,7 +1654,7 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
          | X(guitarString,eProperties) ->
             let (newText, newLastBeamed) = beamHelper head guitarString lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm isGrace
             beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm isGrace
-      // If it isn't a note or an x, check if there's an end stub that needs to be drawn
+
       | GroupNote(nList,mProperties) ->
 
          // helper method to find out if any of the notes in the group are on string 6 for stem purposes
@@ -1618,6 +1682,30 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
          // recurse
          beam tail (text @ newText) head.Location head.Duration head.Start timeSignature newLastBeamed lastRhythm isGrace
 
+      | TupletNote(nList) ->
+
+         // see if any end things need to be drawn. Treating a tuplet like "end of measure" - no beaming between a tuplet and the notes around it in the measure
+
+         let endPieces =
+            match lastBeamed with
+            | 3 ->
+               // check if end stubs are needed if this note is not a note but the last note might need a stub
+               endingStubs lastLocation lastRhythm isGrace
+            | 0 ->
+               // last note might need flags
+               let (oldX,oldY) = lastLocation
+               drawFlags oldX oldY lastRhythm isGrace
+            | _ ->
+               [""]
+
+         // beam the normal notes
+         let newText = beam nList [] (0.0,0.0) Other 0.0 timeSignature 0 Other false
+
+         // find the last note for its information
+         let lastItem = lastItemOfList nList
+
+         beam tail (text @ newText @ endPieces) (0.0,0.0) Other 0.0 timeSignature 0 Other false
+
       | _ ->
          // add the end slur for grace notes
 
@@ -1627,6 +1715,7 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
             match isGrace with
             | true -> [ string (oldX + 2.0) + " " + string (oldY + 42.0) + " " + string (newX + 1.0) + " " + string (newY + 44.0) + " graceCurve " ]
             | false -> [""]
+
 
          match lastBeamed with
          | 3 ->
@@ -2014,6 +2103,21 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                | None -> None
             | None -> None
 
+      | TupletNote(tupletNotes) ->
+         // recurse over each note within the tuplet
+         match (showElements tupletNotes [] measureWidth x y l insideScale) with
+         | Some(newStringList, newTupletNotes) ->
+
+            // Create the new tupletNote, and update everything like for other notes
+            let newerX = x + (head.Width * insideScale)
+            let newList = l @ newStringList
+            let newNoteHead = TupletNote(newTupletNotes)
+            let newElement = { head with NoteInfo = newNoteHead }
+            let newUpdatedElements = updatedElements @ [newElement]
+            showElements tail newUpdatedElements measureWidth newerX y newList insideScale
+
+         | None -> None
+
 
       // Barline : print the vertical line
       | Barline ->
@@ -2104,20 +2208,29 @@ let rec beamGraceNotes (els: Element List) (text: string List) (time: int * int)
    match els with
    | [] -> text
    | head::tail ->
-      // draw the slash at the beginning of the grace note
-      let slash =
 
-         match head.GraceNotes with
-         // if there are no grace notes, do nothing
-         | [] -> [""]
-         // otherwise, draw it
-         | h::t ->
-            let (x,y) = h.Location
-            [" 0.4 setlinewidth " + string (x - 0.5) + " " + string (y + 33.0) + " moveto 4 4.4 rlineto stroke"]
-      // beam the grace notes, if there any
+      match head.NoteInfo with
+      // if it's a tuplet, look for grace notes within
+      | TupletNote(nList) ->
 
-      let graceNoteBeams = beam head.GraceNotes [] (0.0,0.0) Other 0.0 time 0 Other true
-      beamGraceNotes tail (text @ graceNoteBeams @ slash) time
+         let tupleGraceText = beamGraceNotes nList [] time
+         beamGraceNotes tail (text @ tupleGraceText) time
+
+      | _ ->
+         // draw the slash at the beginning of the grace note
+         let slash =
+
+            match head.GraceNotes with
+            // if there are no grace notes, do nothing
+            | [] -> [""]
+            // otherwise, draw it
+            | h::t ->
+               let (x,y) = h.Location
+               [" 0.4 setlinewidth " + string (x - 0.5) + " " + string (y + 33.0) + " moveto 4 4.4 rlineto stroke"]
+         // beam the grace notes, if there any
+
+         let graceNoteBeams = beam head.GraceNotes [] (0.0,0.0) Other 0.0 time 0 Other true
+         beamGraceNotes tail (text @ graceNoteBeams @ slash) time
 
 
 
@@ -2826,8 +2939,8 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
 
          let newUpdatedMeasures = updatedMeasures @ [newMeasure]
 
-
          showMeasures tail newUpdatedMeasures newX y (listWithBeams @ listWithGraceBeams) scale
+
 
       | None -> None
 
@@ -3023,6 +3136,8 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
          let newLine = { head with Measures = updatedMeasures }
          let newUpdatedLines = updatedLines @ [newLine]
 
+         (*
+
          // draw the properties. This is done from lines because slurs and ties can extend across lines
          match (drawProperties newLine.Measures [] propertyList) with
          | Some(propertyText,newPropertyList) ->
@@ -3046,6 +3161,10 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
 
 
          | None -> None
+         *)
+
+         //TEMPPP
+         showLines tail newUpdatedLines newText propertyList
       | None -> None
 
 
@@ -3114,12 +3233,9 @@ let eval optionsList measuresList outFile =
       // create SingleMeasure List
       match (evalAllMeasures measuresList newOption []) with
       | Some(list) ->
-         printfn "%A" list
-         Some(list,"hi")
 
          // Take SingleMeasure List and use the widths to create list of lines
          //495 is the width of the first line. The rest are 515.
-         (*
          match (divideLines list [] 495.0) with
 
          | Some(lines) ->
@@ -3127,6 +3243,7 @@ let eval optionsList measuresList outFile =
             match (dividePages lines [] (70.0,720.0)) with
 
             | Some(pages) ->
+
                let text = "%!PS
                %%BeginProlog
                /concatenate { %given string1 and string2
@@ -4341,7 +4458,6 @@ let eval optionsList measuresList outFile =
                | None -> None
             | None -> None
          | None -> None
-         *)
       | None -> None
    | None ->None
 
