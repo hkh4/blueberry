@@ -44,7 +44,7 @@ type RhythmNumber =
 | X64
 
 type Rhythm =
-| R of RhythmNumber * int          //int is the number of dots
+| R of RhythmNumber * int     //int is the number of dots
 | Other
 
 type simple =

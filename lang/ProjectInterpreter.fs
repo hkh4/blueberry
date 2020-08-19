@@ -1185,6 +1185,7 @@ let rec divideOnePage (lines : Line List) (linesSoFar : Line List) (start : floa
 
 
 
+
 (* driver for page dividing
 1) lines is the list of all Lines to be evaluated
 2) pageList is the list of Pages that is created
@@ -1433,11 +1434,14 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
    RETURNS a list of strings and an int which is the next lastBeamed
    *)
    let beamByTimeHelper (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (head: Element) (lastBeamed: int) (lastLastRhythm: Rhythm) (isGrace: bool) : string List * int =
+
       // number of beams for the previous note
       let beamsOfPrevious = numberOfBeams.[previousRhythmNumber]
+
       // number of beams for the current note
       let beamsOfCurrent = numberOfBeams.[currentRhythmNumber]
       let (newX,newY) = head.Location
+
       match beamsOfPrevious with
       // if this note and the last are the same rhythm
       | num when num = beamsOfCurrent ->
@@ -1447,15 +1451,20 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
       // if the last note has more beams than the current
       | num when num > beamsOfCurrent ->
          let equalBeams = fullBeams x newX y [1..beamsOfCurrent] [] isGrace
+
          match lastBeamed with
+
          | 0 ->
             // if the last and lastlast were not beamed, then the last note needs an initial stub since it needs more beams than the current
             let iStubs = initialStubs x y [1..num] [] isGrace
             ((equalBeams @ iStubs),2)
+
          | 1 ->
             (equalBeams,2)
+
          | 2 ->
             (equalBeams,2)
+
          | 3 ->
             // if the last note had more beams than lastlast, some sort of stub is needed
             let lastLastRhythmNumber =
@@ -1475,16 +1484,20 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
             | _ ->
                let endStubs = endingStubs lastLocation lastRhythm isGrace
                ((equalBeams @ endStubs),2)
+
          | _ ->
             printfn "Error in beam4: lastBeamed can only be 0 1 2 or 3"
             ([""],0) //should never reach this case
       // if this note has more beams than the last, draw just the beams, and a future case will take care of stubs
+
       | _ ->
          let equalBeams = fullBeams x newX y [1..beamsOfPrevious] [] isGrace
          (equalBeams,3)
 
+
    let indexOfLast = findElementInKey key (int lastStart) 0
    let indexOfCurrent = findElementInKey key (int head.Start) 0
+
    match (indexOfLast) with
    // if they're in the same group, beam
    | num when num = indexOfCurrent ->
@@ -1617,6 +1630,96 @@ let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhyth
 
 
 
+(* Draw the brackets on top of tuplets
+1) start is the location of the first note or first grace note
+2) ending is the location of the last note
+3) nList is all the Elements of the tuplet
+RETURNS a list of strings
+*)
+let drawTupletBracket (start: float * float) (ending: float * float) (tupletNotes: Element List) : string List =
+
+   // Figure out the number for the bracket
+   // First, add up the rhythms. Here's a helper method to do that
+   let rec addRhythms (notes: Element List) (acc: float) : float =
+      match notes with
+      // if there are no more notes, return the accumulator
+      | [] -> acc
+      | head::tail ->
+         let thisDuration =
+            match head.Duration with
+            | R(rNumber, dots) ->
+
+               // Based on the rhythm, get a number that represents it
+               let baseRhythm =
+                  match rNumber with
+                  | X0 ->
+                     printfn "Error in drawTupletBracket! A note should have a RhythmNumber of X0"
+                     -1.0
+                  | X1 -> 4.0
+                  | X2 -> 2.0
+                  | X4 -> 1.0
+                  | X8 -> 0.5
+                  | X16 -> 0.25
+                  | X32 -> 0.125
+                  | X64 -> 0.0625
+               let baseTimesDots =
+                  match dots with
+                  | 0 -> baseRhythm
+                  | 1 -> baseRhythm * 1.5
+                  | 2 -> baseRhythm * 1.75
+                  | _ -> baseRhythm * 1.875
+
+               baseTimesDots
+
+            | Other ->
+               match (head.NoteInfo) with
+               | Buffer -> 0.0
+               | _ ->
+                  printfn "Error in drawTupletBracket! A note should not have a Rhythm of Other"
+                  0.0
+
+         addRhythms tail (acc + thisDuration)
+
+   let totalRhythm = addRhythms tupletNotes 0.0
+
+   // Second , multiply by 16 to figure out how many 64th notes there are, and then calculate which is the base rhythm and how many there are
+
+   let rhythmIn64 = totalRhythm * 16.0
+
+   let rec calculateBaseRhythm (runningTotal: float) (acc: int) : int * int =
+      match acc with
+      // if the accumulator is 6, then it must be a whole note
+      | num when num >= 7 ->
+         let i = int runningTotal
+         (i,7)
+      | num ->
+
+         // Check to see if this can be divided in half and be whole
+         match (runningTotal / 2.0) with
+
+         // If it can be divided by 2, recurse
+         | n when n = Math.Floor(runningTotal / 2.0) ->
+            calculateBaseRhythm n (acc + 1)
+
+         // If it cannot be divided by 2, this is the end
+         | n ->
+            let i = int runningTotal
+            (i,acc)
+
+   let (multiplier, tupletBase) = calculateBaseRhythm rhythmIn64 1
+
+   // Not using tupletBase for now but it could be used in the future
+
+   // Create the string
+   let (startX, startY) = start
+   let (endX, endY) = ending
+
+   [" " + string startX + " " + string startY + " " + string endX + " " + string endY + " " + string multiplier + " tupletBracket "]
+
+
+
+
+
 (* Driver for drawing beams
 1) els is the list of Elements in this measure
 2) text is the list of strings
@@ -1697,10 +1800,14 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
          // beam the normal notes
          let newText = beam nList [] (0.0,0.0) Other 0.0 timeSignature 0 Other false
 
-         // find the last note for its information
-         let lastItem = nList.Item(nList.Length - 1)
+         // find the first and last note for their information, skipping the buffer
+         let lastItem = nList.Item(nList.Length - 2)
+         let firstItem = nList.Head
 
-         beam tail (text @ newText @ endPieces) (0.0,0.0) Other 0.0 timeSignature 0 Other false
+         // draw the tuplet bracket
+         let tupletBracket = drawTupletBracket firstItem.Location lastItem.Location nList
+
+         beam tail (text @ newText @ endPieces @ tupletBracket) (0.0,0.0) Other 0.0 timeSignature 0 Other false
 
       | _ ->
          // add the end slur for grace notes
@@ -2734,7 +2841,7 @@ let drawMProperties (mList: MultiProperty List) (propertyList: PropertyList) (is
 3) isGrace is a bool that says whether or not this note is a grace note
 RETURNS the list of strings to be printed and the new PropertyList
 *)
-let drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: bool) : (string List * PropertyList) option =
+let rec drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: bool) : (string List * PropertyList) option =
 
    match el.NoteInfo with
    | SingleNote(n,mProperties) ->
@@ -2825,6 +2932,25 @@ let drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: b
          | None -> None
       | None -> None
 
+   | TupletNote(nList) ->
+
+      // draw properties on each of the notes
+      let rec tupletProperties (tNotes: Element List) (acc: string List) (pList: PropertyList) (isGrace: bool) : (string List * PropertyList) option =
+
+         match tNotes with
+         | [] -> Some(acc,pList)
+         | h::t ->
+
+            match (drawPropertiesElement h pList isGrace) with
+            | Some(newTList, newPList) ->
+               tupletProperties t (acc @ newTList) newPList isGrace
+            | None -> None
+
+
+      match (tupletProperties nList [] propertyList isGrace) with
+      | Some(totalTList, finalTPList) -> Some(totalTList, finalTPList)
+      | None -> None
+
    // not a note
    | _ ->
       Some([""],propertyList)
@@ -2844,7 +2970,10 @@ let rec drawPropertiesMeasures (els: Element List) (text: string List) (property
    | [] ->
       Some(text,propertyList)
    | head::tail ->
-      let graceNotes = head.GraceNotes
+      let graceNotes =
+         match head.NoteInfo with
+         | TupletNote(nList) -> nList.Head.GraceNotes
+         | _ -> head.GraceNotes
 
       // First, draw properties on the grace notes
       let rec drawGraceProperties (grace: Element List) (t: string List) (pList: PropertyList) : (String List * PropertyList) option =
@@ -3132,8 +3261,6 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
          let newLine = { head with Measures = updatedMeasures }
          let newUpdatedLines = updatedLines @ [newLine]
 
-         (*
-
          // draw the properties. This is done from lines because slurs and ties can extend across lines
          match (drawProperties newLine.Measures [] propertyList) with
          | Some(propertyText,newPropertyList) ->
@@ -3154,13 +3281,7 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
                   | None -> None
                | None -> None
             | None -> None
-
-
          | None -> None
-         *)
-
-         //TEMPPP
-         showLines tail newUpdatedLines newText propertyList
       | None -> None
 
 
@@ -4438,6 +4559,41 @@ let eval optionsList measuresList outFile =
                      x1 num 1 sub -6 mul y1 add pluckcurvegrace
                   } for
                   x1 height1 1 sub -6 mul y1 add arrowdowngrace
+                  grestore end
+               } bind def
+
+               /tupletBracket {
+                  5 dict begin gsave
+                  /num exch def
+                  /y2 exch def
+                  /x2 exch def
+                  /y1 exch def
+                  /x1 exch def
+                  /mid x2 x1 sub 0.5 mul x1 add def
+                  0.4 setlinewidth
+                  x1 1 sub y1 46 add moveto
+                  x1 1 sub y1 48 add lineto
+                  mid y1 48 add lineto
+                  stroke
+
+                  /mid2 mid def
+                  num 9 gt {
+                     /mid mid 1.5 add store
+                     /mid2 mid2 1 sub store
+                  }{} ifelse
+
+                  /Times-Roman findfont
+                  5 scalefont setfont
+                  newpath
+                  0 0 0 setrgbcolor
+                  mid2 1 add y1 47 add moveto
+                  /s 20 string def
+                  num s cvs show
+
+                  mid 4 add y1 48 add moveto
+                  x2 4.5 add y2 48 add lineto
+                  x2 4.5 add y2 46 add lineto
+                  stroke
                   grestore end
                } bind def
 
