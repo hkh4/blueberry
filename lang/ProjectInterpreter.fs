@@ -4,7 +4,7 @@ open System
 open System.IO
 open ProjectParser
 // ******************* EVAL *********************
-
+ 
 // Data structures
 type optionsRecord = {
    Type: string
