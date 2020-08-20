@@ -2,7 +2,7 @@
 
 With a simple syntax, blueberry lets you focus on the music, and not on annoying UIs!
 
-&nbsp
+&nbsp;
 
 ![Example](blueberry-example.png)
 
