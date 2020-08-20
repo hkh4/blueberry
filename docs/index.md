@@ -1,11 +1,14 @@
-# What is blueberry?
+# Why blueberry?
 
-Blueberry is a command-line program used to create beautiful guitar tablature. Using a simple syntax, blueberry lets you focus on the music, and not on annoying UIs!
+With a simple syntax, blueberry lets you focus on the music, and not on annoying UIs!
+
 
 ![Example](blueberry-example.png)
 
+
 * TOC
 {:toc}
+
 
 ## Welcome to GitHub Pages
 
