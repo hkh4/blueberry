@@ -17,17 +17,16 @@ With a simple syntax, blueberry lets you focus on the music, and not on annoying
 
 In order to run the program, you need to have [.NET](https://dotnet.microsoft.com/) and [Ghostscript](https://www.ghostscript.com/) installed. Follow the instructions for downloading and setup.
 
-## Setup
+## Mac
 
-Next, clone this repo from github. The link is in the top right of the page. Save it wherever you want on your computer, but ideally somewhere that can be easily accessed. The quickest way to run the program is from the repo folder itself, which will be explained first, but read on for a bash script that can make it easier to run the program from any folder.
+Download the packages above and clone this repo into an easily accessible location. The instructions will assume the repo was cloned onto the desktop; if not, replace desktop with the correct path.
 
-## Running
+### Running Within the Blueberry Folder
 
-### Mac
-
-Open terminal and navigate to the local blueberry folder, and then into the lang folder. In this folder, create a file to write your code in. It can named anything at all, but using the .blb extension might make it easier to keep track of. Once the code is written, run it using the following:
+The quickest way to run the program is directly in the cloned repo. Open terminal, and navigate to the lang folder within blueberry.
 
 ```
+cd Desktop/blueberry/lang 
 ```
 
 ## Welcome to GitHub Pages

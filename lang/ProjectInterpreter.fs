@@ -4,7 +4,7 @@ open System
 open System.IO
 open ProjectParser
 // ******************* EVAL *********************
- 
+
 // Data structures
 type optionsRecord = {
    Type: string
@@ -3337,7 +3337,7 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) (outFil
 
 // ********************* DRIVER **************************
 let eval optionsList measuresList outFile =
-
+ 
    // default options
    let optionsR = {Type = "tab"; Time = (4,4); Key = "c"; Capo = 0; Title = "untitled"; Composer = "unknown"}
 
