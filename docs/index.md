@@ -13,9 +13,19 @@ With a simple syntax, blueberry lets you focus on the music, and not on annoying
 
 &nbsp;
 
-#Usage
+# Usage
 
-To begin, clone the repository from github. In order to run the program, you need to have [.NET](https://dotnet.microsoft.com/) and [Ghostscript](https://www.ghostscript.com/) installed. Follow the instructions for downloading and setup.
+In order to run the program, you need to have [.NET](https://dotnet.microsoft.com/) and [Ghostscript](https://www.ghostscript.com/) installed. Follow the instructions for downloading and setup.
+
+## Setup
+
+Next, clone this repo from github. The link is in the top right of the page. Save it wherever you want on your computer, but ideally somewhere that can be easily accessed. The quickest way to run the program is from the repo folder itself, which will be explained first, but read on for a bash script that can make it easier to run the program from any folder.
+
+## Running
+
+### Mac
+
+Open terminal and navigate to the local blueberry folder.
 
 ## Welcome to GitHub Pages
 
