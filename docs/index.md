@@ -4,7 +4,7 @@ With a simple syntax, blueberry lets you focus on the music, and not on annoying
 
 &nbsp;
 
-![Example](blueberry-example.png)
+![Example](img/blueberry-example.png)
 
 &nbsp;
 
@@ -25,7 +25,10 @@ Next, clone this repo from github. The link is in the top right of the page. Sav
 
 ### Mac
 
-Open terminal and navigate to the local blueberry folder.
+Open terminal and navigate to the local blueberry folder, and then into the lang folder. In this folder, create a file to write your code in. It can named anything at all, but using the .blb extension might make it easier to keep track of. Once the code is written, run it using the following:
+
+```
+```
 
 ## Welcome to GitHub Pages
 
