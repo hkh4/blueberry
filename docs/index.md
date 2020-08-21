@@ -25,22 +25,22 @@ Download the packages above and clone this repo into an easily accessible locati
 
 1. The quickest way to run the program is directly in the cloned repo. Open terminal, and navigate to the lang folder within blueberry.
 
-```shell
-cd path-to-folder/blueberry/lang
-```
+   ```shell
+   cd path-to-folder/blueberry/lang
+   ```
 
 2. Create a new file to write your code in. I suggest using the .blb extension for easy-of-use, but any extension works.
 
 3. Run using dotnet. It will create a .ps file with the specified name.
 
-```shell
-dotnet run <filename> <output filename>
-```
+   ```shell
+   dotnet run <filename> <output filename>
+   ```
 
 4. Use ps2pdf, a command line tool from Ghostscript, to convert the postscript file to a pdf.
-```shell
-ps2pdf -dNOSAFER <file>.ps
-```
+   ```shell
+   ps2pdf -dNOSAFER <file>.ps
+   ```
 
 
 ## Welcome to GitHub Pages
