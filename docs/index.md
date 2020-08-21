@@ -19,15 +19,29 @@ In order to run the program, you need to have [.NET](https://dotnet.microsoft.co
 
 ## Mac
 
-Download the packages above and clone this repo into an easily accessible location. The instructions will assume the repo was cloned onto the desktop; if not, replace desktop with the correct path.
+Download the packages above and clone this repo into an easily accessible location.
 
 ### Running Within the Blueberry Folder
 
-The quickest way to run the program is directly in the cloned repo. Open terminal, and navigate to the lang folder within blueberry.
+1. The quickest way to run the program is directly in the cloned repo. Open terminal, and navigate to the lang folder within blueberry.
 
+```shell
+cd path-to-folder/blueberry/lang
 ```
-cd Desktop/blueberry/lang 
+
+2. Create a new file to write your code in. I suggest using the .blb extension for easy-of-use, but any extension works.
+
+3. Run using dotnet. It will create a .ps file with the specified name.
+
+```shell
+dotnet run <filename> <output filename>
 ```
+
+4. Use ps2pdf, a command line tool from Ghostscript, to convert the postscript file to a pdf.
+```shell
+ps2pdf -dNOSAFER <file>.ps
+```
+
 
 ## Welcome to GitHub Pages
 
