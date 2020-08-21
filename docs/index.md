@@ -6,10 +6,16 @@ With a simple syntax, blueberry lets you focus on the music, and not on annoying
 
 ![Example](blueberry-example.png)
 
+&nbsp;
 
 * TOC
 {:toc}
 
+&nbsp;
+
+#Usage
+
+To begin, clone the repository from github. In order to run the program, you need to have [.NET](https://dotnet.microsoft.com/) and [Ghostscript](https://www.ghostscript.com/) installed. Follow the instructions for downloading and setup.
 
 ## Welcome to GitHub Pages
 
