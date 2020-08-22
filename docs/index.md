@@ -164,17 +164,42 @@ Notes that are entered will be automatically changed based on the key chosen.
 
 Time signatures are of the format `<top>-<bottom>`. The first number can be a number between 1-32, or 64, and the second number can be 1, 2, 4, 8, 16, 32, or 64.
 
-## Single Notes
+## Notes and Rests
 
-Notes follow the format `<string number><pitch><rhythm><properties>`. Here are some examples:
+There are several basic note types: single notes, rests, groups, and tuplets.
+
+Single notes follow the format `<string number><pitch><OPTIONAL rhythm><OPTIONAL properties>`. Here are some examples:
 
    ```
    1e4
-   5f#16/gra
-   6gn8../gra/slu
+   5f#/gra
+   6x8../gra/slu
    ```
 
-The first number is which string on the guitar the note appears on, with 1 being the lowerst and 6 being the highest.
+Rests follow the format `r<OPTIONAL rhythm>`
+
+   ```
+   r
+   r8
+   r16..
+   ```
+
+Grouped notes allow for multiple notes to be played at the same time. They follow the format `(<note>+)<OPTIONAL rhythm><OPTIONAL group-properties>` where `<note>` is composed of `<string number><pitch><OPTIONAL group-member-properties>`. I know, looks wild, but it's not that bad! Properties work differently with grouped notes, because some properties must be applied to an individual note within the group, while others are applied to the entire group. See the [properties](https://blueberry.hugohua.com/#properties) section for more info.
+
+   ```
+   (1e 2e 3e)4
+   (4f#/har 6dn)16/gra
+   (3dn 4fb 6x/par)
+   ```
+
+Tuplets allow for more complex rhythms and syncopation. They follow the format `<<note>+><rhythm>`, where `<note>` is a single note, group note, or rest. The rhythm at the end denotes the total rhythm of the entire tuplet. Note that the final rhythm is _required_ for tuplets.
+
+   ```
+   <4d8 2f16>
+   _hi_
+   ```
+
+### Pitch
 
 The following are valid pitches:
 
@@ -210,6 +235,8 @@ The following are valid pitches:
 
 Notes with an `n` are natural notes, which differ from regular notes in that the key signature will not change them. The `x` represents a percussive note rather than a pitch; it shows up as an "X" rather than a fret number. Using the pitches, key signature, and capo, the program calculates the fret for that note on the given string. The default is the lowest possible fret, but there is a property that can raise frets, which will be explained in the [properties](https://blueberry.hugohua.com/#properties) section.
 
+### Rhythm
+
 Rhythms are denoted with a number after the pitch.
 
 - 1 = whole note
@@ -220,7 +247,7 @@ Rhythms are denoted with a number after the pitch.
 - 32 = 32nd note
 - 64 = 64th note
 
-Dots `.` can also be added after the number. The limit is 3 dots for notes of an 8th note or longer, 2 dots on a 16th note, 1 dot on a 32nd note, and no dots are allowed on a 64th note. 
+Dots `.` can also be added after the number. The limit is 3 dots for notes of an 8th note or longer, 2 dots on a 16th note, 1 dot on a 32nd note, and no dots are allowed on a 64th note. Rhythms are optional; if omitted, the note will have the same rhythm as the previous note. The default for the first note on the page is a quarter note.
 
 ## Properties
 
