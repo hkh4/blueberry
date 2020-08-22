@@ -225,7 +225,7 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
    // If type
    | ScoreOption(key: string, value: string) when key = "type" ->
       let valueTrim = value.Trim(' ')
-      match valueTrim with
+      match valueTrim with 
       | "tab" ->
          let newOption = { optionsR with Key = valueTrim }
          Some(newOption)

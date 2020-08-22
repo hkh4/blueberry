@@ -1,12 +1,12 @@
 module ProjectParser
-  
+
 open System
 open FParsec
 (*
 Notes:
 sls = slur start
 sle = slur end
-stu = strum up
+stu = strum up 
 std = strum down
 par = parens
 plu = pluck up

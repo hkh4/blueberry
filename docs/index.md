@@ -77,12 +77,54 @@ Now, you can create files anywhere on your computer, and run it using `blb <file
 
 Download the packages above and clone this repo into an easily accessible location. In addition, make sure you have [Virtual Studio Code](https://code.visualstudio.com/).
 
-The instructions for running within the blueberry folder should be the same as for Mac users. Use the terminal function within VsCode. In addition, check out this [post](https://stackoverflow.com/questions/6011373/call-ghostscript-in-windows-by-its-invocation-name#:~:text=Open%20a%20cmd%20window%20and,64%20bit%20Windows)...) for how to use the ghostscript functions in the terminal. I'm not familiar with scripting on Windows and how to create a script to run the program from other folders.
+The instructions for running within the blueberry folder should be the same as for Mac users. Use the terminal function within VsCode. In addition, check out this [post](https://stackoverflow.com/questions/6011373/call-ghostscript-in-windows-by-its-invocation-name#:~:text=Open%20a%20cmd%20window%20and,64%20bit%20Windows) for how to use the ghostscript functions in the terminal. I'm not familiar with scripting on Windows and how to create a script to run the program from other folders.
 
 
 # Documentation
 
+## Options
 
+Each file begins with options that control certain aspects of the tab. They begin with a `-`, followed by the option name, and the chosen parameter.
+
+   ```
+   -title Blueberry
+   -composer Hugo Hua
+   -key d#m
+   -time 4-4
+   ```
+
+The title and composer can be whatever you choose. Valid keys are:
+
+* c
+* cm
+* c#
+* c#m
+* cb
+* d
+* dm
+* db
+* d#m
+* e
+* em
+* eb
+* ebm
+* f
+* fm
+* f#m
+* f#
+* g
+* gm
+* g#m
+* gb
+* a
+* am
+* a#m
+* ab
+* abm
+* b
+* bm
+* bb
+* bbm
 
 
 
