@@ -176,8 +176,6 @@ Notes follow the format `<string number><pitch><rhythm><properties>`. Here are s
 
 The first number is which string on the guitar the note appears on, with 1 being the lowerst and 6 being the highest.
 
-&nbsp;
-
 The following are valid pitches:
 
 * c
@@ -211,6 +209,18 @@ The following are valid pitches:
 * x
 
 Notes with an `n` are natural notes, which differ from regular notes in that the key signature will not change them. The `x` represents a percussive note rather than a pitch; it shows up as an "X" rather than a fret number. Using the pitches, key signature, and capo, the program calculates the fret for that note on the given string. The default is the lowest possible fret, but there is a property that can raise frets, which will be explained in the [properties](https://blueberry.hugohua.com/#properties) section.
+
+Rhythms are denoted with a number after the pitch.
+
+- 1 = whole note
+- 2 = half note
+- 4 = quarter note
+- 8 = eighth note
+- 16 = sixteenth note
+- 32 = 32nd note
+- 64 = 64th note
+
+Dots `.` can also be added after the number. The limit is 3 dots for notes of an 8th note or longer, 2 dots on a 16th note, 1 dot on a 32nd note, and no dots are allowed on a 64th note. 
 
 ## Properties
 
