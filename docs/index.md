@@ -43,7 +43,7 @@ Download the packages above and clone this repo into an easily accessible locati
    ```
 ### Running From Separate Folder
 
-1. To run the program on files in a separate folder, I suggest writing a custom script to do the job for you. Follow [this link](https://medium.com/devnetwork/how-to-create-your-own-custom-terminal-commands-c5008782a78e) for instructions on how to set up a file with custom scripts. Once created, add the following, replace PATHTOFILE with the path to wherever you cloned the blueberry folder:
+1. To run the program on files in a separate folder, I suggest writing a custom script to do the job for you. Follow [this link](https://medium.com/devnetwork/how-to-create-your-own-custom-terminal-commands-c5008782a78e) for instructions on how to set up a file with custom scripts. Once created, add the following, replacing PATHTOFILE with the path to wherever you cloned the blueberry folder:
    ```shell
    function pspdf() {
       ps2pdf -dNOSAFER $1.ps
@@ -70,7 +70,19 @@ Download the packages above and clone this repo into an easily accessible locati
       cd $cwd
    }
    ```
-Now, you can create files anywhere on your computer, and run it using `blb <filename> <outputFile>`
+Now, you can create files anywhere on your computer, and run it using `blb <filename> <outputFile>`!
+
+
+## Windows
+
+Download the packages above and clone this repo into an easily accessible location. In addition, make sure you have [Virtual Studio Code](https://code.visualstudio.com/).
+
+The instructions for running within the blueberry folder should be the same as for Mac users. Use the terminal function within VsCode. In addition, check out this [post](https://stackoverflow.com/questions/6011373/call-ghostscript-in-windows-by-its-invocation-name#:~:text=Open%20a%20cmd%20window%20and,64%20bit%20Windows)...) for how to use the ghostscript functions in the terminal. I'm not familiar with scripting on Windows and how to create a script to run the program from other folders.
+
+
+# Documentation
+
+
 
 
 
