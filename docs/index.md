@@ -93,12 +93,12 @@ The instructions for running within the blueberry folder should be the same as f
       1f4
       3g#
       5d8/sli
-      5f8
+      (5f 6x)8
       4e4
    2:
       2e16/sls
       2f16
-      2g
+      <2f#32 3g32 4g32/har>16
       2a/sle
       6bb2
       1f8/gra
@@ -184,7 +184,7 @@ Rests follow the format `r<OPTIONAL rhythm>`
    r16..
    ```
 
-Grouped notes allow for multiple notes to be played at the same time. They follow the format `(<note>+)<OPTIONAL rhythm><OPTIONAL group-properties>` where `<note>` is composed of `<string number><pitch><OPTIONAL group-member-properties>`. I know, looks wild, but it's not that bad! Properties work differently with grouped notes, because some properties must be applied to an individual note within the group, while others are applied to the entire group. See the [properties](https://blueberry.hugohua.com/#properties) section for more info.
+Grouped notes allow for multiple notes to be played at the same time. They follow the format `(<note>+)<OPTIONAL rhythm><OPTIONAL group-properties>` where `<note>` is composed of `<string number><pitch><OPTIONAL group-member-properties>`. I know, it looks crazy, but it's not that bad! Properties work differently with grouped notes, because some properties must be applied to an individual note within the group, while others are applied to the entire group. See the [properties](https://blueberry.hugohua.com/#properties) section for more info.
 
    ```
    (1e 2e 3e)4
