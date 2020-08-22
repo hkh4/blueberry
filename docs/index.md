@@ -195,8 +195,9 @@ Grouped notes allow for multiple notes to be played at the same time. They follo
 Tuplets allow for more complex rhythms and syncopation. They follow the format `<<note>+><rhythm>`, where `<note>` is a single note, group note, or rest. The rhythm at the end denotes the total rhythm of the entire tuplet. Note that the final rhythm is _required_ for tuplets.
 
    ```
-   <4d8 2f16>
-   _hi_
+   <4d8 2f16>4
+   <6d r 1f (5f 3d)>8
+   <1f#8/har 2dn4/par/sli/sls (4f#/sld 1x/har)16./gra/sle>32.
    ```
 
 ### Pitch
