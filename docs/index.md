@@ -91,9 +91,14 @@ Each file begins with options that control certain aspects of the tab. They begi
    -composer Hugo Hua
    -key d#m
    -time 4-4
+   -capo 2
    ```
 
-The title and composer can be whatever you choose. Valid keys are:
+The title and composer can be whatever you choose, and the capo is an integer.
+
+### Key
+
+Valid keys are:
 
 * c
 * cm
@@ -126,6 +131,15 @@ The title and composer can be whatever you choose. Valid keys are:
 * bb
 * bbm
 
+Notes that are entered will be automatically changed based on the key chosen.
+
+### Time
+
+Time signatures are of the format `<top>-<bottom>`. The first number can be a number between 1-32, or 64, and the second number can be 1, 2, 4, 8, 16, 32, or 64.
+
+
+
+## Notes and Properties
 
 
 ## Welcome to GitHub Pages
