@@ -109,11 +109,11 @@ The instructions for running within the blueberry folder should be the same as f
 
 ![General setup](img/general.png)
 
-Each file begins with options that control certain aspects of the tab. They begin with a `-`, followed by the option name, and the chosen parameter.
+Each file begins with options that control certain aspects of the tab. They begin with a `-`, followed by the option name, and the chosen parameter. Next, each measure begins with the measure number, a colon, and the notes on separate lines with a tab (or at least a space).
 
 ## Options
 
-Each file begins with options that control certain aspects of the tab. They begin with a `-`, followed by the option name, and the chosen parameter.
+Here are the valid options:
 
    ```
    -title Blueberry
@@ -166,10 +166,7 @@ Notes that are entered will be automatically changed based on the key chosen.
 
 Time signatures are of the format `<top>-<bottom>`. The first number can be a number between 1-32, or 64, and the second number can be 1, 2, 4, 8, 16, 32, or 64.
 
-
-## Notes and Properties
-
-### Single Notes
+## Single Notes
 
 Notes follow the format `<string number><pitch><rhythm><properties>`. Here are some examples:
 
@@ -178,6 +175,46 @@ Notes follow the format `<string number><pitch><rhythm><properties>`. Here are s
    5f#16/gra
    6gn8../gra/slu
    ```
+
+The first number is which string on the guitar the note appears on, with 1 being the lowerst and 6 being the highest.
+
+&nbsp;
+
+The following are valid pitches:
+
+* c
+* c#
+* cb
+* cn
+* d
+* d#
+* db
+* dn
+* e
+* e#
+* eb
+* en
+* f
+* f#
+* fb
+* fn
+* g
+* g#
+* gb
+* gn
+* a
+* a#
+* ab
+* an
+* b
+* b#
+* bb
+* bn
+* x
+
+Notes with an `n` are natural notes, which differ from regular notes in that the key signature will not change them. The `x` represents a percussive note rather than a pitch; it shows up as an "X" rather than a fret number. Using the pitches, key signature, and capo, the program calculates the fret for that note on the given string. The default is the lowest possible fret, but there is a property that can raise frets, which will be explained in the [properties]() section.
+
+## Properties
 
 
 
