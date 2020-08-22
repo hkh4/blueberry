@@ -82,6 +82,35 @@ The instructions for running within the blueberry folder should be the same as f
 
 # Documentation
 
+## Basic Syntax
+
+   ```   
+   -title Example
+   -composer Person
+   -key c
+   -time 4-4
+   -capo 1
+
+   1:
+      1f4
+      3g#
+      5d8/sli
+      5f8
+      4e4
+   2:
+      2e16/sls
+      2f16
+      2g
+      2a/sle
+      6bb2
+      1f8/gra
+      2a4
+   ```
+
+![General setup](img/general.png)
+
+Each file begins with options that control certain aspects of the tab. They begin with a `-`, followed by the option name, and the chosen parameter.
+
 ## Options
 
 Each file begins with options that control certain aspects of the tab. They begin with a `-`, followed by the option name, and the chosen parameter.
@@ -138,8 +167,18 @@ Notes that are entered will be automatically changed based on the key chosen.
 Time signatures are of the format `<top>-<bottom>`. The first number can be a number between 1-32, or 64, and the second number can be 1, 2, 4, 8, 16, 32, or 64.
 
 
-
 ## Notes and Properties
+
+### Single Notes
+
+Notes follow the format `<string number><pitch><rhythm><properties>`. Here are some examples:
+
+   ```
+   1e4
+   5f#16/gra
+   6gn8../gra/slu
+   ```
+
 
 
 ## Welcome to GitHub Pages
