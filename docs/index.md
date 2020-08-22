@@ -37,10 +37,41 @@ Download the packages above and clone this repo into an easily accessible locati
    dotnet run <filename> <output filename>
    ```
 
-4. Use ps2pdf, a command line tool from Ghostscript, to convert the postscript file to a pdf.
+4. Use ps2pdf, a command line tool from Ghostscript, to convert the postscript file to a pdf. If you get an error, you may need to add ghostscript to your PATH variable.
    ```shell
    ps2pdf -dNOSAFER <file>.ps
    ```
+### Running From Separate Folder
+
+1. To run the program on files in a separate folder, I suggest writing a custom script to do the job for you. Follow [this link](https://medium.com/devnetwork/how-to-create-your-own-custom-terminal-commands-c5008782a78e) for instructions on how to set up a file with custom scripts. Once created, add the following, replace PATHTOFILE with the path to wherever you cloned the blueberry folder:
+   ```shell
+   function pspdf() {
+      ps2pdf -dNOSAFER $1.ps
+      open $1.pdf
+   }
+
+   function blb() {
+      if [[ "$#" == 0 ]]; then
+      echo 'Usage: blb <file with code> <name of output file>'
+      return 0
+      fi
+      if [ -z "$2" ]
+         then
+            OUTFILE='score'
+      else
+         OUTFILE=$2
+      fi
+      cwd=$(pwd)
+      cd ~/PATHTOFILE/blueberry/lang
+      dotnet run $cwd/$1 $OUTFILE
+      pspdf $OUTFILE
+      rm $OUTFILE.ps
+      mv $OUTFILE.pdf $cwd
+      cd $cwd
+   }
+   ```
+Now, you can create files anywhere on your computer, and run it using `blb <filename> <outputFile>`
+
 
 
 ## Welcome to GitHub Pages

@@ -3337,7 +3337,7 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) (outFil
 
 // ********************* DRIVER **************************
 let eval optionsList measuresList outFile =
- 
+
    // default options
    let optionsR = {Type = "tab"; Time = (4,4); Key = "c"; Capo = 0; Title = "untitled"; Composer = "unknown"}
 
@@ -4573,10 +4573,10 @@ let eval optionsList measuresList outFile =
                   0.4 setlinewidth
                   x1 1 sub y1 46 add moveto
                   x1 1 sub y1 48 add lineto
-                  mid y1 48 add lineto
+                  mid y1 47.5 add lineto
                   stroke
 
-                  /mid2 mid def
+                  /mid2 mid 0.5 sub def
                   num 9 gt {
                      /mid mid 1.5 add store
                      /mid2 mid2 1 sub store
