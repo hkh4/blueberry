@@ -1,17 +1,19 @@
--time 6-8
--capo 1
--key f#m
--title Strummed Notes
+-time 2-2
+-capo 6
+-key ab
+-title Grace Notes
 -composer Me
 
 1:
+   1f4
+   (3d 5fn)4
+   4g16/gra
+   3e8
+   2a
    6f4
-   1ab8.
-   2dn16/stu
-   <1f16 6d16 (6a 5f 1x)16/std>8
-   2c8
 2:
-   1d4
-   5f8
-   (5c 6c 4c 3c)/stu
-   2e4
+   (1e 2f 4g)8/gra
+   4x16/gra
+   5cb/gra
+   <3f4 5g4 (3a 4f)4>2
+   3d2

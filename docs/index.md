@@ -255,6 +255,34 @@ Properties allow for symbols, articulations, and customization. This section det
 
 All properties begin with a `/` and consist of 3 letters, except `^`, which is the property for pushing a note up to the next possible fret position for that note.
 
+### Grace Notes
+
+Grace notes are defined with the `/gra` property. They are otherwise written in the exact same way as regular notes, except that their rhythm will not count towards the measure's entire rhythm.
+
+   ```
+   -time 2-2
+   -capo 6
+   -key ab
+   -title Grace Notes
+   -composer Me
+
+   1:
+      1f4
+      (3d 5fn)4
+      4g16/gra
+      3e8
+      2a
+      6f4
+   2:
+      (1e 2f 4g)8/gra
+      4x16/gra
+      5cb/gra
+      <3f4 5g4 (3a 4f)4>2
+      3d2
+   ```
+
+![grace](img/properties/grace.png)
+
 ### Slurs
 
 Slurs are drawn using the `/sls` - slur start - and `/sle` - slur end properties. Each starting slur must be matched with an ending slur on a note further in the tab. Any un-ended slurs will cause an error. In addition, slurs cannot cross; a started slur must be ended before a new one is started.
@@ -331,3 +359,5 @@ Strummed notes can be either up `/stu` or down `/std`. It draws an arrow that di
    ```
 
 ![strum](img/properties/strum.png)
+
+### Properties for Grouped Notes 
