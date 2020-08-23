@@ -250,3 +250,33 @@ Rhythms are denoted with a number after the pitch.
 Dots `.` can also be added after the number. The limit is 3 dots for notes of an 8th note or longer, 2 dots on a 16th note, 1 dot on a 32nd note, and no dots are allowed on a 64th note. Rhythms are optional; if omitted, the note will have the same rhythm as the previous note. The default for the first note on the page is one unit of the given time signature.
 
 ## Properties
+
+Properties allow for symbols, articulations, and customization. This section details all the valid properties.
+
+All properties begin with a `/` and consist of 3 letters, except `^`, which is the property for pushing a note up to the next possible fret position for that note.
+
+### Slurs
+
+Slurs are drawn using the `/sls` - slur start - and `/sle` - slur end properties. Each starting slur must be matched with an ending slur on a note further in the tab. Any un-ended slurs will cause an error. In addition, slurs cannot cross; a started slur must be ended before a new one is started.
+
+   ```
+   -time 3-4
+   -capo 4
+   -key f#m
+   -title Slurs
+   -composer Me
+
+   1:
+      3d/sls
+      4fn/sle
+      5g8/sls
+      3a
+   2:
+      1f#4
+      5x
+      3d16
+      4a8
+      6c16/sle
+   ```
+
+![slurs](img/properties/slurs.png)

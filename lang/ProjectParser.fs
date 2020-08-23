@@ -6,7 +6,7 @@ open FParsec
 Notes:
 sls = slur start
 sle = slur end
-stu = strum up 
+stu = strum up
 std = strum down
 par = parens
 plu = pluck up
@@ -157,7 +157,7 @@ let sli = pstr "sli" >>% Sli
 let slu = pstr "slu" >>% Slu
 let par = pstr "par" >>% Par
 let tie = pstr "tie" >>% Tie
-let upf = pstr "upf" >>% Upf
+let upf = pstr "^" >>% Upf
 
 
 
