@@ -97,9 +97,8 @@ The instructions for running within the blueberry folder should be the same as f
       4e4/sle
    2:
       2e16
-      2f16
-      <2f#32 3g32 4g32/har>16
-      2a
+      <2f#16 3g16 4g16/har>8
+      2a16
       6bb2
       1f8/gra
       2a4

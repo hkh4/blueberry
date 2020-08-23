@@ -79,62 +79,62 @@ let arrayOfRhythms = [|X1;X2;X4;X8;X16;X32;X64|]
 let widthOfRhythms =
    Map.empty.
       Add(R(X0,0),25.0).
-      Add(R(X1,3),70.0).
-      Add(R(X1,2),60.0).
-      Add(R(X1,1),50.0).
-      Add(R(X1,0),40.5).
-      Add(R(X2,3),37.0).
-      Add(R(X2,2),34.0).
-      Add(R(X2,1),31.0).
-      Add(R(X2,0),27.0).
-      Add(R(X4,3),25.0).
-      Add(R(X4,2),23.0).
-      Add(R(X4,1),21.0).
-      Add(R(X4,0),18.0).
-      Add(R(X8,3),16.5).
-      Add(R(X8,2),15.0).
-      Add(R(X8,1),13.5).
-      Add(R(X8,0),12.0).
-      Add(R(X16,2),10.6).
-      Add(R(X16,1),9.6).
-      Add(R(X16,0),8.5).
-      Add(R(X32,2),7.5).
-      Add(R(X32,1),7.1).
-      Add(R(X32,0),6.7).
-      Add(R(X64,2),6.3).
-      Add(R(X64,1),5.9).
-      Add(R(X64,0),5.5)
+      Add(R(X1,3),73.0).
+      Add(R(X1,2),63.0).
+      Add(R(X1,1),53.0).
+      Add(R(X1,0),43.5).
+      Add(R(X2,3),39.5).
+      Add(R(X2,2),36.5).
+      Add(R(X2,1),33.5).
+      Add(R(X2,0),29.5).
+      Add(R(X4,3),27.5).
+      Add(R(X4,2),25.0).
+      Add(R(X4,1),23.0).
+      Add(R(X4,0),20.0).
+      Add(R(X8,3),18.5).
+      Add(R(X8,2),17.0).
+      Add(R(X8,1),15.5).
+      Add(R(X8,0),14.0).
+      Add(R(X16,2),12.6).
+      Add(R(X16,1),11.6).
+      Add(R(X16,0),10.5).
+      Add(R(X32,2),9.5).
+      Add(R(X32,1),9.1).
+      Add(R(X32,0),8.7).
+      Add(R(X64,2),8.3).
+      Add(R(X64,1),7.9).
+      Add(R(X64,0),7.5)
 
 // widths of grace notes
 let widthOfGraceRhythms =
    Map.empty.
       Add(Other,0.0).
       Add(R(X0,0),0.0). // should never happen
-      Add(R(X1,3),22.0).
-      Add(R(X1,2),19.0).
-      Add(R(X1,1),17.0).
-      Add(R(X1,0),15.0).
-      Add(R(X2,3),13.0).
-      Add(R(X2,2),12.0).
-      Add(R(X2,1),11.0).
-      Add(R(X2,0),10.0).
-      Add(R(X4,3),9.0).
-      Add(R(X4,2),8.5).
-      Add(R(X4,1),8.0).
-      Add(R(X4,0),7.5).
-      Add(R(X8,3),7.0).
-      Add(R(X8,2),6.6).
-      Add(R(X8,1),6.3).
-      Add(R(X8,0),6.0).
-      Add(R(X16,2),5.7).
-      Add(R(X16,1),5.5).
-      Add(R(X16,0),5.3).
-      Add(R(X32,2),5.2).
-      Add(R(X32,1),5.1).
-      Add(R(X32,0),5.0).
-      Add(R(X64,2),5.0).
-      Add(R(X64,1),5.0).
-      Add(R(X64,0),5.0)
+      Add(R(X1,3),22.5).
+      Add(R(X1,2),19.5).
+      Add(R(X1,1),17.5).
+      Add(R(X1,0),15.5).
+      Add(R(X2,3),13.5).
+      Add(R(X2,2),12.5).
+      Add(R(X2,1),11.5).
+      Add(R(X2,0),10.5).
+      Add(R(X4,3),9.5).
+      Add(R(X4,2),9.0).
+      Add(R(X4,1),8.5).
+      Add(R(X4,0),8.0).
+      Add(R(X8,3),7.5).
+      Add(R(X8,2),7.1).
+      Add(R(X8,1),6.8).
+      Add(R(X8,0),6.5).
+      Add(R(X16,2),6.2).
+      Add(R(X16,1),6.0).
+      Add(R(X16,0),5.8).
+      Add(R(X32,2),5.7).
+      Add(R(X32,1),5.6).
+      Add(R(X32,0),5.5).
+      Add(R(X64,2),5.5).
+      Add(R(X64,1),5.5).
+      Add(R(X64,0),5.5)
 
 // Changeable default
 let mutable defaultRhythm = R(X4,0)
@@ -663,9 +663,7 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
       | [] ->
          // turn the list of Elements into a single Element
 
-         let elementsWithBuffer = newElements @ [bufferElement]
-
-         let bigElement = { NoteInfo = TupletNote(elementsWithBuffer); Start = nextStart; Duration = r; Width = totalWidth; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }
+         let bigElement = { NoteInfo = TupletNote(newElements); Start = nextStart; Duration = r; Width = totalWidth; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }
 
          //update default rhythm
          defaultRhythm <- r
@@ -716,7 +714,7 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
                // Don't care about the start for tuplet notes
                // Look into the Map of rhythms to widths
                // Should be smaller for tuplet notes, so divide by 1.2
-               let newWidthTemp = widthOfRhythms.[note.Duration] / 1.2
+               let newWidthTemp = widthOfRhythms.[note.Duration] / 1.5
 
                let newWidth =
                   match last with
@@ -1787,31 +1785,18 @@ let rec beam (els: Element List) (text: string List) (lastLocation: float * floa
 
       | TupletNote(nList) ->
 
-         // see if any end things need to be drawn. Treating a tuplet like "end of measure" - no beaming between a tuplet and the notes around it in the measure
+         // simply add the notes within to the larger list of notes
 
-         let endPieces =
-            match lastBeamed with
-            | 3 ->
-               // check if end stubs are needed if this note is not a note but the last note might need a stub
-               endingStubs lastLocation lastRhythm isGrace
-            | 0 ->
-               // last note might need flags
-               let (oldX,oldY) = lastLocation
-               drawFlags oldX oldY lastRhythm isGrace
-            | _ ->
-               [""]
+         let allNotes = nList @ tail
 
-         // beam the normal notes
-         let newText = beam nList [] (0.0,0.0) Other 0.0 timeSignature 0 Other false
-
-         // find the first and last note for their information, skipping the buffer
-         let lastItem = nList.Item(nList.Length - 2)
+         // find the first and last note for their information
+         let lastItem = nList.Item(nList.Length - 1)
          let firstItem = nList.Head
 
          // draw the tuplet bracket
          let tupletBracket = drawTupletBracket firstItem.Location lastItem.Location nList
 
-         beam tail (text @ newText @ endPieces @ tupletBracket) (0.0,0.0) Other 0.0 timeSignature 0 Other false
+         beam allNotes (text @ tupletBracket) lastLocation lastRhythm lastStart timeSignature lastBeamed lastLastRhythm false
 
       | _ ->
          // add the end slur for grace notes
@@ -4590,7 +4575,7 @@ let eval optionsList measuresList outFile =
                   0.4 setlinewidth
                   x1 1 sub y1 46 add moveto
                   x1 1 sub y1 48 add lineto
-                  mid y1 47.5 add lineto
+                  mid 0.5 sub y1 48 add lineto
                   stroke
 
                   /mid2 mid 0.5 sub def
