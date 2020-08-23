@@ -283,7 +283,7 @@ Slurs are drawn using the `/sls` - slur start - and `/sle` - slur end properties
 
 ### Plucked Notes
 
-Plucked Notes can be either up `/Plu` or down `/Pld`. It draws the squiggly line often used in fingerstyle playing.
+Plucked Notes can be either up `/plu` or down `/pld`. It draws the squiggly line often used in fingerstyle playing.
 
    ```
    -time 3-4
@@ -305,3 +305,29 @@ Plucked Notes can be either up `/Plu` or down `/Pld`. It draws the squiggly line
    ```
 
 ![plucked notes](img/properties/pluck.png)
+
+### Strumming
+
+Strummed notes can be either up `/stu` or down `/std`. It draws an arrow that directs the player to strum the notes.
+
+   ```
+   -time 6-8
+   -capo 1
+   -key f#m
+   -title Strummed Notes
+   -composer Me
+
+   1:
+      6f4
+      1ab8.
+      2dn16/stu
+      <1f16 6d16 (6a 5f 1x)16/std>8
+      2c8
+   2:
+      1d4
+      5f8
+      (5c 6c 4c 3c)/stu
+      2e4
+   ```
+
+![strum](img/properties/strum.png)

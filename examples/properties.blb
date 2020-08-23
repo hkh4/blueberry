@@ -1,16 +1,17 @@
--time 3-4
--capo 4
+-time 6-8
+-capo 1
 -key f#m
--title Plucked Notes
+-title Strummed Notes
 -composer Me
 
 1:
-   4d8/plu
-   (3dn 2a)16/pld
-   5f16
-   2c2
+   6f4
+   1ab8.
+   2dn16/stu
+   <1f16 6d16 (6a 5f 1x)16/std>8
+   2c8
 2:
-   1e4
-   (5f 6a 3g 1f)8./plu
-   3c16
-   2d4/pld
+   1d4
+   5f8
+   (5c 6c 4c 3c)/stu
+   2e4
