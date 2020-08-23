@@ -225,7 +225,7 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
    // If type
    | ScoreOption(key: string, value: string) when key = "type" ->
       let valueTrim = value.Trim(' ')
-      match valueTrim with 
+      match valueTrim with
       | "tab" ->
          let newOption = { optionsR with Key = valueTrim }
          Some(newOption)
@@ -666,6 +666,10 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
          let elementsWithBuffer = newElements @ [bufferElement]
 
          let bigElement = { NoteInfo = TupletNote(elementsWithBuffer); Start = nextStart; Duration = r; Width = totalWidth; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }
+
+         //update default rhythm
+         defaultRhythm <- r
+
          Some(bigElement,false)
 
       | head::tail ->
@@ -3718,6 +3722,19 @@ let eval optionsList measuresList outFile =
                grestore end
                } bind def
 
+               /capo {
+               1 dict begin gsave
+               /str exch def
+               /Times-Roman findfont
+               10 scalefont
+               setfont
+               newpath
+               0 0 0 setrgbcolor
+               40 720 moveto
+               str show
+               grestore end
+               } bind def
+
                /guitarfretnumbergrace { %xcoord, ycoord, filestring
                   8 dict begin
                   /str exch def
@@ -4601,7 +4618,7 @@ let eval optionsList measuresList outFile =
 
                "
                // Add the title and comnposer to the text
-               let text' = text + " (" + newOption.Title + ") title " + "(" + newOption.Composer + ") composer "
+               let text' = text + " (" + newOption.Title + ") title " + "(" + newOption.Composer + ") composer (capo " + string newOption.Capo + ") capo "
                //print and show
                match (show pages [] text' outFile) with
                | Some(updatedText, updatedPages) ->

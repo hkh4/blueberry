@@ -5,16 +5,16 @@
 -capo 1
 
 1:
-   1f4
+   1f4/sls
    3g#
    5d8/sli
-   5f8
-   4e4
+   (5f 6x)8
+   4e4/sle
 2:
-   2e16/sls
+   2e16
    2f16
-   2g
-   2a/sle
+   <2f#32 3g32 4g32/har>16
+   2a
    6bb2
    1f8/gra
    2a4

@@ -90,16 +90,16 @@ The instructions for running within the blueberry folder should be the same as f
    -capo 1
 
    1:
-      1f4
+      1f4/sls
       3g#
       5d8/sli
       (5f 6x)8
-      4e4
+      4e4/sle
    2:
-      2e16/sls
+      2e16
       2f16
       <2f#32 3g32 4g32/har>16
-      2a/sle
+      2a
       6bb2
       1f8/gra
       2a4
@@ -248,6 +248,6 @@ Rhythms are denoted with a number after the pitch.
 - 32 = 32nd note
 - 64 = 64th note
 
-Dots `.` can also be added after the number. The limit is 3 dots for notes of an 8th note or longer, 2 dots on a 16th note, 1 dot on a 32nd note, and no dots are allowed on a 64th note. Rhythms are optional; if omitted, the note will have the same rhythm as the previous note. The default for the first note on the page is a quarter note.
+Dots `.` can also be added after the number. The limit is 3 dots for notes of an 8th note or longer, 2 dots on a 16th note, 1 dot on a 32nd note, and no dots are allowed on a 64th note. Rhythms are optional; if omitted, the note will have the same rhythm as the previous note. The default for the first note on the page is one unit of the given time signature.
 
 ## Properties
