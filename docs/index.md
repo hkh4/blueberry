@@ -280,3 +280,28 @@ Slurs are drawn using the `/sls` - slur start - and `/sle` - slur end properties
    ```
 
 ![slurs](img/properties/slurs.png)
+
+### Plucked Notes
+
+Plucked Notes can be either up `/Plu` or down `/Pld`. It draws the squiggly line often used in fingerstyle playing.
+
+   ```
+   -time 3-4
+   -capo 4
+   -key f#m
+   -title Plucked Notes
+   -composer Me
+
+   1:
+      4d8/plu
+      (3dn 2a)16/pld
+      5f16
+      2c2
+   2:
+      1e4
+      (5f 6a 3g 1f)8./plu
+      3c16
+      2d4/pld
+   ```
+
+![plucked notes](img/properties/pluck.png)

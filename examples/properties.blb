@@ -1,17 +1,16 @@
 -time 3-4
 -capo 4
 -key f#m
--title Slurs
+-title Plucked Notes
 -composer Me
 
 1:
-   3d/sls
-   4fn/sle
-   5g8/sls
-   3a
+   4d8/plu
+   (3dn 2a)16/pld
+   5f16
+   2c2
 2:
-   1f#4
-   5x
-   3d16
-   4a8
-   6c16/sle
+   1e4
+   (5f 6a 3g 1f)8./plu
+   3c16
+   2d4/pld
