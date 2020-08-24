@@ -500,18 +500,18 @@ Properties work slightly differently for grouped notes, because some properties 
 
 Properties for the whole group:
 - `/gra`
-- '/stu'
-- '/std'
-- '/plu'
-- '/pld'
-- '/sls'
-- '/sle'
+- `/stu`
+- `/std`
+- `/plu`
+- `/pld`
+- `/sls`
+- `/sle`
 
 Properties for individual notes
-- '/par'
-- '/sld'
-- '/sli'
-- '/slu'
-- '/tie'
-- '/har'
-- '/^'
+- `/par`
+- `/sld`
+- `/sli`
+- `/slu`
+- `/tie`
+- `/har`
+- `/^`
