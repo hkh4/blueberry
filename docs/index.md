@@ -239,6 +239,7 @@ Notes with an `n` are natural notes, which differ from regular notes in that the
 
 Rhythms are denoted with a number after the pitch.
 
+  0 = full measure (only for rests)
 - 1 = whole note
 - 2 = half note
 - 4 = quarter note
@@ -247,7 +248,7 @@ Rhythms are denoted with a number after the pitch.
 - 32 = 32nd note
 - 64 = 64th note
 
-Dots `.` can also be added after the number. The limit is 3 dots for notes of an 8th note or longer, 2 dots on a 16th note, 1 dot on a 32nd note, and no dots are allowed on a 64th note. Rhythms are optional; if omitted, the note will have the same rhythm as the previous note. The default for the first note on the page is one unit of the given time signature.
+Dots `.` can also be added after the number. The limit is 3 dots for notes of an 8th note or longer, 2 dots on a 16th note, 1 dot on a 32nd note, and no dots are allowed on a 64th note. Rhythms are optional; if omitted, the note will have the same rhythm as the previous note. The default for the first note on the page is one unit of the given time signature. Note: the 0 rhythm can only be used for rests. r0 denotes an empty measure.
 
 ## Properties
 
@@ -368,7 +369,7 @@ There are three types of slides. First `/sli` is a slide between two notes. When
    -time 5-8
    -capo 6
    -key ab
-   -title Grace Notes
+   -title Slides
    -composer Me
 
    1:
@@ -387,5 +388,58 @@ There are three types of slides. First `/sli` is a slide between two notes. When
    ```
 
 ![slide](img/properties/slide.png)
+
+### Parentheses
+
+Parentheses can be added using `/par`. It is often used for a ghost note which is either optional, or meant to be played quietly or in passing.
+
+   ```
+   -time 7-8
+   -capo 4
+   -key bbm
+   -title Parentheses
+   -composer Me
+
+   1:
+      5e8/par
+      1f8
+      (4d 6f#)
+      4a4
+      <2a8 3e8 4bb8>4
+   2:
+      5b8./par
+      2a16
+      (3f 6dn/par 2bb)8
+      5g4
+      1e
+   ```
+![parens](img/properties/parens.png)
+
+### Tie
+
+Ties are denoted by `/tie`. The first note must be followed some time later by another note on the same string, with the same pitch. The second note does not have to be directly after the first, but ties cannot cross.
+
+   ```
+   -time 6-4
+   -capo 3
+   -key d
+   -title Ties
+   -composer Me
+
+   1:
+      4d2
+      (5f 1eb 2d#)
+      6f8
+      1e#/tie
+      1e#4
+   2:
+      6d8/tie
+      (4f 6d)
+      2d/tie
+      3d
+      2d1
+   ```
+
+![tie](img/properties/tie.png)
 
 ### Properties for Grouped Notes

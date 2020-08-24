@@ -1616,6 +1616,10 @@ let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhyth
             | (n,m) when (m = 8 || m = 16 || m = 32 || m = 64) && (n = 5) ->
                [[1;2;3];[4;5]]
 
+            // for 7s, group 3 2 2
+            | (n,m) when (m = 8 || m = 16 || m = 32 || m = 64) && (n = 7) ->
+               [[1;2;3];[4;5];[6;7]]
+
             | _ ->
                printfn "Error in beamHelper: this time signature has not yet been implemented. Sorry!"
                [[0]]

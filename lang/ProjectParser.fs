@@ -27,7 +27,7 @@ type MultiProperty =
 | Gra | Stu | Std | Plu | Pld | Sls | Sle
 
 type EitherProperty =
-| Par | Sld | Sli | Tie | Slu | Har | Upf
+| Par | Sld | Sli | Slu | Tie | Har | Upf
 
 type Property =
 | Multi of MultiProperty

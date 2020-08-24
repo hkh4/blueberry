@@ -1,19 +1,18 @@
--time 5-8
--capo 6
--key ab
--title Grace Notes
+-time 6-4
+-capo 3
+-key d
+-title Ties
 -composer Me
 
 1:
-   4e8/sli
-   5g16
-   (3a 6d 4f)16
-   5f8/sld
-   3d8
-   2c8
+   4d2
+   (5f 1eb 2d#)
+   4d8
+   1e#/tie
+   1e#4
 2:
-   (5f#/slu 6d/sli)8.
-   1x16/slu
-   6eb8
-   4f8
-   2e8/sld
+   6d8/tie
+   (4f 6d)
+   2d/tie
+   3d
+   2d1
