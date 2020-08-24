@@ -515,5 +515,3 @@ Properties for individual notes:
 - `/tie`
 - `/har`
 - `/^`
-
-## Errors and Troubleshooting

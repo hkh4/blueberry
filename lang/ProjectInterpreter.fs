@@ -492,9 +492,17 @@ let rec divideProperties (properties: Property List) (eProperties: EitherPropert
 
 
 (* Parse a simple note
-
+1) p is the simple note to be parsed
+2) baseBeat is the bottom number of the time signature
+3) numberOfBeats is the top note of the time signature
+4) nextStart is the next start value for this note
+5) last is whether or not this is the last note of the measure (1 yes 0 no)
+6) optionsR is the record of options
+7) graceBefore is the list of grace notes for this note
+8) measureNumber is the measure number
+RETURNS the new element and a bool that says whether or not this is a grace note
 *)
-let parseSimple (p: simple) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) : (Element * bool) option =
+let parseSimple (p: simple) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) (measureNumber: int) : (Element * bool) option =
 
    match p with
    // Single Simple
@@ -532,13 +540,24 @@ let parseSimple (p: simple) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextS
       | [] ->
          Some({ NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
       | _ ->
-         printfn "Rests can't have grace notes!"
+         printfn "Error in measure %i! Rests can't have grace notes!" measureNumber
          None
 
 
 
 
-let parseComplex (p: complex) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) : (Element * bool) option =
+(* Parse a complex note
+1) p is the complex note to be parsed
+2) baseBeat is the bottom number of the time signature
+3) numberOfBeats is the top note of the time signature
+4) nextStart is the next start value for this note
+5) last is whether or not this is the last note of the measure (1 yes 0 no)
+6) optionsR is the record of options
+7) graceBefore is the list of grace notes for this note
+8) measureNumber is the measure number
+RETURNS the new element and a bool that says whether or not this is a grace note
+*)
+let parseComplex (p: complex) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) (measureNumber: int) : (Element * bool) option =
 
    match p with
    // Single Complex
@@ -581,13 +600,23 @@ let parseComplex (p: complex) (baseBeat: RhythmNumber) (numberOfBeats: int) (nex
             defaultRhythm <- r
             Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
       | _ ->
-         printfn "Rests can't have grace notes!"
+         printfn "Error in measure %i! Rests can't have grace notes!" measureNumber
          None
 
 
 
-
-let parseGroup (g: group) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) : (Element * bool) option =
+(* Parse a group note
+1) p is the group note to be parsed
+2) baseBeat is the bottom number of the time signature
+3) numberOfBeats is the top note of the time signature
+4) nextStart is the next start value for this note
+5) last is whether or not this is the last note of the measure (1 yes 0 no)
+6) optionsR is the record of options
+7) graceBefore is the list of grace notes for this note
+8) measureNumber is the measure number
+RETURNS the new element and a bool that says whether or not this is a grace note
+*)
+let parseGroup (g: group) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) (measureNumber: int) : (Element * bool) option =
 
    // recursive helper function to parse the notes within a group
    let rec groupHelper (gList: GroupSimple List) (sList: singleNote List) (usedStrings: int List) : singleNote List option =
@@ -599,7 +628,7 @@ let parseGroup (g: group) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextSta
             // check to see if this guitar string has already been used for a previous note in the group
             match (List.exists (fun elem -> elem = guitarString) usedStrings) with
             | true ->
-               printfn "Error! You can't specify two notes in one group that are on the same string!"
+               printfn "Error in measure %i! You can't specify two notes in one group that are on the same string!" measureNumber
                None
             | false ->
                let newSingleNote =
@@ -654,7 +683,18 @@ let parseGroup (g: group) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextSta
 
 
 
-let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) : (Element * bool) option =
+(* Parse a tuplet note
+1) p is the tuplet note to be parsed
+2) baseBeat is the bottom number of the time signature
+3) numberOfBeats is the top note of the time signature
+4) nextStart is the next start value for this note
+5) last is whether or not this is the last note of the measure (1 yes 0 no)
+6) optionsR is the record of options
+7) graceBefore is the list of grace notes for this note
+8) measureNumber is the measure number
+RETURNS the new element and a bool that says whether or not this is a grace note
+*)
+let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) (measureNumber: int) : (Element * bool) option =
 
    // recursive helper to parse each note within the tuplet
    let rec tHelper (notes: Note List) (newElements: Element List) (totalWidth: float) : (Element * bool) option =
@@ -673,20 +713,20 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
       | head::tail ->
 
          //parse each individual note
-         let noteOption =
+         let noteOption : (Element * bool) option =
             match head with
 
             | Simple(p) ->
-               parseSimple p baseBeat numberOfBeats nextStart last optionsR graceBefore
+               parseSimple p baseBeat numberOfBeats nextStart last optionsR graceBefore measureNumber
 
             | Complex(p) ->
-               parseComplex p baseBeat numberOfBeats nextStart last optionsR graceBefore
+               parseComplex p baseBeat numberOfBeats nextStart last optionsR graceBefore measureNumber
 
             | Group(g) ->
-               parseGroup g baseBeat numberOfBeats nextStart last optionsR graceBefore
+               parseGroup g baseBeat numberOfBeats nextStart last optionsR graceBefore measureNumber
 
             | Tuplet(t,r) ->
-               printfn "Error! Can't have a tuplet within a tuplet"
+               printfn "Error in measure %i! Can't have a tuplet within a tuplet" measureNumber
                None
 
          match noteOption with
@@ -696,19 +736,19 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
             // Check to see if a note has a valid number of dots. 8th notes and longer can up to 3 dots. 16th can have 2, 32nd can have 1, 64th cannot have any
             match note.Duration with
             | R(x,n) when n > 3 ->
-               printfn "Notes cannot have more than 3 dots"
+               printfn "Error in measure %i! Notes cannot have more than 3 dots" measureNumber
                None
             | R(x,n) when x = X0 && n > 0 ->
-               printfn "0 rhythms cannot have dots"
+               printfn "Error in measure %i! 0 rhythms cannot have dots" measureNumber
                None
             | R(x,n) when x = X64 && n > 0 ->
-               printfn "64th notes cannot have any dots"
+               printfn "Error in measure %i! 64th notes cannot have any dots" measureNumber
                None
             | R(x,n) when x = X32 && n > 1 ->
-               printfn "32nd notes can only have up to 1 dot"
+               printfn "Error in measure %i! 32nd notes can only have up to 1 dot" measureNumber
                None
             | R(x,n) when x = X16 && n > 2 ->
-               printfn "16th notes can only have up to 2 dots"
+               printfn "Error in measure %i! 16th notes can only have up to 2 dots" measureNumber
                None
             | _ ->
                // Don't care about the start for tuplet notes
@@ -772,16 +812,16 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
       match n with // figure out the type of the note
 
       | Simple(p) ->
-         parseSimple p baseBeat numberOfBeats nextStart last optionsR graceBefore
+         parseSimple p baseBeat numberOfBeats nextStart last optionsR graceBefore measureNumber
 
       | Complex(p) ->
-         parseComplex p baseBeat numberOfBeats nextStart last optionsR graceBefore
+         parseComplex p baseBeat numberOfBeats nextStart last optionsR graceBefore measureNumber
 
       | Group(g) ->
-         parseGroup g baseBeat numberOfBeats nextStart last optionsR graceBefore
+         parseGroup g baseBeat numberOfBeats nextStart last optionsR graceBefore measureNumber
 
       | Tuplet(t,r) ->
-         parseTuplet t r baseBeat numberOfBeats nextStart last optionsR graceBefore
+         parseTuplet t r baseBeat numberOfBeats nextStart last optionsR graceBefore measureNumber
 
 
    match noteOption with
@@ -790,19 +830,19 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
       // Check to see if a note has a valid number of dots. 8th notes and longer can up to 3 dots. 16th can have 2, 32nd can have 1, 64th cannot have any
       match note.Duration with
       | R(x,n) when n > 3 ->
-         printfn "Notes cannot have more than 3 dots"
+         printfn "Error in measure %i! Notes cannot have more than 3 dots" measureNumber
          None
       | R(x,n) when x = X0 && n > 0 ->
-         printfn "0 rhythms cannot have dots"
+         printfn "Error in measure %i! 0 rhythms cannot have dots" measureNumber
          None
       | R(x,n) when x = X64 && n > 0 ->
-         printfn "64th notes cannot have any dots"
+         printfn "Error in measure %i! 64th notes cannot have any dots" measureNumber
          None
       | R(x,n) when x = X32 && n > 1 ->
-         printfn "32nd notes can only have up to 1 dot"
+         printfn "Error in measure %i! 32nd notes can only have up to 1 dot" measureNumber
          None
       | R(x,n) when x = X16 && n > 2 ->
-         printfn "16th notes can only have up to 2 dots"
+         printfn "Error in measure %i! 16th notes can only have up to 2 dots" measureNumber
          None
       | _ ->
 
@@ -1415,14 +1455,14 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
       match lastRhythm with
       | R(x,n) -> x,n
       | _ ->
-         printfn "Error in beam4: lastRhythm was of type Other, should be R(x,n)"
+         printfn "Error in beamByTime: lastRhythm was of type Other, should be R(x,n)"
          X0,0 // SHOULD NEVER REACH THIS CASE
    // decompose current rhythm into its rhythmNumber and dots
    let (currentRhythmNumber,currentDots) =
       match head.Duration with
       | R(x,n) -> x,n
       | _ ->
-         printfn "Error in beam4: head.Duration was of type Other, should be R(x,n)"
+         printfn "Error in beamByTime: head.Duration was of type Other, should be R(x,n)"
          X0,0 // SHOULD NEVER REACH THIS CASE
 
    (* helper to reuse code
@@ -1473,7 +1513,7 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
                match lastLastRhythm with
                | R(x,n) -> x
                | Other ->
-                  printfn "Error in beam4! If the lastBeamed is 3, then lastLastRhythm cannot by of type Other"
+                  printfn "Error in beamByTime! If the lastBeamed is 3, then lastLastRhythm cannot by of type Other"
                   X0
             // beams for last last
             let numberOfBeamsLastLast = numberOfBeams.[lastLastRhythmNumber]
@@ -1488,7 +1528,7 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
                ((equalBeams @ endStubs),2)
 
          | _ ->
-            printfn "Error in beam4: lastBeamed can only be 0 1 2 or 3"
+            printfn "Error in beamByTime: lastBeamed can only be 0 1 2 or 3"
             ([""],0) //should never reach this case
       // if this note has more beams than the last, draw just the beams, and a future case will take care of stubs
 
@@ -1621,7 +1661,7 @@ let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhyth
                [[1;2;3];[4;5];[6;7]]
 
             | _ ->
-               printfn "Error in beamHelper: this time signature has not yet been implemented. Sorry!"
+               printfn "Error: this time signature has not yet been fully implemented. Sorry!"
                [[0]]
          // call beamByTime, return the strings of the beams and the int for the new lastBeamed
          let (newText, newLastBeamed) = beamByTime key lastLocation lastRhythm lastStart head lastBeamed lastLastRhythm isGrace
@@ -2345,9 +2385,10 @@ let rec beamGraceNotes (els: Element List) (text: string List) (time: int * int)
 3) currentY is the y coord for this element
 4) mProperties is the multi property list for this element
 5) propertyList describes the properties to be drawn
+6) measureNumber is the measure number
 RETURNS the list of strings and the new slurStart
 *)
-let drawSlur (isGrace: bool) (currentX: float) (currentY: float) (mProperties: MultiProperty List) (propertyList: PropertyList) : (String List * PropertyList) option =
+let drawSlur (isGrace: bool) (currentX: float) (currentY: float) (mProperties: MultiProperty List) (propertyList: PropertyList) (measureNumber: int) : (String List * PropertyList) option =
 
    // does this element have Sls
    let hasSls = List.exists (fun e -> e = Sls) mProperties
@@ -2357,14 +2398,14 @@ let drawSlur (isGrace: bool) (currentX: float) (currentY: float) (mProperties: M
    match (hasSls,hasSle) with
    // if a note has both sls and sle, error
    | (true,true) ->
-      printfn "A note can't have both slur start and slur end!"
+      printfn "Error in measure %i! A note can't have both slur start and slur end!" measureNumber
       None
    // if a note has sls but not sle
    | (true,false) ->
       match propertyList.SlurStart with
       // there was already a slur started
       | ((x,y),b,g) when b = true ->
-         printfn "Error! Overlapping slurs detected"
+         printfn "Error in measure %i! Overlapping slurs detected" measureNumber
          None
       // return an empty list, and the new slurStart for recursion
       | ((x,y),b,g) ->
@@ -2391,7 +2432,7 @@ let drawSlur (isGrace: bool) (currentX: float) (currentY: float) (mProperties: M
          Some([slurString],newPropertyList)
       // no slur started, error
       | ((x,y),b,g) ->
-         printfn "Error! A slur was marked as ended but there was no beginning slur"
+         printfn "Error in measure %i! A slur was marked as ended but there was no beginning slur" measureNumber
          None
    // doesn't have start or end slur
    | (false,false) -> Some([""],propertyList)
@@ -2762,9 +2803,10 @@ let drawPluckUp (isGrace: bool) (x: float) (y: float) (mList: MultiProperty List
 7) isGrace is a bool that says whether or not this note is a grace note
 8) x is the xcoord
 9) y is the ycoord
+10) measureNumber is the measure number
 RETURNS the list of strings to be printed and the new PropertyList
 *)
-let drawEProperties (currentString: int) (eProperties: EitherProperty List) (pitch: Pitch) (fret: int) (yCoord: float) (propertyList: PropertyList) (isGrace: bool) (x: float) (y: float) : (string List * PropertyList) option =
+let drawEProperties (currentString: int) (eProperties: EitherProperty List) (pitch: Pitch) (fret: int) (yCoord: float) (propertyList: PropertyList) (isGrace: bool) (x: float) (y: float) (measureNumber: int) : (string List * PropertyList) option =
 
    // Draw slides
    match (drawSlide currentString eProperties pitch fret yCoord propertyList isGrace x) with
@@ -2800,15 +2842,19 @@ let drawEProperties (currentString: int) (eProperties: EitherProperty List) (pit
 
 
 (* Helper method for drawing the mProperties of an Element
-1) propertyList is the record that describes the state of properties to be drawn
-2) isGrace is a bool that says whether or not this note is a grace note
-3) x is the xcoord
-4) y is the ycoord
+1) mList is the list of multiProperties for this element
+2) propertyList is the record that describes the state of properties to be drawn
+3) isGrace is a bool that says whether or not this note is a grace note
+4) x is the xcoord
+5) y is the ycoord
+6) bottomString is the lowest string in this element, used for groups
+7) topString is the highest string in this element, used for groups
+8) measureNumber is the measure number
 RETURNS the list of strings to be printed and the new PropertyList
 *)
-let drawMProperties (mList: MultiProperty List) (propertyList: PropertyList) (isGrace: bool) (x: float) (y: float) (bottomString: int) (topString : int) : (string List * PropertyList) option =
+let drawMProperties (mList: MultiProperty List) (propertyList: PropertyList) (isGrace: bool) (x: float) (y: float) (bottomString: int) (topString : int) (measureNumber: int) : (string List * PropertyList) option =
    // draw slurs
-   match (drawSlur isGrace x y mList propertyList) with
+   match (drawSlur isGrace x y mList propertyList measureNumber) with
    // successful slur drawing
    | Some(slurList,propertyList') ->
 
@@ -2840,9 +2886,10 @@ let drawMProperties (mList: MultiProperty List) (propertyList: PropertyList) (is
 1) el is the current Element
 2) propertyList is the record that describes the state of properties to be drawn
 3) isGrace is a bool that says whether or not this note is a grace note
+4) measureNumber is the measure number
 RETURNS the list of strings to be printed and the new PropertyList
 *)
-let rec drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: bool) : (string List * PropertyList) option =
+let rec drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: bool) (measureNumber: int) : (string List * PropertyList) option =
 
    match el.NoteInfo with
    | SingleNote(n,mProperties) ->
@@ -2859,11 +2906,11 @@ let rec drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrac
       let yCoord = (currentY - 2.3) + (6.0 * ((float currentString) - 1.0))
 
       //** draw the mProperties
-      match (drawMProperties mProperties propertyList isGrace currentX currentY currentString currentString) with
+      match (drawMProperties mProperties propertyList isGrace currentX currentY currentString currentString measureNumber) with
       | Some(mTextList,propertyList') ->
 
          // call the helper to draw eProperties
-         match (drawEProperties currentString eProperties pitchOfNote fret yCoord propertyList' isGrace currentX currentY) with
+         match (drawEProperties currentString eProperties pitchOfNote fret yCoord propertyList' isGrace currentX currentY measureNumber) with
          | Some(eTextList,propertyList'') ->
             Some((mTextList @ eTextList), propertyList'')
 
@@ -2897,7 +2944,7 @@ let rec drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrac
             // specific y coord depending on which string the note is on
             let yCoord = (currentY - 2.3) + (6.0 * ((float currentString) - 1.0))
 
-            match (drawEProperties currentString eProperties pitchOfNote fret yCoord pList isGrace currentX currentY) with
+            match (drawEProperties currentString eProperties pitchOfNote fret yCoord pList isGrace currentX currentY measureNumber) with
             | Some(eT,pList') ->
 
                groupPropertiesHelper tail (t @ eT) pList'
@@ -2922,7 +2969,7 @@ let rec drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrac
       let secondString = allStrings.Item(allStrings.Length - 1)
 
       // draw the multiproperties
-      match (drawMProperties mProperties propertyList isGrace currentX currentY firstString secondString) with
+      match (drawMProperties mProperties propertyList isGrace currentX currentY firstString secondString measureNumber) with
       | Some(mTextList,propertyList') ->
 
          // Call the helper, which calls the eProperty drawer for each note in the group
@@ -2942,7 +2989,7 @@ let rec drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrac
          | [] -> Some(acc,pList)
          | h::t ->
 
-            match (drawPropertiesElement h pList isGrace) with
+            match (drawPropertiesElement h pList isGrace measureNumber) with
             | Some(newTList, newPList) ->
                tupletProperties t (acc @ newTList) newPList isGrace
             | None -> None
@@ -2964,9 +3011,10 @@ let rec drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrac
 1) els is the Element list
 2) text is the string list
 3) propertyList is the record that describes the state of properties to be drawn
+4) measureNumber is the measure number
 RETURNS the string list and the new property list
 *)
-let rec drawPropertiesMeasures (els: Element List) (text: string List) (propertyList: PropertyList) : (String List * PropertyList) option =
+let rec drawPropertiesMeasures (els: Element List) (text: string List) (propertyList: PropertyList) (measureNumber: int) : (String List * PropertyList) option =
    match els with
    | [] ->
       Some(text,propertyList)
@@ -2977,23 +3025,23 @@ let rec drawPropertiesMeasures (els: Element List) (text: string List) (property
          | _ -> head.GraceNotes
 
       // First, draw properties on the grace notes
-      let rec drawGraceProperties (grace: Element List) (t: string List) (pList: PropertyList) : (String List * PropertyList) option =
+      let rec drawGraceProperties (grace: Element List) (t: string List) (pList: PropertyList) (measureNumber: int) : (String List * PropertyList) option =
          match grace with
          | [] -> Some(t,pList)
          | head::tail ->
             // for each grace note, call the element property drawer with isGrace set to true
-            match (drawPropertiesElement head pList true) with
+            match (drawPropertiesElement head pList true measureNumber) with
             | Some(nText, newPList) ->
-               drawGraceProperties tail (t @ nText) newPList
+               drawGraceProperties tail (t @ nText) newPList measureNumber
             | None -> None
 
 
-      match (drawGraceProperties graceNotes [] propertyList) with
+      match (drawGraceProperties graceNotes [] propertyList measureNumber) with
 
       | Some(nText, newPList) ->
-         match (drawPropertiesElement head newPList false) with
+         match (drawPropertiesElement head newPList false measureNumber) with
          | Some(newText, newPropertyList) ->
-            drawPropertiesMeasures tail (text @ nText @ newText) newPropertyList
+            drawPropertiesMeasures tail (text @ nText @ newText) newPropertyList measureNumber
          | None -> None
 
       | None -> None
@@ -3017,7 +3065,7 @@ let rec drawProperties (ms: SingleMeasure List) (text: string List) (propertyLis
       Some(flattenedText,propertyList)
    | head::tail ->
       // properties for regular notes
-      match (drawPropertiesMeasures head.Elements text propertyList) with
+      match (drawPropertiesMeasures head.Elements text propertyList head.MeasureNumber) with
       | Some(newText,newPropertyList) ->
          drawProperties tail newText newPropertyList
       | None -> None
@@ -3284,6 +3332,8 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
             | None -> None
          | None -> None
       | None -> None
+
+
 
 
 
