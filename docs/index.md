@@ -468,4 +468,30 @@ Harmonics are created with `/har`. It create a `<>` around a note, telling the p
 
 ![har](img/properties/har.png)
 
+### Higher Fret
+
+To put a note on a higher fret, use `/^`. For example, an e on string 1 would usually be fret 0, but with this property, it will be the next e up : fret 12.
+
+   ```
+   -time 4-4
+   -capo 3
+   -key eb
+   -title Higher Fret
+   -composer Me
+
+   1:
+      3d8/^
+      (4f# 2dn 1gb)4
+      5gn8
+      1eb4/^
+      (2d 3d)
+   2:
+      5gb8
+      2dn4
+      5f8/^
+      <6d#8 (2dn/^ 4fn 5x)8 3gn8/^ 2a#8 6d>2
+   ```
+
+![fretUp](img/properties/fretUp.png)
+
 ### Properties for Grouped Notes

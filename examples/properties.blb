@@ -1,17 +1,17 @@
--time 2-4
--capo 6
--key f
--title Harmonics
+-time 4-4
+-capo 3
+-key eb
+-title Higher Fret
 -composer Me
 
 1:
-   4d8/har
-   (5g 6g)16
-   1d16
-   2f8
-   <4gn16 5fn16/har (1d 2d 3d/har)16>8
+   3d8/^
+   (4f# 2dn 1gb)4
+   5gn8
+   1eb4/^
+   (2d 3d)
 2:
-   (3a 4f 6an)8
-   2f16./har
-   3f#32
-   4fb4
+   5gb8
+   2dn4
+   5f8/^
+   <6d#8 (2dn/^ 4fn 5x)8 3gn8/^ 2a#8 6d>2
