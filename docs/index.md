@@ -495,3 +495,23 @@ To put a note on a higher fret, use `/^`. For example, an e on string 1 would us
 ![fretUp](img/properties/fretUp.png)
 
 ### Properties for Grouped Notes
+
+Properties work slightly differently for grouped notes, because some properties are added to the group as a whole, and some are added to an individual note within the group.
+
+Properties for the whole group:
+- `/gra`
+- '/stu'
+- '/std'
+- '/plu'
+- '/pld'
+- '/sls'
+- '/sle'
+
+Properties for individual notes
+- '/par'
+- '/sld'
+- '/sli'
+- '/slu'
+- '/tie'
+- '/har'
+- '/^'
