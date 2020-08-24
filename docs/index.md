@@ -507,7 +507,7 @@ Properties for the whole group:
 - `/sls`
 - `/sle`
 
-Properties for individual notes
+Properties for individual notes:
 - `/par`
 - `/sld`
 - `/sli`
@@ -515,3 +515,5 @@ Properties for individual notes
 - `/tie`
 - `/har`
 - `/^`
+
+## Errors and Troubleshooting
