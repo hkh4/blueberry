@@ -183,7 +183,7 @@ Rests follow the format `r<OPTIONAL rhythm>`
    r16..
    ```
 
-Grouped notes allow for multiple notes to be played at the same time. They follow the format `(<note>+)<OPTIONAL rhythm><OPTIONAL group-properties>` where `<note>` is composed of `<string number><pitch><OPTIONAL group-member-properties>`. I know, it looks crazy, but it's not that bad! Properties work differently with grouped notes, because some properties must be applied to an individual note within the group, while others are applied to the entire group. See the [properties](https://blueberry.hugohua.com/#properties) section for more info.
+Grouped notes allow for multiple notes to be played at the same time. They follow the format `(<note>+)<OPTIONAL rhythm><OPTIONAL group-properties>` where `<note>` is composed of `<string number><pitch><OPTIONAL group-member-properties>`. I know, it looks crazy, but it's not that bad! Properties work differently with grouped notes, because some properties must be applied to an individual note within the group, while others are applied to the entire group. See the [properties](https://blueberry.hugohua.com/#properties-for-grouped-notes) section for more info.
 
    ```
    (1e 2e 3e)4
@@ -360,4 +360,32 @@ Strummed notes can be either up `/stu` or down `/std`. It draws an arrow that di
 
 ![strum](img/properties/strum.png)
 
-### Properties for Grouped Notes 
+### Slides
+
+There are three types of slides. First `/sli` is a slide between two notes. When added to a note, it creates a slide to the next note in the page on the same string. This second note does not have to come directly after the first, but any unended slide will raise an error. Next, slide up `/slu` and slide down `/sld` are added to a single note, and they add a small line facing upwards or downwards, telling the player to begin the note above or below and slide into the specified note.
+
+   ```
+   -time 5-8
+   -capo 6
+   -key ab
+   -title Grace Notes
+   -composer Me
+
+   1:
+      4e8/sli
+      5g16
+      (3a 6d 4f)16
+      5f8/sld
+      3d8
+      2c8
+   2:
+      (5f#/slu 6d/sli)8.
+      1x16/slu
+      6eb8
+      4f8
+      2e8/sld
+   ```
+
+![slide](img/properties/slide.png)
+
+### Properties for Grouped Notes

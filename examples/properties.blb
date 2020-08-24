@@ -1,19 +1,19 @@
--time 2-2
+-time 5-8
 -capo 6
 -key ab
 -title Grace Notes
 -composer Me
 
 1:
-   1f4
-   (3d 5fn)4
-   4g16/gra
-   3e8
-   2a
-   6f4
+   4e8/sli
+   5g16
+   (3a 6d 4f)16
+   5f8/sld
+   3d8
+   2c8
 2:
-   (1e 2f 4g)8/gra
-   4x16/gra
-   5cb/gra
-   <3f4 5g4 (3a 4f)4>2
-   3d2
+   (5f#/slu 6d/sli)8.
+   1x16/slu
+   6eb8
+   4f8
+   2e8/sld

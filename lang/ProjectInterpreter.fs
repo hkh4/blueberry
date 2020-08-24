@@ -1595,19 +1595,27 @@ let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhyth
          // The way notes are beamed depends on the time signature
          let key =
             match timeSignature with
+
             // if quarter, half, or whole gets a beat, each beat is in its own group
             | (n,m) when m = 1 || m = 2 || m = 4 ->
                let temp = [1..n]
                List.fold (fun acc elem -> acc @ [[elem]]) [] temp
+
             // for the rest, if the number of beats is even but not a multiple of 3, each beat is in its own group
             | (n,m) when (m = 8 || m = 16 || m = 32 || m = 64) && ((n % 2 = 0) && not (n % 3 = 0)) ->
                let temp = [1..n]
                List.fold (fun acc elem -> acc @ [[elem]]) [] temp
+
             // for multiples of 3, group in 3s
             | (n,m) when (m = 8 || m = 16 || m = 32 || m = 64) && (n % 3 = 0) ->
                let numberOfGroups = n / 3
                let temp = [1..numberOfGroups]
                List.map (fun x -> [x*3-2;x*3-1;x*3]) temp
+
+            // For 5s, group 3 and 2 by default
+            | (n,m) when (m = 8 || m = 16 || m = 32 || m = 64) && (n = 5) ->
+               [[1;2;3];[4;5]]
+
             | _ ->
                printfn "Error in beamHelper: this time signature has not yet been implemented. Sorry!"
                [[0]]
