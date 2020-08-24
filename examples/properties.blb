@@ -1,18 +1,17 @@
--time 6-4
--capo 3
--key d
--title Ties
+-time 2-4
+-capo 6
+-key f
+-title Harmonics
 -composer Me
 
 1:
-   4d2
-   (5f 1eb 2d#)
-   4d8
-   1e#/tie
-   1e#4
+   4d8/har
+   (5g 6g)16
+   1d16
+   2f8
+   <4gn16 5fn16/har (1d 2d 3d/har)16>8
 2:
-   6d8/tie
-   (4f 6d)
-   2d/tie
-   3d
-   2d1
+   (3a 4f 6an)8
+   2f16./har
+   3f#32
+   4fb4

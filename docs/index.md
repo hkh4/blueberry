@@ -442,4 +442,30 @@ Ties are denoted by `/tie`. The first note must be followed some time later by a
 
 ![tie](img/properties/tie.png)
 
+### Harmonics
+
+Harmonics are created with `/har`. It create a `<>` around a note, telling the player to play the harmonic. It's up to you to decide how best to represent the fret vs the where to play the actual harmonic!
+
+   ```
+   -time 2-4
+   -capo 6
+   -key f
+   -title Harmonics
+   -composer Me
+
+   1:
+      4d8/har
+      (5g 6g)16
+      1d16
+      2f8
+      <4gn16 5fn16/har (1d 2d 3d/har)16>8
+   2:
+      (3a 4f 6an)8
+      2f16./har
+      3f#32
+      4fb4
+   ```
+
+![har](img/properties/har.png)
+
 ### Properties for Grouped Notes
