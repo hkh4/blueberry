@@ -28,6 +28,7 @@ type Notehead =
 | Barline
 | Empty
 | Buffer
+| TimeChange of int * int
 and Element = {
    NoteInfo: Notehead
    Duration: Rhythm
@@ -35,16 +36,17 @@ and Element = {
    Width: float
    LastNote: int
    Location: float * float
-   Capo: int
    GraceNotes: Element List
 }
 
 type SingleMeasure = {
    Key: string
    Time: int * int
+   Capo: int
    MeasureNumber: int
    Elements: Element List
    Width: float
+   Changes: {| Time: bool; Key: bool; Capo: bool |}
 }
 
 type Line = {
@@ -154,9 +156,11 @@ let emptyMeasure =
    {
       Key = "c";
       Time = (4,4);
+      Capo = 0;
       MeasureNumber = 0;
-      Elements = [{ NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0); Capo = 0; GraceNotes = [] };{ NoteInfo = Rest; Duration = R(X0,0); Start = 1.0; Width = 30.0; LastNote = 1; Location = (0.0,0.0); Capo = 0; GraceNotes = [] };{ NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = 0; GraceNotes = [] }];
-      Width = 35.0
+      Elements = [{ NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] };{ NoteInfo = Rest; Duration = R(X0,0); Start = 1.0; Width = 30.0; LastNote = 1; Location = (0.0,0.0); GraceNotes = [] };{ NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }];
+      Width = 35.0;
+      Changes = {| Time = false; Key = false; Capo = false; |}
    }
 
 
@@ -207,7 +211,7 @@ let removeDuplicates (l: 'a List) =
 
 
 // Buffer for beaming grace notes and for tuplets
-let bufferElement = { NoteInfo = Buffer; Duration = Other; Start = 0.0; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = 0; GraceNotes = [] }
+let bufferElement = { NoteInfo = Buffer; Duration = Other; Start = 0.0; Width = 0.0; LastNote = 0; Location = (0.0,0.0);  GraceNotes = [] }
 
 
 
@@ -474,6 +478,7 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
 
 
 
+
 (* takes a Property list and divdes it into EitherProperties and MultiProperties
 1) properties is all the Property
 2) eProperties is the list of EitherProperty
@@ -487,6 +492,7 @@ let rec divideProperties (properties: Property List) (eProperties: EitherPropert
       match head with
       | Either(p) -> divideProperties tail (p::eProperties) mProperties
       | Multi(p) -> divideProperties tail eProperties (p::mProperties)
+
 
 
 
@@ -529,16 +535,16 @@ let parseSimple (p: simple) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextS
             match graceBefore with
             | [] -> graceBefore
             | _ -> graceBefore @ [bufferElement]
-         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer }),false)
+         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = graceBeforeBuffer }),false)
       // grace note
       | true ->
-         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }),true)
+         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }),true)
    // Rest Simple
    | RestSimple ->
       // rests can't have grace notes
       match graceBefore with
       | [] ->
-         Some({ NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
+         Some({ NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] },false)
       | _ ->
          printfn "Error in measure %i! Rests can't have grace notes!" measureNumber
          None
@@ -584,10 +590,10 @@ let parseComplex (p: complex) (baseBeat: RhythmNumber) (numberOfBeats: int) (nex
             match graceBefore with
             | [] -> graceBefore
             | _ -> graceBefore @ [bufferElement]
-         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer }),false)
+         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = graceBeforeBuffer }),false)
       // grace note
       | true ->
-         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }),true)
+         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }),true)
    // Rest Complex
    | RestComplex(r) ->
       match graceBefore with
@@ -595,13 +601,14 @@ let parseComplex (p: complex) (baseBeat: RhythmNumber) (numberOfBeats: int) (nex
          // Only update default rhythm if the rhythm is NOT X0
          match r with
          | R(X0,0) ->
-            Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
+            Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0);  GraceNotes = [] },false)
          | _ ->
             defaultRhythm <- r
-            Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },false)
+            Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] },false)
       | _ ->
          printfn "Error in measure %i! Rests can't have grace notes!" measureNumber
          None
+
 
 
 
@@ -655,10 +662,10 @@ let parseGroup (g: group) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextSta
                match graceBefore with
                | [] -> graceBefore
                | _ -> graceBefore @ [bufferElement]
-            Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer },false)
+            Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = graceBeforeBuffer },false)
          // grace note
          | true ->
-            Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },true)
+            Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] },true)
       | None -> None
    // gcomplex: group with rhythm: does the same thing but uses r instead of the default rhythm
    | GComplex(gList,r,mProperties) ->
@@ -674,10 +681,10 @@ let parseGroup (g: group) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextSta
                match graceBefore with
                | [] -> graceBefore
                | _ -> graceBefore @ [bufferElement]
-            Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = graceBeforeBuffer },false)
+            Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = graceBeforeBuffer },false)
          // grace note
          | true ->
-            Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] },true)
+            Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] },true)
       | None -> None
 
 
@@ -703,7 +710,7 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
       | [] ->
          // turn the list of Elements into a single Element
 
-         let bigElement = { NoteInfo = TupletNote(newElements); Start = nextStart; Duration = r; Width = totalWidth; LastNote = 0; Location = (0.0,0.0); Capo = optionsR.Capo; GraceNotes = [] }
+         let bigElement = { NoteInfo = TupletNote(newElements); Start = nextStart; Duration = r; Width = totalWidth; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }
 
          //update default rhythm
          defaultRhythm <- r
@@ -921,6 +928,7 @@ let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : El
 
 
 
+
 (* Depending on the key, change the pitches
 1) l is the list of Elements
 2) key is the key of the measure
@@ -1054,11 +1062,12 @@ let rec parseKey (l: Element List) (key: string) : Element List =
 
 
 (* Evaluate a single measure
-1) m is an Expr, which should be a Measure
+1) m is an Expr
 2) optionsR is the options evaluated earlier, which will be added into the metadata of the measure
+3) changes is an anonymous record of which options have changed
 RETURNS: a SingleMeasure
 *)
-let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
+let evalMeasure (m: Expr) (optionsR: optionsRecord) (changes: {| Time: bool; Key: bool; Capo: bool |}) : SingleMeasure option =
    match m with
    // b is measure number, c is Note List
    | Measure(b,c) ->
@@ -1088,17 +1097,29 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
          let listWithUpdatedKeys = parseKey list optionsR.Key
 
          // Add empty space at the beginning and barline at the end
-         let empty = { NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0); Capo = 0; GraceNotes = [] }
+         let empty = { NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }
 
          // Barline at the end of the measure
-         let bar = { NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0); Capo = 0; GraceNotes = [] }
+         let bar = { NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }
          let newList = [empty] @ listWithUpdatedKeys @ [bar]
 
          // Add 5 to the width because of the empty space at the beginning
-         let newWidth = width + 5.0
+         let mutable newWidth = width + 5.0
+
+         // If it needs a time change, add that
+         let timeList =
+            match changes.Time with
+            | true ->
+               let (top,bottom) = optionsR.Time
+               newWidth <- newWidth + 10.0
+               let timeChange = { NoteInfo = TimeChange(top,bottom); Start = 0.0; Duration = Other; Width = 10.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }
+               timeChange::newList
+
+            | false -> newList
 
          // create instance of SingleMeasure
-         let mes = { Time = optionsR.Time; Key = optionsR.Key; MeasureNumber = b; Elements = newList; Width = newWidth }
+         let mes = { Time = optionsR.Time; Key = optionsR.Key; Capo = optionsR.Capo; MeasureNumber = b; Elements = timeList; Width = newWidth; Changes = {| Key = changes.Key; Time = changes.Time; Capo = changes.Capo |}}
+
 
          Some(mes)
       | None -> None
@@ -1111,24 +1132,43 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) : SingleMeasure option =
 
 
 (* Goes through each measure one at a time, gives to evalMeasure, returns list of SingleMeasure
-1) measureList is the list of Expr's, should be a list of Measures
+1) measureList is the list of Expr's
 2) optionsR is the record of options evaluated earlier
 3) singleMeasureList is a list of SingleMeasures that will be evaluated and appended
+4) changes is an anonymous record of which options have changed
 RETURNS: list of SingleMeasure evaluated by helpers
 *)
-let rec evalAllMeasures (measuresList : Expr List) (optionsR : optionsRecord) (singleMeasureList : SingleMeasure List) : SingleMeasure List option =
+let rec evalAllMeasures (measuresList : Expr List) (optionsR : optionsRecord) (singleMeasureList : SingleMeasure List) (changes: {| Time: bool; Key: bool; Capo: bool |}) : SingleMeasure List option =
    match measuresList with
    // Base case : return SingleMeasure List
    | [] ->
       Some(singleMeasureList)
    | head::tail ->
-      // Create a single SingleMeasure
-      match (evalMeasure head optionsR) with
-      | Some(m) ->
-         // Concatenate and recurse on tail
-         let newList = singleMeasureList @ [m]
-         evalAllMeasures tail optionsR newList
-      | None -> None
+
+      // If it's a measure, parse it
+      match head with
+      | Measure(x,y) ->
+         match (evalMeasure head optionsR changes) with
+         | Some(m) ->
+            // Concatenate and recurse on tail
+            let newList = singleMeasureList @ [m]
+            evalAllMeasures tail optionsR newList {| Time = false; Capo = false; Key = false |}
+         | None -> None
+
+      // if it's an option, edit the optionsR
+      | ScoreOption(key,value) ->
+
+         match (parseOptions head optionsR) with
+         | Some(newOptionsR) ->
+
+            // figure out what changed
+            let keyChange = not (newOptionsR.Key = optionsR.Key)
+            let timeChange = not (newOptionsR.Time = optionsR.Time)
+            let capoChange = not (newOptionsR.Capo = optionsR.Capo)
+
+            evalAllMeasures tail newOptionsR singleMeasureList {| Time = timeChange; Key = keyChange; Capo = capoChange |}
+
+         | None -> None
 
 
 
@@ -1978,9 +2018,10 @@ let showX (x: float) (y: float) (guitarString:int) : string =
 4) updatedElements is the elements but with location updated to x,y
 5) text is the list of strings to print
 6) insideScale is how much to scale the widths
+7) capo is the capo
 RETURNS the list of strings, the list of new elements, and the new x y coords for the real note that this list of grace notes is attached to
 *)
-let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElements: Element List) (text: string List) (insideScale: float) : (string List * Element List * float * float) option =
+let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElements: Element List) (text: string List) (insideScale: float) (capo: int) : (string List * Element List * float * float) option =
 
 
    (* Helper to show a grace note which is a normal guitar note
@@ -2023,21 +2064,21 @@ let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElement
       match head.NoteInfo with
       // show a grace note which is a normal guitar note
       | SingleNote(NormalGuitarNote(guitarString,pitch,f,eProperties),mProperties) ->
-         match (showNormalGraceNote eProperties guitarString pitch head.Capo) with
+         match (showNormalGraceNote eProperties guitarString pitch capo) with
          | Some(newText,fret) ->
 
             // update the element again for the fret
             let newNoteHead = SingleNote((NormalGuitarNote(guitarString,pitch,fret,eProperties)),mProperties)
             let newNewEl = { newEl with NoteInfo = newNoteHead }
 
-            showGraceNotes newX y tail (updatedElements @ [newNewEl]) (text @ [newText]) insideScale
+            showGraceNotes newX y tail (updatedElements @ [newNewEl]) (text @ [newText]) insideScale capo
          | None -> None
 
       // show a grace note that's an x
       | SingleNote(X(guitarString,eProperties),mProperties) ->
          let newText = showXGraceNote guitarString
 
-         showGraceNotes newX y tail (updatedElements @ [newEl]) (text @ [newText]) insideScale
+         showGraceNotes newX y tail (updatedElements @ [newEl]) (text @ [newText]) insideScale capo
 
 
       // show a grace note that's a group
@@ -2052,7 +2093,7 @@ let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElement
                match head' with
 
                | NormalGuitarNote(guitarString,pitch,f,eProperties) ->
-                  match (showNormalGraceNote eProperties guitarString pitch head.Capo) with
+                  match (showNormalGraceNote eProperties guitarString pitch capo) with
                   | Some(newText,fret) ->
 
                      // create the new note with updated fret
@@ -2072,10 +2113,10 @@ let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElement
             // update the element with the new singlenotes
             let newNoteHead = GroupNote(newSingleNotes,mProperties)
             let newNewEl = { newEl with NoteInfo = newNoteHead }
-            showGraceNotes newX y tail (updatedElements @ [newNewEl]) (text @ groupText) insideScale
+            showGraceNotes newX y tail (updatedElements @ [newNewEl]) (text @ groupText) insideScale capo
          | None -> None
 
-      | _ -> showGraceNotes x y tail (updatedElements @ [newEl]) text insideScale
+      | _ -> showGraceNotes x y tail (updatedElements @ [newEl]) text insideScale capo
 
 
 
@@ -2091,15 +2132,30 @@ let rec showGraceNotes (x: float) (y: float) (els: Element List) (updatedElement
 6) l is the list of strings that represents the elements to be displayed
    note: raster images in general PREPENDED to the list so they are displayed FIRST
 7) insideScale is the scale used to change the widths
+8) priorityText is text that should be written first
+9) capo is the capo
 RETURNS: updated list of strings to be displayed, and updated list of elements
 *)
-let rec showElements (els: Element List) (updatedElements: Element List) (measureWidth: float) (x: float) (y: float) (l: string List) (insideScale: float) : (string List * Element List) option =
+let rec showElements (els: Element List) (updatedElements: Element List) (measureWidth: float) (x: float) (y: float) (l: string List) (insideScale: float) (priorityText: string List) (capo: int) : (string List * string List * Element List) option =
    match els with
-   | [] -> Some(l,updatedElements)
+   | [] -> Some(l,priorityText,updatedElements)
    | head::tail ->
 
       // Depending on what type of element is to be written
       match head.NoteInfo with
+
+      // Write the new time signature
+      | TimeChange(top,bottom) ->
+
+         let timeSigString = string (x + 5.0) + " " + string (y + 15.0) + " " + string top + " timesignature " + string (x + 5.0) + " " + string (y + 6.0) + " " + string bottom + " timesignature "
+
+         let newElement = { head with Location = (x,y) }
+         let newUpdatedElements = updatedElements @ [newElement]
+
+         // x coord of next element
+         let newX = x + (head.Width * insideScale)
+
+         showElements tail newUpdatedElements measureWidth newX y l insideScale (priorityText @ [timeSigString]) capo
 
       // Do nothing
       | Buffer ->
@@ -2107,8 +2163,8 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
          // update element with location
          let newElement = { head with Location = (x,y) }
          let newUpdatedElements = updatedElements @ [newElement]
-         // just add 5, since it shouldn't be scaled
-         showElements tail newUpdatedElements measureWidth x y l insideScale
+
+         showElements tail newUpdatedElements measureWidth x y l insideScale priorityText capo
 
       // Do nothing, just move forward 5 units
       | Empty ->
@@ -2116,7 +2172,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
          let newElement = { head with Location = (x,y) }
          let newUpdatedElements = updatedElements @ [newElement]
          // just add 5, since it shouldn't be scaled
-         showElements tail newUpdatedElements measureWidth (x + 5.0) y l insideScale
+         showElements tail newUpdatedElements measureWidth (x + 5.0) y l insideScale priorityText capo
       // Guitar note: although raster image, still put at the end of the list because i want the white border
 
       | SingleNote(n,mProperties) ->
@@ -2128,7 +2184,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
             // if it's a guitar note
             | NormalGuitarNote(guitarString,pitch,fret,eProperties) ->
                // call the helper, which calculates the fret and returns the string to print the note
-               match (showNormalGuitarNote eProperties x y guitarString pitch head.Capo) with
+               match (showNormalGuitarNote eProperties x y guitarString pitch capo) with
                | Some(newText,newFret) ->
                   // x coord of next element
                   let newX = x + (head.Width * insideScale)
@@ -2140,7 +2196,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                   // add new element into list
                   let newUpdatedElements = updatedElements @ [newElement]
                   // recurse
-                  showElements tail newUpdatedElements measureWidth newX y newList insideScale
+                  showElements tail newUpdatedElements measureWidth newX y newList insideScale priorityText capo
                | None -> None
 
             | X(guitarString,eProperties) ->
@@ -2152,7 +2208,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                // updated element with location
                let newElement = { head with Location = (x,y) }
                let newUpdatedElements = updatedElements @ [newElement]
-               showElements tail newUpdatedElements measureWidth newX y newList insideScale
+               showElements tail newUpdatedElements measureWidth newX y newList insideScale priorityText capo
 
          // if it does have grace notes, show those first
          | grace ->
@@ -2160,11 +2216,11 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
             // normal guitar note grace note
             | NormalGuitarNote(guitarString,pitch,fret,eProperties) ->
                // call the grace note helper
-               match (showGraceNotes x y grace [] [] insideScale) with
+               match (showGraceNotes x y grace [] [] insideScale capo) with
                // returns the new text, the updated grace notes, and the new x y coords
                | Some(newText,newGraceNotes,newX,newY) ->
 
-                  match (showNormalGuitarNote eProperties newX newY guitarString pitch head.Capo) with
+                  match (showNormalGuitarNote eProperties newX newY guitarString pitch capo) with
                   | Some(newerText,newFret) ->
                      // NOTE: adding from the original x to make the math easier and safer
                      let newerX = x + (head.Width * insideScale)
@@ -2176,14 +2232,14 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                      // add new element into list
                      let newUpdatedElements = updatedElements @ [newElement]
                      // recurse
-                     showElements tail newUpdatedElements measureWidth newerX y newList insideScale
+                     showElements tail newUpdatedElements measureWidth newerX y newList insideScale priorityText capo
                   | None -> None
                | None -> None
 
             // x note
             | X(guitarString,eProperties) ->
                // still call the grace note helper in the same way
-               match (showGraceNotes x y grace [] [] insideScale) with
+               match (showGraceNotes x y grace [] [] insideScale capo) with
                | Some(newText,newGraceNotes,newX,newY) ->
                   // should always work so not option type
                   let newerText = showX newX newY guitarString
@@ -2193,7 +2249,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                   // updated element with location and grace notes
                   let newElement = { head with Location = (newX,newY); GraceNotes = newGraceNotes }
                   let newUpdatedElements = updatedElements @ [newElement]
-                  showElements tail newUpdatedElements measureWidth newerX y newList insideScale
+                  showElements tail newUpdatedElements measureWidth newerX y newList insideScale priorityText capo
                | None -> None
 
       // show a group
@@ -2221,21 +2277,21 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
          match head.GraceNotes with
          // no grace notes
          | [] ->
-            match (groupHelper nList [] head.Capo x y []) with
+            match (groupHelper nList [] capo x y []) with
             | Some(newText,newSingleNotes) ->
                let newX = x + (head.Width * insideScale)
                let newList = l @ newText
                let newNoteHead = GroupNote(newSingleNotes,mProperties)
                let newElement = { head with Location = (x,y) ; NoteInfo = newNoteHead }
                let newUpdatedElements = updatedElements @ [newElement]
-               showElements tail newUpdatedElements measureWidth newX y newList insideScale
+               showElements tail newUpdatedElements measureWidth newX y newList insideScale priorityText capo
             | None -> None
          // grace notes
          | grace ->
-            match (showGraceNotes x y grace [] [] insideScale) with
+            match (showGraceNotes x y grace [] [] insideScale capo) with
             | Some(newText,newGraceNotes,newX,newY) ->
                // call the helper to get the strings for each note, using the new x and y
-               match (groupHelper nList [] head.Capo newX newY []) with
+               match (groupHelper nList [] capo newX newY []) with
 
                | Some(newerText,newSingleNotes) ->
                   let newerX = x + (head.Width * insideScale)
@@ -2243,14 +2299,14 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                   let newNoteHead = GroupNote(newSingleNotes,mProperties)
                   let newElement = { head with Location = (newX,newY); GraceNotes = newGraceNotes; NoteInfo = newNoteHead }
                   let newUpdatedElements = updatedElements @ [newElement]
-                  showElements tail newUpdatedElements measureWidth newerX y newList insideScale
+                  showElements tail newUpdatedElements measureWidth newerX y newList insideScale priorityText capo
                | None -> None
             | None -> None
 
       | TupletNote(tupletNotes) ->
          // recurse over each note within the tuplet
-         match (showElements tupletNotes [] measureWidth x y l insideScale) with
-         | Some(newStringList, newTupletNotes) ->
+         match (showElements tupletNotes [] measureWidth x y l insideScale priorityText capo) with
+         | Some(newStringList, newPriorityText, newTupletNotes) ->
 
             // Create the new tupletNote, and update everything like for other notes
             let newerX = x + (head.Width * insideScale)
@@ -2258,7 +2314,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
             let newNoteHead = TupletNote(newTupletNotes)
             let newElement = { head with NoteInfo = newNoteHead }
             let newUpdatedElements = updatedElements @ [newElement]
-            showElements tail newUpdatedElements measureWidth newerX y newList insideScale
+            showElements tail newUpdatedElements measureWidth newerX y newList insideScale newPriorityText capo
 
          | None -> None
 
@@ -2272,7 +2328,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
          let newElement = { head with Location = (x-5.0,y) }
          let newUpdatedElements = updatedElements @ [newElement]
          // same x and y since it has no width
-         showElements tail newUpdatedElements measureWidth x y newList insideScale
+         showElements tail newUpdatedElements measureWidth x y newList insideScale priorityText capo
       // Rest : depending on rhythm, use the right rest and right number of dots
       | Rest ->
          let newText =
@@ -2337,7 +2393,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
          // update the element with its x y coords
          let newElement = { head with Location = (x,y) }
          let newUpdatedElements = updatedElements @ [newElement]
-         showElements tail newUpdatedElements measureWidth newX y newList insideScale
+         showElements tail newUpdatedElements measureWidth newX y newList insideScale priorityText capo
 
 
 
@@ -3082,11 +3138,12 @@ let rec drawProperties (ms: SingleMeasure List) (text: string List) (propertyLis
 3) y is the y-coord of the next note
 4) l is the list of strings to be printed
 5) scale is the scale of the measures - width of line / width of measures in the line
+6) priorityText is text that should be written first
 RETURNS: list of strings to be printed, and list of updated measures that have th new elements
 *)
-let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeasure List) (x: float) (y: float) (l: string List) (scale: float) : (string List * SingleMeasure List) option =
+let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeasure List) (x: float) (y: float) (l: string List) (scale: float) (priorityText: string List) : (string List * string List * SingleMeasure List) option =
    match measures with
-   | [] -> Some(l,updatedMeasures)
+   | [] -> Some(l,priorityText,updatedMeasures)
    | head::tail ->
       // list of elements
       let els = head.Elements
@@ -3096,8 +3153,8 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
       // used to scale the notes on the inside, removing the 5 units of space in the beginning
       let insideScale = newWidth / (head.Width - 5.0)
 
-      match (showElements els [] newWidth x y l insideScale) with
-      | Some(li,updatedElements) ->
+      match (showElements els [] newWidth x y l insideScale priorityText head.Capo) with
+      | Some(li,priorityText',updatedElements) ->
 
          // x coordinate of the beginning of the next measure
          let newX = x + newWidth
@@ -3113,7 +3170,23 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
 
          let newUpdatedMeasures = updatedMeasures @ [newMeasure]
 
-         showMeasures tail newUpdatedMeasures newX y (listWithBeams @ listWithGraceBeams) scale
+         // write capo change
+         //todo
+         // first get the location of the first element in the measure
+         let changeCapoText =
+            match newMeasure.Changes.Capo with
+
+            // if the measure has a capo change
+            | true ->
+
+               let (firstX, firstY) = updatedElements.Head.Location
+
+               [" " + string firstX + " " + string firstY + " (capo " + string newMeasure.Capo + ") changeCapo "]
+
+            // if the measure does not have a capo change
+            | false -> [""]
+
+         showMeasures tail newUpdatedMeasures newX y (listWithBeams @ listWithGraceBeams @ changeCapoText) scale priorityText'
 
 
       | None -> None
@@ -3238,13 +3311,14 @@ let checkEndSlide (restOfLines: Line List) (propertyList: PropertyList) =
 1) lines is the list of Lines to be evaluated and printed
 2) updatedLines is the list of new lines with the new measures and elements
 3) text is all the postscript text to be written
-4) propertyList is the record that describes the properties to be drawn
-RETURNS: new updated text and new Line List
+4) priorityText is text that should be written first
+5) propertyList is the record that describes the properties to be drawn
+RETURNS: new updated text, priority text, and new Line List
 *)
-let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (propertyList: PropertyList) : (string * Line List) option =
+let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (priorityText: string) (propertyList: PropertyList) : (string * string * Line List) option =
    match lines with
    // Base case: return the text when all lines have been processed
-   | [] -> Some(text,updatedLines)
+   | [] -> Some(text,priorityText,updatedLines)
    // Recursive case
    | head::tail ->
       // Get x and y coordinates of the beginning of the line
@@ -3259,7 +3333,9 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
 
       // Create clef and/or time signature
       let (clef, timeSig, newX) =
+
          match head.LineNumber with
+
          // If it's the first line, add a clef AND time signature
          | 1 ->
             let clefString = string (staffx + 3.0) + " " + string (staffy + 2.0) + " 7 25.2 70 252 (images/Staves/Staff.jpg) 3 printimage "
@@ -3267,45 +3343,59 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
             let (currentTime1, currentTime2) = head.Measures.Head.Time
             let timeSigString = string (staffx + 14.0) + " " + string (staffy + 15.0) + " " + string currentTime1 + " timesignature " + string (staffx + 14.0) + " " + string (staffy + 6.0) + " " + string currentTime2 + " timesignature "
             (clefString, timeSigString, staffx + 30.0)
+
          // For all other lines, just add the clef
          | _ ->
             let clefString = string (staffx + 3.0) + " " + string (staffy + 2.0) + " 7 25.2 70 252 (images/Staves/Staff.jpg) 3 printimage "
             (clefString, "", staffx + 20.0)
 
       let newHead : Line =
+
          // If the line isn't very full, add some empty measures
          match head.OriginalWidth with
+
          // Add 3 empty measures if less than 25% full
          | num when num <= (head.FinalWidth / 4.0) ->
             let oldMeasures = head.Measures
             let newMeasures = oldMeasures @ [emptyMeasure] @ [emptyMeasure] @ [emptyMeasure] @ [emptyMeasure] @ [emptyMeasure]
             { head with Measures = newMeasures; OriginalWidth = num + 175.0 }
+
          // Add 2 empty measures if 25-50% full
          | num when num > (head.FinalWidth / 4.0) && num <= (head.FinalWidth / 2.0) ->
             let oldMeasures = head.Measures
             let newMeasures = oldMeasures @ [emptyMeasure] @ [emptyMeasure] @ [emptyMeasure]
             { head with Measures = newMeasures; OriginalWidth = num + 105.0 }
+
          // Add 1 empty measure if 50-75% full
          | num when num > (head.FinalWidth / 2.0) && num <= (head.FinalWidth * (3.0/4.0)) ->
             let oldMeasures = head.Measures
             let newMeasures = oldMeasures @ [emptyMeasure]
             { head with Measures = newMeasures; OriginalWidth = num + 35.0 }
+
          | _ -> head
 
       // Float to tell how much to scale widths of individual elements
       let scale = (newHead.FinalWidth + staffx - newX) / newHead.OriginalWidth
       // Show measures of the line
 
-      match (showMeasures newHead.Measures [] newX staffy [] scale) with
-      | Some(li,updatedMeasures) ->
+      match (showMeasures newHead.Measures [] newX staffy [] scale []) with
+      | Some(li,priorityText',updatedMeasures) ->
+
          // Put all the strings together
          let allNewElements = staffline + (List.fold (fun acc elem -> acc + " " + elem) "" li)
+
+         // Put all priority strings together
+         let allPriorityElements = List.fold (fun acc elem -> acc + " " + elem) "" priorityText'
+
          // Add the measure number of the first measure of the line
          // Find the measure number
          let firstMeasureNumber = updatedMeasures.Head.MeasureNumber
+
          // Add the string
          let measureNumberString = string (staffx - 5.0) + " " + string (staffy + 40.0) + " (" + string firstMeasureNumber + ") measureNumber "
          let newText = text + clef + timeSig + allNewElements + measureNumberString
+         let newPriorityText = priorityText + allPriorityElements
+
          // Update the line with the new measures
          let newLine = { head with Measures = updatedMeasures }
          let newUpdatedLines = updatedLines @ [newLine]
@@ -3326,7 +3416,7 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
                   match (checkEndSlide tail newPropertyList'') with
                   | Some(newPropertyList''') ->
 
-                     showLines tail newUpdatedLines (newText + propertyText + slurText + tieText) newPropertyList'''
+                     showLines tail newUpdatedLines (newText + propertyText + slurText + tieText) newPriorityText newPropertyList'''
                   | None -> None
                | None -> None
             | None -> None
@@ -3340,16 +3430,18 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
 (* Driver for creating text for postscript file. Every method from here appends onto the base text, which is all the functions and other variables needed
 1) pages is list of Pages to be evaluated
 2) updatedPages is the list of new pages that have been updated
-3) text is the text that will be updated then printed to postscript file
-4) outFile is the name of the file to be printed to
+3) starterText is the string of the postscript functions
+4) text is the text that will be updated then printed to postscript file
+5) outFile is the name of the file to be printed to
 RETURNS string to be printed and the new Page List
 *)
-let rec show (pages: Page List) (updatedPages: Page List) (text: string) (outFile: string) : (string * Page List) option =
+let rec show (pages: Page List) (updatedPages: Page List) (starterText: string) (text: string) (outFile: string) : (string * Page List) option =
    match pages with
    // Base: no more pages, print the text to a file called score.ps
    | [] ->
-      File.WriteAllText(outFile+".ps",text)
-      Some(text,updatedPages)
+      let fullText = starterText + text
+      File.WriteAllText(outFile+".ps",fullText)
+      Some(fullText,updatedPages)
    // Recursive case
    | head::tail ->
       let lines = head.Lines
@@ -3373,13 +3465,13 @@ let rec show (pages: Page List) (updatedPages: Page List) (text: string) (outFil
                Add(5,((0.0,0.0),0,false,false)).
                Add(6,((0.0,0.0),0,false,false))
          }
-      match (showLines lines [] text defaultPropertyList) with
-      | Some(t,updatedLines) ->
-         let newText = t + " showpage "
+      match (showLines lines [] text "" defaultPropertyList) with
+      | Some(t,priority,updatedLines) ->
+         let newText = priority + t + " showpage "
          // update the Page with the new lines
          let newPage = { head with Lines = updatedLines }
          let newUpdatedPages = updatedPages @ [newPage]
-         show tail newUpdatedPages newText outFile
+         show tail newUpdatedPages starterText newText outFile
       | None ->
          None
 
@@ -3399,7 +3491,7 @@ let eval optionsList measuresList outFile =
    | Some(newOption) ->
 
       // create SingleMeasure List
-      match (evalAllMeasures measuresList newOption []) with
+      match (evalAllMeasures measuresList newOption [] {| Time = false; Key = false; Capo = false |}) with
       | Some(list) ->
 
          // Take SingleMeasure List and use the widths to create list of lines
@@ -4661,13 +4753,29 @@ let eval optionsList measuresList outFile =
                   grestore end
                } bind def
 
+               /changeCapo {
+                  3 dict begin gsave
+                  /str exch def
+                  /y1 exch def
+                  /x1 exch def
+
+                  /Times-Roman findfont
+                  7 scalefont
+                  setfont
+                  newpath
+                  0 0 0 setrgbcolor
+                  x1 y1 55 add moveto
+                  str show
+                  grestore end
+               } bind def
+
                %%EndProlog
 
                "
-               // Add the title and comnposer to the text
+               // Add the title and composer to the text
                let text' = text + " (" + newOption.Title + ") title " + "(" + newOption.Composer + ") composer (capo " + string newOption.Capo + ") capo "
                //print and show
-               match (show pages [] text' outFile) with
+               match (show pages [] text' "" outFile) with
                | Some(updatedText, updatedPages) ->
 
                   Some(updatedText, updatedPages)

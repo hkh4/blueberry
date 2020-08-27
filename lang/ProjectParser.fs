@@ -103,7 +103,7 @@ let (<!>) (p: Parser<_,_>) label : Parser<_,_> =
 let optionWord_spaces1 = (word .>> multipleSpaces1) <??> "Option identifier followed by whitespace"
 
 let optionIdentifier = pstr "-" >>. optionWord_spaces1 <??> "'-' followed by the option identifier. No spaces in between."
-let singleOption = (optionIdentifier .>>. ((restOfLine false) .>> newline)) |>> ScoreOption
+let singleOption = (optionIdentifier .>>. ((restOfLine false) .>> (newline .>>. spaces))) |>> ScoreOption
 let option = (many singleOption) .>> spaces
 
 
@@ -258,7 +258,7 @@ let noteWithOptionalSpaces = note .>> optional (attempt emptyLines)
 
 let measure1 = measureNumber .>>. (many1 noteWithOptionalSpaces) .>> spaces |>> Measure <!> "measure"
 
-let expr = (option .>>. (many measure1)) .>> spaces <!> "expr"
+let expr = (option .>>. (many (measure1 <|> singleOption))) .>> spaces <!> "expr"
 
 let grammar = expr .>> eof
 
