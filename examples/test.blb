@@ -1,66 +1,15 @@
--title Blueberry
--composer Hugo Hua
+-title Time Change
+-time 4-4
 -key c
-
-   -time 4-4
-
-
-
--capo 2
-
-
-
-
+-composer Mystery
 
 1:
-   1e4/sls/^
-   <1gb64/pld/^ 2g8/sle r8 r r16 r r r (3e 4e 5e)8./stu 1e64/sld 1e32. 1e16/tie 1e8../sli (1e 2d)8/plu 1e16 2e32 3e64>4
-   3e4/gra
-   1e4
-   1e4/gra
-   <2e8/sls 4f16/sle (1e 2e 3e/har)8/pld>4
-2:
-   6x64/sls
-   (2f# 5gb)32./plu
-   4e#4
-   3ab8./sle
-   <1e16 1e 1e 1e 1e 1e 1e 1e 1e 1e 1e 1e 1e>4
-   3d8.
-   1d16
-3:
-   <4fn8... 5g#16>4.
-   <6d#4 (2e 5f)4>4.
-   <2ab16>16.
-   <1x4 3dn8.>16.
-   <(6b# 5fn) (1e 2e 3e 4e 5e 6e)16>64
-   <1e16.>32.
--capo 3
-4:
-   <1e1>4
-   1e8
-   <1e8 1e8 1e8>4
-   1e8
-   1e8
-   1e32
-   <1e32 1e32 1e32>16
-   <1e64 1e64 1e64>32
+   2b
+   1b
+   3b
+   2b
 -time 3-4
-5:
-   1e4
-   1e
-   1e
--time 6-8
-6:
-   1e8
-   1e
-   1e
-   1e
-   1e
-   1e
--time 4-2
--capo 4
-7:
-   1e2
-   1e
-   1e
-   1e
+2:
+   5b
+   4b
+   1b

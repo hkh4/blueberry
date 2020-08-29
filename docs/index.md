@@ -515,3 +515,75 @@ Properties for individual notes:
 - `/tie`
 - `/har`
 - `/^`
+
+## Changing Key, Capo, Time Signature
+
+The options used at the beginning of the document (key, capo, time in particular) can be used in between measures as well.
+
+### Key
+
+   ```
+   -title Key Change
+   -time 4-4
+   -key c
+   -composer Mystery
+
+   1:
+      1f
+      1f
+      1f
+      1f
+   -key d
+   2:
+      1f
+      1f
+      1f
+      1f
+   ```
+
+![key change](img/keyChange.png)
+
+### Capo
+
+   ```
+   -title Capo Change
+   -time 4-4
+   -key c
+   -composer Mystery
+
+   1:
+      1b
+      1b
+      1b
+      1b
+   -capo 3
+   2:
+      1b
+      1b
+      1b
+      1b
+   ```
+
+![capo change](img/capoChange.png)
+
+### Time
+
+   ```
+   -title Time Change
+   -time 4-4
+   -key c
+   -composer Mystery
+
+   1:
+      2b
+      1b
+      3b
+      2b
+   -time 3-4
+   2:
+      5b
+      4b
+      1b
+   ```
+
+![time change](img/timeChange.png)
