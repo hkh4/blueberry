@@ -1601,6 +1601,9 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
       | _ ->
          // may need to add a flag to the last note
          match lastBeamed with
+         | 3 ->
+            let flag = endingStubs lastLocation lastRhythm isGrace
+            (flag,0)
          | 0 ->
             let flag = drawFlags x y lastRhythm isGrace
             (flag,0)

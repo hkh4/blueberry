@@ -6,7 +6,7 @@ open FParsec
 open ProjectParser
 open ProjectInterpreter
 
-[<EntryPoint>] 
+[<EntryPoint>]
 let main argv =
    //reads in from a file
    if (Array.length argv <> 2) then
