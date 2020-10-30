@@ -868,8 +868,14 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
                   None
                // Not enough beats
                | _ ->
-                  printfn "Error! Not enough beats in measure %i" measureNumber
-                  None
+
+                  // If it's measure 0, it's fine, because it's a pick up measure
+                  match measureNumber with
+                  | 0 ->
+                     Some({ newNote with LastNote = 1 },newNextStart,[])
+                  | _ ->
+                     printfn "Error! Not enough beats in measure %i" measureNumber
+                     None
                // If it's not the last note
             | _ ->
                match newNextStart with

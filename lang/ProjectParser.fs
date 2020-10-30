@@ -17,7 +17,7 @@ sld = slide down
 slu = slide up
 sli = slide
 tie = tie
-upf = up fret
+^ = up fret
 *)
 
 type Pitch =

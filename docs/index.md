@@ -38,12 +38,14 @@ Download the packages above and clone this repo into an easily accessible locati
    ```
 
 4. Use ps2pdf, a command line tool from Ghostscript, to convert the postscript file to a pdf. If you get an error, you may need to add ghostscript to your PATH variable.
+
    ```shell
    ps2pdf -dNOSAFER <file>.ps
    ```
 ### Running From Separate Folder
 
 1. To run the program on files in a separate folder, I suggest writing a custom script to do the job for you. Follow [this link](https://medium.com/devnetwork/how-to-create-your-own-custom-terminal-commands-c5008782a78e) for instructions on how to set up a file with custom scripts. Once created, add the following, replacing PATHTOFILE with the path to wherever you cloned the blueberry folder:
+
    ```shell
    function pspdf() {
       ps2pdf -dNOSAFER $1.ps
@@ -248,7 +250,7 @@ Rhythms are denoted with a number after the pitch.
 - 32 = 32nd note
 - 64 = 64th note
 
-Dots `.` can also be added after the number. The limit is 3 dots for notes of an 8th note or longer, 2 dots on a 16th note, 1 dot on a 32nd note, and no dots are allowed on a 64th note. Rhythms are optional; if omitted, the note will have the same rhythm as the previous note. The default for the first note on the page is one unit of the given time signature. Note: the 0 rhythm can only be used for rests. r0 denotes an empty measure.
+Dots `.` can also be added after the number. The limit is 3 dots for notes of an 8th note or longer, 2 dots on a 16th note, 1 dot on a 32nd note, and no dots are allowed on a 64th note. Rhythms are optional; if omitted, the note will have the same rhythm as the previous note. The default for the first note on the page is one unit of the given time signature. Note: the 0 rhythm can only be used for rests. r0 denotes an empty measure. Another node: if you label a measure as measure 0, it can have less than the required number of beats. This allows for pick up notes at the beginning of the piece.
 
 ## Properties
 

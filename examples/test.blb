@@ -1,15 +1,14 @@
--title Time Change
+-title Test
 -time 4-4
 -key c
--composer Mystery
+-composer Hugo Hua
 
+0:
+   1e
+   1e
+   1e
 1:
-   2b
-   1b
-   3b
-   2b
--time 3-4
-2:
-   5b
-   4b
-   1b
+   1f#4
+   1f#
+   1e
+   1d
