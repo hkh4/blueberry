@@ -37,6 +37,7 @@ and Element = {
    LastNote: int
    Location: float * float
    GraceNotes: Element List
+   Comments: String
 }
 
 type SingleMeasure = {
@@ -68,8 +69,12 @@ type PropertyList = {
    SlurStart: (float * float) * bool * bool
    // <string,(x,y),fret,grace,valid>
    TieStart: Map<int,(float * float) * int * bool * bool>
-   // <string, (x,y),fret,grace,valid>
+   // <string: (x,y),fret,grace,valid>
    SlideStart: Map<int,(float * float) * int * bool * bool>
+   // If a stub is needed for a slide on the previous line
+   SlideStubs: Map<int,(float * float) * int * bool * bool>
+   // <string: (x,y), fret, grace, valid>
+   HammerStart: Map<int,(float * float) * int * bool * bool>
 }
 
 ///////// Useful Global Variables And Functions /////////
@@ -158,10 +163,13 @@ let emptyMeasure =
       Time = (4,4);
       Capo = 0;
       MeasureNumber = 0;
-      Elements = [{ NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] };{ NoteInfo = Rest; Duration = R(X0,0); Start = 1.0; Width = 30.0; LastNote = 1; Location = (0.0,0.0); GraceNotes = [] };{ NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }];
+      Elements = [{ NoteInfo = Empty; Comments = ""; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] };{ NoteInfo = Rest; Comments = ""; Duration = R(X0,0); Start = 1.0; Width = 30.0; LastNote = 1; Location = (0.0,0.0); GraceNotes = [] };{ NoteInfo = Barline; Comments = ""; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }];
       Width = 35.0;
       Changes = {| Time = false; Key = false; Capo = false; |}
    }
+
+
+let emptyElement = { NoteInfo = Empty; Duration = Other; Start = 0.0; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = []; Comments = "" }
 
 
 // Template for drawing dots
@@ -211,7 +219,7 @@ let removeDuplicates (l: 'a List) =
 
 
 // Buffer for beaming grace notes and for tuplets
-let bufferElement = { NoteInfo = Buffer; Duration = Other; Start = 0.0; Width = 0.0; LastNote = 0; Location = (0.0,0.0);  GraceNotes = [] }
+let bufferElement = { NoteInfo = Buffer; Comments = ""; Duration = Other; Start = 0.0; Width = 0.0; LastNote = 0; Location = (0.0,0.0);  GraceNotes = [] }
 
 
 
@@ -326,8 +334,10 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
       let valueTrim = value.Trim(' ')
       let newOption = { optionsR with Composer = valueTrim }
       Some(newOption)
+
+   // Notes
    | _ ->
-      printfn "Invalid option! Valid options are type, key, title, composer, capo, and time"
+      printfn "Invalid option! Valid options are type, key, title, composer, capo, arranger, and time"
       None
 
 
@@ -535,16 +545,16 @@ let parseSimple (p: simple) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextS
             match graceBefore with
             | [] -> graceBefore
             | _ -> graceBefore @ [bufferElement]
-         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = graceBeforeBuffer }),false)
+         Some(({ NoteInfo = nInfo; Start = nextStart; Comments = ""; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = graceBeforeBuffer }),false)
       // grace note
       | true ->
-         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }),true)
+         Some(({ NoteInfo = nInfo; Start = nextStart; Comments = ""; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }),true)
    // Rest Simple
    | RestSimple ->
       // rests can't have grace notes
       match graceBefore with
       | [] ->
-         Some({ NoteInfo = Rest; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] },false)
+         Some({ NoteInfo = Rest; Start = nextStart; Comments = ""; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] },false)
       | _ ->
          printfn "Error in measure %i! Rests can't have grace notes!" measureNumber
          None
@@ -590,10 +600,10 @@ let parseComplex (p: complex) (baseBeat: RhythmNumber) (numberOfBeats: int) (nex
             match graceBefore with
             | [] -> graceBefore
             | _ -> graceBefore @ [bufferElement]
-         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = graceBeforeBuffer }),false)
+         Some(({ NoteInfo = nInfo; Start = nextStart; Comments = ""; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = graceBeforeBuffer }),false)
       // grace note
       | true ->
-         Some(({ NoteInfo = nInfo; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }),true)
+         Some(({ NoteInfo = nInfo; Comments = ""; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }),true)
    // Rest Complex
    | RestComplex(r) ->
       match graceBefore with
@@ -601,10 +611,10 @@ let parseComplex (p: complex) (baseBeat: RhythmNumber) (numberOfBeats: int) (nex
          // Only update default rhythm if the rhythm is NOT X0
          match r with
          | R(X0,0) ->
-            Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0);  GraceNotes = [] },false)
+            Some({ NoteInfo = Rest; Start = nextStart; Comments = ""; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0);  GraceNotes = [] },false)
          | _ ->
             defaultRhythm <- r
-            Some({ NoteInfo = Rest; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] },false)
+            Some({ NoteInfo = Rest; Start = nextStart; Comments = ""; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] },false)
       | _ ->
          printfn "Error in measure %i! Rests can't have grace notes!" measureNumber
          None
@@ -662,10 +672,10 @@ let parseGroup (g: group) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextSta
                match graceBefore with
                | [] -> graceBefore
                | _ -> graceBefore @ [bufferElement]
-            Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = graceBeforeBuffer },false)
+            Some({ NoteInfo = newGroup; Start = nextStart; Comments = ""; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = graceBeforeBuffer },false)
          // grace note
          | true ->
-            Some({ NoteInfo = newGroup; Start = nextStart; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] },true)
+            Some({ NoteInfo = newGroup; Start = nextStart; Comments = ""; Duration = defaultRhythm; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] },true)
       | None -> None
    // gcomplex: group with rhythm: does the same thing but uses r instead of the default rhythm
    | GComplex(gList,r,mProperties) ->
@@ -681,10 +691,10 @@ let parseGroup (g: group) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextSta
                match graceBefore with
                | [] -> graceBefore
                | _ -> graceBefore @ [bufferElement]
-            Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = graceBeforeBuffer },false)
+            Some({ NoteInfo = newGroup; Start = nextStart; Comments = ""; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = graceBeforeBuffer },false)
          // grace note
          | true ->
-            Some({ NoteInfo = newGroup; Start = nextStart; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] },true)
+            Some({ NoteInfo = newGroup; Start = nextStart; Comments = ""; Duration = r; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] },true)
       | None -> None
 
 
@@ -710,7 +720,7 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
       | [] ->
          // turn the list of Elements into a single Element
 
-         let bigElement = { NoteInfo = TupletNote(newElements); Start = nextStart; Duration = r; Width = totalWidth; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }
+         let bigElement = { NoteInfo = TupletNote(newElements); Comments = ""; Start = nextStart; Duration = r; Width = totalWidth; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }
 
          //update default rhythm
          defaultRhythm <- r
@@ -734,6 +744,10 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
 
             | Tuplet(t,r) ->
                printfn "Error in measure %i! Can't have a tuplet within a tuplet" measureNumber
+               None
+
+            | _ ->
+               printfn "Error in measure %i! Can't have a comment within a tuplet" measureNumber
                None
 
          match noteOption with
@@ -830,10 +844,17 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
       | Tuplet(t,r) ->
          parseTuplet t r baseBeat numberOfBeats nextStart last optionsR graceBefore measureNumber
 
+      // If it's a comment, just give an empty element and take care of it later
+      | Comment(s) ->
+         Some({emptyElement with Comments = s}, false)
+
+
+
 
    match noteOption with
    // if it's not a grace note
    | Some(note,b) when b = false ->
+
       // Check to see if a note has a valid number of dots. 8th notes and longer can up to 3 dots. 16th can have 2, 32nd can have 1, 64th cannot have any
       match note.Duration with
       | R(x,n) when n > 3 ->
@@ -851,6 +872,11 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
       | R(x,n) when x = X16 && n > 2 ->
          printfn "Error in measure %i! 16th notes can only have up to 2 dots" measureNumber
          None
+
+      // If it's Other, that means it is a comment.
+      | Other ->
+         Some(note, nextStart, graceBefore)
+
       | _ ->
 
          // Call widthStart to create the note element object with updated width
@@ -919,16 +945,39 @@ let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : El
 
       match el with
       | Some(n,newNextStart,newGraceBefore) ->
-         match newGraceBefore with
-         // if it's empty, then the returned note was NOT a grace note
-         | [] ->
-            // keep track of the total width of the measure
-            let newAcc = n.Width + acc
-            // append new element to the end of the list
-            let newList = elementList @ [n]
-            evalMeasureHelper measureNumber tail newList baseBeat numberOfBeats newAcc newNextStart optionsR newGraceBefore
-         | _ ->
-            evalMeasureHelper measureNumber tail elementList baseBeat numberOfBeats acc newNextStart optionsR newGraceBefore
+
+         match n with
+
+         // If it wasn't a comment
+         | {Element.Comments = c} when c = "" ->
+
+            match newGraceBefore with
+            // if it's empty, then the returned note was NOT a grace note
+            | [] ->
+               // keep track of the total width of the measure
+               let newAcc = n.Width + acc
+               // append new element to the end of the list
+               let newList = elementList @ [n]
+               evalMeasureHelper measureNumber tail newList baseBeat numberOfBeats newAcc newNextStart optionsR newGraceBefore
+            | _ ->
+               evalMeasureHelper measureNumber tail elementList baseBeat numberOfBeats acc newNextStart optionsR newGraceBefore
+
+         // If it was a comment, add the comment to the last note and recurse
+         | {Element.Comments = c} ->
+
+            match m with
+            | [] ->
+               printfn "A comment cannot come before the first note in a measure."
+               None
+            | l ->
+               let rev = List.rev elementList
+               let last = rev.Head
+               let lastWithComment = { last with Comments = c }
+               let newRev = lastWithComment::rev.Tail
+               let newElementList = List.rev newRev
+               evalMeasureHelper measureNumber tail newElementList baseBeat numberOfBeats acc newNextStart optionsR newGraceBefore
+
+
       | None -> None
 
 
@@ -1103,10 +1152,10 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) (changes: {| Time: bool; Key
          let listWithUpdatedKeys = parseKey list optionsR.Key
 
          // Add empty space at the beginning and barline at the end
-         let empty = { NoteInfo = Empty; Start = 0.0; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }
+         let empty = { NoteInfo = Empty; Start = 0.0; Comments = ""; Duration = Other; Width = 5.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }
 
          // Barline at the end of the measure
-         let bar = { NoteInfo = Barline; Start = 0.0; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }
+         let bar = { NoteInfo = Barline; Start = 0.0; Comments = ""; Duration = Other; Width = 0.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }
          let newList = [empty] @ listWithUpdatedKeys @ [bar]
 
          // Add 5 to the width because of the empty space at the beginning
@@ -1118,7 +1167,7 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) (changes: {| Time: bool; Key
             | true ->
                let (top,bottom) = optionsR.Time
                newWidth <- newWidth + 10.0
-               let timeChange = { NoteInfo = TimeChange(top,bottom); Start = 0.0; Duration = Other; Width = 10.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }
+               let timeChange = { NoteInfo = TimeChange(top,bottom); Comments = ""; Start = 0.0; Duration = Other; Width = 10.0; LastNote = 0; Location = (0.0,0.0); GraceNotes = [] }
                timeChange::newList
 
             | false -> newList
@@ -1564,8 +1613,8 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
             // beams for last last
             let numberOfBeamsLastLast = numberOfBeams.[lastLastRhythmNumber]
             match numberOfBeamsLastLast with
-            // if this note has as many or more beams than last last, then last gets an initial stub
-            | num when num <= beamsOfCurrent ->
+            // if this note has more beams than last last, then last gets an initial stub
+            | num when num < beamsOfCurrent ->
                let iStubs = initialStubs x y [1..beamsOfPrevious] [] isGrace
                ((equalBeams @ iStubs),2)
             // if this note has less beams than last last, then last note gets an end stub
@@ -2150,6 +2199,9 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
    | [] -> Some(l,priorityText,updatedElements)
    | head::tail ->
 
+      // First, write out the comment
+      let comment = string (x) + " " + string (y) + " (" + head.Comments + ") comment "
+
       // Depending on what type of element is to be written
       match head.NoteInfo with
 
@@ -2198,7 +2250,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                   // x coord of next element
                   let newX = x + (head.Width * insideScale)
                   // add string to the list
-                  let newList = l @ [newText]
+                  let newList = l @ [newText] @ [comment]
                   // update the NoteInfo with the new fret and Location
                   let newNoteHead = SingleNote((NormalGuitarNote(guitarString,pitch,newFret,eProperties)),mProperties)
                   let newElement = { head with Location = (x,y) ; NoteInfo = newNoteHead }
@@ -2213,7 +2265,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                let newText = showX x y guitarString
                // x coord of the next element
                let newX = x + (head.Width * insideScale)
-               let newList = l @ [newText]
+               let newList = l @ [newText] @ [comment]
                // updated element with location
                let newElement = { head with Location = (x,y) }
                let newUpdatedElements = updatedElements @ [newElement]
@@ -2234,7 +2286,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                      // NOTE: adding from the original x to make the math easier and safer
                      let newerX = x + (head.Width * insideScale)
                      // add string to the list
-                     let newList = l @ newText @ [newerText]
+                     let newList = l @ newText @ [newerText] @ [comment]
                      // update the NoteInfo with the new fret and Location
                      let newNoteHead = SingleNote((NormalGuitarNote(guitarString,pitch,newFret,eProperties)),mProperties)
                      let newElement = { head with Location = (newX,newY) ; NoteInfo = newNoteHead ; GraceNotes = newGraceNotes }
@@ -2254,7 +2306,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                   let newerText = showX newX newY guitarString
                   // x coord of the next element
                   let newerX = x + (head.Width * insideScale)
-                  let newList = l @ newText @ [newerText]
+                  let newList = l @ newText @ [newerText] @ [comment]
                   // updated element with location and grace notes
                   let newElement = { head with Location = (newX,newY); GraceNotes = newGraceNotes }
                   let newUpdatedElements = updatedElements @ [newElement]
@@ -2289,7 +2341,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
             match (groupHelper nList [] capo x y []) with
             | Some(newText,newSingleNotes) ->
                let newX = x + (head.Width * insideScale)
-               let newList = l @ newText
+               let newList = l @ newText @ [comment]
                let newNoteHead = GroupNote(newSingleNotes,mProperties)
                let newElement = { head with Location = (x,y) ; NoteInfo = newNoteHead }
                let newUpdatedElements = updatedElements @ [newElement]
@@ -2304,7 +2356,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
 
                | Some(newerText,newSingleNotes) ->
                   let newerX = x + (head.Width * insideScale)
-                  let newList = l @ newText @ newerText
+                  let newList = l @ newText @ newerText @ [comment]
                   let newNoteHead = GroupNote(newSingleNotes,mProperties)
                   let newElement = { head with Location = (newX,newY); GraceNotes = newGraceNotes; NoteInfo = newNoteHead }
                   let newUpdatedElements = updatedElements @ [newElement]
@@ -2319,7 +2371,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
 
             // Create the new tupletNote, and update everything like for other notes
             let newerX = x + (head.Width * insideScale)
-            let newList = l @ newStringList
+            let newList = l @ newStringList @ [comment]
             let newNoteHead = TupletNote(newTupletNotes)
             let newElement = { head with NoteInfo = newNoteHead }
             let newUpdatedElements = updatedElements @ [newElement]
@@ -2398,11 +2450,12 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
                string x + " " + string yCoord + " 64thRest "
             | _ -> ""
          let newX = x + (head.Width * insideScale)
-         let newList = l @ [newText]
+         let newList = l @ [newText] @ [comment]
          // update the element with its x y coords
          let newElement = { head with Location = (x,y) }
          let newUpdatedElements = updatedElements @ [newElement]
          showElements tail newUpdatedElements measureWidth newX y newList insideScale priorityText capo
+
 
 
 
@@ -2589,6 +2642,71 @@ let drawTie (currentString: int) (eProperties: EitherProperty List) (pitch: Pitc
 
 
 
+(* Helper method for drawing hammer properties
+1) currentString is the guitar string of the note
+2) eProperties is the list of EitherProperty
+3) fret is the fret of the current note (-1 if an X)
+4) xCoord is the x coord
+5) yCoord is the y coord based on what string the note is on
+6) propertyList is the record that describes the state of properties to be drawn
+7) isGrace is a bool that says whether or not this note is a grace note
+RETURNS the list of strings to be printed and the new PropertyList
+*)
+let drawHammer (currentString: int) (eProperties: EitherProperty List) (fret: int) (xCoord: float) (yCoord: float) (propertyList: PropertyList) (isGrace: bool) : (string List * PropertyList) option =
+
+   // get the hammer start for this string
+   let elem = propertyList.HammerStart.[currentString]
+
+   // get the text and the new property list if a hammer is needed
+   let text =
+      match elem with
+      // If there was a slide requested from a previous note on this string
+      | ((x,y),f,g,b) when b = true ->
+
+         // grace note?
+         let whichFunction =
+
+            // is the first note a grace note?
+            match g with
+            | true ->
+
+               // is the second note a grace note?
+               match isGrace with
+               | true -> "hammerbothgrace "
+               | false -> "hammerfirstgrace "
+
+            | false ->
+               match isGrace with
+               | true -> "hammersecondgrace "
+               | false -> "hammer "
+
+         [" " + string x + " " + string y + " " + string xCoord + " " + string yCoord + " " + string f + " " + string fret + " " + whichFunction]
+
+      | ((x,y),f,g,b) -> []
+
+   // see if this note wanted a hammer
+   let newPropertyList =
+
+      match (List.exists (fun e -> e = Ham) eProperties) with
+      // wants a hammer
+      | true ->
+         // update the propertyList
+         let newHammerList = propertyList.HammerStart.Remove(currentString).Add(currentString,((xCoord,yCoord),fret,isGrace,true))
+         { propertyList with HammerStart = newHammerList }
+
+      // no hammer, just return
+      | false ->
+         // set the propertyList element for this string to empty
+         let newHammerList = propertyList.HammerStart.Remove(currentString).Add(currentString,((0.0,0.0),0,false,false))
+         { propertyList with HammerStart = newHammerList }
+
+   Some(text,newPropertyList)
+
+
+
+
+
+
 (* Helper method for drawing slide properties
 1) currentString is the guitar string of the note
 2) eProperties is the list of EitherProperty
@@ -2604,6 +2722,9 @@ let drawSlide (currentString: int) (eProperties: EitherProperty List) (pitch: Pi
 
    // get the slidestart for this string
    let elem = propertyList.SlideStart.[currentString]
+
+   // get the slidestub for this string
+   let stub = propertyList.SlideStubs.[currentString]
 
    // get the text and the new property list if a slide is needed
    let text =
@@ -2636,7 +2757,17 @@ let drawSlide (currentString: int) (eProperties: EitherProperty List) (pitch: Pi
 
 
          let tempText = string f + " " + string fret + " " + string x + " " + string y + " " + string xCoord + " " + string yCoord + direction
-         [tempText]
+
+         // if true, there's a stub to be drawn
+         match stub with
+         | ((x',y'),f',g',b') when b' = true ->
+
+            let stubText = string f' + " " + string fret + " " + string x' + " " + string y' + " " + string (x' + 15.0) + " " + string y' + direction
+            [tempText] @ [stubText]
+
+         | ((x',y'),f',g',b') ->
+
+            [tempText]
 
       | ((x,y),f,g,b) -> []
 
@@ -2656,7 +2787,11 @@ let drawSlide (currentString: int) (eProperties: EitherProperty List) (pitch: Pi
          let newSlideList = propertyList.SlideStart.Remove(currentString).Add(currentString,((0.0,0.0),0,false,false))
          { propertyList with SlideStart = newSlideList }
 
-   Some(text,newPropertyList)
+   // set the slidestub to empty
+   let newSlideStubs = newPropertyList.SlideStubs.Remove(currentString).Add(currentString,((0.0,0.0),0,false,false))
+   let newerPropertyList = { newPropertyList with SlideStubs = newSlideStubs }
+
+   Some(text,newerPropertyList)
 
 
 
@@ -2727,6 +2862,7 @@ let drawParens (eProperties: EitherProperty List) (y: float) (x: float) (isGrace
       | false -> Some([" " + string (x - 1.7) + " " + string (y + 0.5) + " " + string fret + " openP "; " " + string (x + 3.5) + " " + string (y + 0.5) + " " + string fret + " closeP "])
 
    | false -> Some([""])
+
 
 
 
@@ -2858,6 +2994,7 @@ let drawPluckUp (isGrace: bool) (x: float) (y: float) (mList: MultiProperty List
 
 
 
+
 (* Helper method for drawing the eProperties of a singleNote
 1) currentString is the guitar string of the note
 2) eProperties is the list of EitherProperty
@@ -2893,8 +3030,12 @@ let drawEProperties (currentString: int) (eProperties: EitherProperty List) (pit
                   match (drawHarmonics eProperties yCoord x isGrace fret) with
                   | Some(harText) ->
 
-                     Some((slideText @ tieText @ slideUpText @ slideDownText @ parensText @ harText),propertyList'')
+                     match (drawHammer currentString eProperties fret x yCoord propertyList'' isGrace) with
+                     | Some(hamText,propertyList''') ->
 
+                        Some((slideText @ tieText @ slideUpText @ slideDownText @ parensText @ harText @ hamText),propertyList''')
+
+                     | None -> None
                   | None -> None
                | None -> None
             | None -> None
@@ -3279,6 +3420,51 @@ let checkEndSlur (restOfLines: Line List) (propertyList: PropertyList) =
 
 
 
+(* add a hammer at the end of a line if needed, and update the PropertyList
+1) restOfLines is the rest of the lines after the current. Need it to check the next line
+2) propertyList describes how to draw certain properties that depend on previous notes
+*)
+let checkEndHammer (restOfLines: Line List) (propertyList: PropertyList) =
+
+   let mapToList = propertyList.HammerStart |> Map.toList
+
+   let rec checkEndHammerHelper l newPList (text: String) : (PropertyList * String) option =
+      match l with
+      | [] -> Some(newPList,text)
+      | head::tail ->
+         match head with
+         | (n,((x,y),f,g,b)) when b = true ->
+
+            // try and set the new HammerStart, but if there are no more lines, error
+            try
+               // figure out the start of the next line
+               let nextHead = restOfLines.Head
+               let (nextStartX,nextStartY) = nextHead.Start
+               // shift the x and y
+               let newP = newPList.HammerStart.Remove(n).Add(n,((nextStartX + 8.0,(nextStartY - 2.3) + (6.0 * ((float n) - 1.0))),f,g,true))
+               let newPropertyList = { newPList with HammerStart = newP }
+
+               let direction =
+                  match g with
+                  | true -> " hammerfirstgrace "
+                  | false -> " hammer "
+
+               let newText = text + " " + string x + " " + string y + " 565 " + string y + " " + string f + " " + string f + " " + direction
+
+               checkEndHammerHelper tail newPropertyList newText
+            with
+            | _ ->
+               printfn "Unended hammer detected."
+               None
+
+         | _ ->
+            checkEndHammerHelper tail newPList text
+
+   checkEndHammerHelper mapToList propertyList ""
+
+
+
+
 (* push a slide to the next line if needed, and update property list
 1) restOfLines is the rest of the lines after the current. Need it to check the next line
 2) propertyList describes how to draw certain properties that depend on previous notes
@@ -3302,7 +3488,13 @@ let checkEndSlide (restOfLines: Line List) (propertyList: PropertyList) =
                // shift the x and y
                let newP = newPList.SlideStart.Remove(n).Add(n,((nextStartX + 8.0,(nextStartY - 2.3) + (6.0 * ((float n) - 1.0))),f,g,true))
                let newPropertyList = { newPList with SlideStart = newP }
-               checkEndSlideHelper tail newPropertyList
+
+               // Update the slide stubs so that the next slide knows to add the little stub at the end of the previous line
+               let newSlideStubs = newPList.SlideStubs.Remove(n).Add(n,((x,y),f,g,b))
+
+               let newerPropertyList = { newPropertyList with SlideStubs = newSlideStubs }
+
+               checkEndSlideHelper tail newerPropertyList
             with
             | _ ->
                printfn "Unended slide detected."
@@ -3425,7 +3617,11 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
                   match (checkEndSlide tail newPropertyList'') with
                   | Some(newPropertyList''') ->
 
-                     showLines tail newUpdatedLines (newText + propertyText + slurText + tieText) newPriorityText newPropertyList'''
+                     match (checkEndHammer tail newPropertyList''') with
+                     | Some(newPropertyList'''', hammerText) ->
+
+                        showLines tail newUpdatedLines (newText + propertyText + slurText + tieText + hammerText) newPriorityText newPropertyList''''
+                     | None -> None
                   | None -> None
                | None -> None
             | None -> None
@@ -3467,6 +3663,20 @@ let rec show (pages: Page List) (updatedPages: Page List) (starterText: string) 
                Add(5,((0.0,0.0),0,false,false)).
                Add(6,((0.0,0.0),0,false,false));
             SlideStart = Map.empty.
+               Add(1,((0.0,0.0),0,false,false)).
+               Add(2,((0.0,0.0),0,false,false)).
+               Add(3,((0.0,0.0),0,false,false)).
+               Add(4,((0.0,0.0),0,false,false)).
+               Add(5,((0.0,0.0),0,false,false)).
+               Add(6,((0.0,0.0),0,false,false));
+            SlideStubs = Map.empty.
+               Add(1,((0.0,0.0),0,false,false)).
+               Add(2,((0.0,0.0),0,false,false)).
+               Add(3,((0.0,0.0),0,false,false)).
+               Add(4,((0.0,0.0),0,false,false)).
+               Add(5,((0.0,0.0),0,false,false)).
+               Add(6,((0.0,0.0),0,false,false));
+            HammerStart = Map.empty.
                Add(1,((0.0,0.0),0,false,false)).
                Add(2,((0.0,0.0),0,false,false)).
                Add(3,((0.0,0.0),0,false,false)).
@@ -4775,6 +4985,130 @@ let eval optionsList measuresList outFile =
                   0 0 0 setrgbcolor
                   x1 y1 55 add moveto
                   str show
+                  grestore end
+               } bind def
+
+               /comment {
+               3 dict begin gsave
+               /str exch def
+               /y1 exch def
+               /x1 exch def
+               /Times-Roman findfont
+               7 scalefont
+               setfont
+               newpath
+               0 0 0 setrgbcolor
+               x1 2 add y1 10 sub moveto
+               str stringwidth pop -0.5 mul 0 rmoveto
+               str show
+               grestore end
+               } bind def
+
+               /hammer {
+                  6 dict begin gsave
+                  0.6 setlinewidth
+                  /fret2 exch def
+                  /fret1 exch def
+                  /y2 exch def
+                  /x2 exch def
+                  /y1 exch def
+                  /x1 exch def
+                  fret1 9 gt {
+                     /x1 x1 1.5 add store
+                  }{} ifelse
+                  fret2 9 gt {
+                     /x2 x2 1.5 sub store
+                  }{} ifelse
+                 /x1 x1 4 add store
+                 /x2 x2 0 sub store
+                 /y2 y2 3.7 add store
+                 /y1 y1 3.7 add store
+                 x1 y1 moveto
+                 /temp x2 x1 sub 0.3 mul def
+                 x1 temp add y1 1.3 add x2 temp sub y2 1.3 add
+                 x2 y2 curveto
+                 stroke
+                  grestore end
+               } bind def
+
+               /hammerbothgrace {
+                  6 dict begin gsave
+                  0.4 setlinewidth
+                  /fret2 exch def
+                  /fret1 exch def
+                  /y2 exch def
+                  /x2 exch def
+                  /y1 exch def
+                  /x1 exch def
+                  fret1 9 gt {
+                     /x1 x1 1 add store
+                  }{} ifelse
+                  fret2 9 gt {
+                     /x2 x2 1 sub store
+                  }{} ifelse
+                 /x1 x1 2.8 add store
+                 /x2 x2 0 sub store
+                 /y2 y2 3.7 add store
+                 /y1 y1 3.7 add store
+                 x1 y1 moveto
+                 /temp x2 x1 sub 0.3 mul def
+                 x1 temp add y1 1.3 add x2 temp sub y2 1.3 add
+                 x2 y2 curveto
+                 stroke
+                  grestore end
+               } bind def
+
+               /hammerfirstgrace {
+                  6 dict begin gsave
+                  0.4 setlinewidth
+                  /fret2 exch def
+                  /fret1 exch def
+                  /y2 exch def
+                  /x2 exch def
+                  /y1 exch def
+                  /x1 exch def
+                  fret1 9 gt {
+                     /x1 x1 1 add store
+                  }{} ifelse
+                  fret2 9 gt {
+                     /x2 x2 1.5 sub store
+                  }{} ifelse
+                 /x1 x1 2.8 add store
+                 /x2 x2 0 sub store
+                 /y2 y2 3.7 add store
+                 /y1 y1 3.7 add store
+                 x1 y1 moveto
+                 /temp x2 x1 sub 0.3 mul def
+                 x1 temp add y1 1.3 add x2 temp sub y2 1.3 add
+                 x2 y2 curveto
+                 stroke
+                  grestore end
+               } bind def
+
+               /hammersecondgrace {
+                  6 dict begin gsave
+                  0.4 setlinewidth
+                  /fret2 exch def
+                  /fret1 exch def
+                  /y2 exch def
+                  /x2 exch def
+                  /y1 exch def
+                  /x1 exch def
+                  fret1 9 gt {
+                     /x1 x1 1.5 add store
+                  }{} ifelse
+                  fret2 9 gt {
+                     /x2 x2 1 sub store
+                  }{} ifelse
+                 /x1 x1 4 add store
+                 /x2 x2 0 sub store
+                 /y2 y2 3.7 add store
+                 /y1 y1 3.7 add store
+                 x1 y1 moveto
+                 /temp x2 x1 sub 0.3 mul def
+                 x1 temp add y1 1.3 add x2 temp sub y2 1.3 add
+                 x2 y2 curveto
+                 stroke
                   grestore end
                } bind def
 

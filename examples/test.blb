@@ -1,14 +1,17 @@
--title Test
+-title Hammer
 -time 4-4
 -key c
 -composer Hugo Hua
 
-0:
-   1e
-   1e
-   1e
 1:
-   1f#4
-   1f#
    1e
-   1d
+   1e8
+   1f#/ham
+   1g#4
+   1e
+2:
+   2b
+   2a8/ham
+   2b16/ham
+   2a16
+   1g#2

@@ -27,7 +27,7 @@ type MultiProperty =
 | Gra | Stu | Std | Plu | Pld | Sls | Sle
 
 type EitherProperty =
-| Par | Sld | Sli | Slu | Tie | Har | Upf
+| Par | Sld | Sli | Slu | Tie | Har | Upf | Ham
 
 type Property =
 | Multi of MultiProperty
@@ -66,6 +66,7 @@ type Note =
 | Complex of complex
 | Group of group
 | Tuplet of Note List * Rhythm
+| Comment of String
 
 
 type Expr =
@@ -158,13 +159,14 @@ let slu = pstr "slu" >>% Slu
 let par = pstr "par" >>% Par
 let tie = pstr "tie" >>% Tie
 let upf = pstr "^" >>% Upf
+let ham = pstr "ham" >>% Ham
 
 
 
 // Properties
 let slash = pchar '/' <!> "slash"
 
-let eitherProperty = pchar '/' >>. (par <|> sld <|> sli <|> tie <|> slu <|> har <|> upf)
+let eitherProperty = pchar '/' >>. (par <|> sld <|> sli <|> tie <|> slu <|> har <|> upf <|> ham)
 
 let multiProperty = slash >>. (stu <|> std <|> plu <|> pld <|> gra <|> sls <|> sle) <!> "multiProperty" <??> "stu (strum up), std (strum down), plu (pluck up), pld (pluck down), har (harmonic), gra (grace note), sls (slur start), or sle (slur end). Any other properties should be included with each individual note inside the parentheses"
 
@@ -172,7 +174,7 @@ let eitherProperties = many eitherProperty
 
 let multiProperties = many multiProperty <!> "multiProperties"
 
-let anyProperty = pchar '/' >>. ((par |>> Either) <|> (slu |>> Either) <|> (sld |>> Either) <|> (sli |>> Either)  <|> (har |>> Either) <|> (tie |>> Either) <|> (upf |>> Either) <|> (stu |>> Multi) <|> (std |>> Multi) <|> (plu |>> Multi) <|> (pld |>> Multi) <|> (gra |>> Multi) <|> (sls |>> Multi) <|> (sle |>> Multi)) <!> "anyproperty"
+let anyProperty = pchar '/' >>. ((par |>> Either) <|> (ham |>> Either) <|> (slu |>> Either) <|> (sld |>> Either) <|> (sli |>> Either)  <|> (har |>> Either) <|> (tie |>> Either) <|> (upf |>> Either) <|> (stu |>> Multi) <|> (std |>> Multi) <|> (plu |>> Multi) <|> (pld |>> Multi) <|> (gra |>> Multi) <|> (sls |>> Multi) <|> (sle |>> Multi)) <!> "anyproperty"
 let anyProperties = many anyProperty <??> "property" <!> "anyProperties"
 
 
@@ -246,13 +248,24 @@ let groupcomplex = notesWithParens .>>.? (rhythm .>>. multiProperties) |>> (fun 
 
 let group = groupcomplex <|> groupsimple |>> Group <!> "group"
 
+
+/// TUPLETS ///
 let noteNoNL = (anyRest <|> group <|> singleNote) <??> "A note or a rest" <!> "note-nonewline"
 
 let tupletBody = sepBy1 noteNoNL spaces1 <!> "tuplet body"
 
 let tuplet = (between (pstr "<") (pstr ">") tupletBody) .>>. rhythm |>> Tuplet <??> "Tuplet" <!> "tuplet"
 
-let note = spaces1 >>? (anyRest <|> group <|> singleNote <|> tuplet) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
+
+/// COMMENT ///
+
+let commentBody = charsTillString "$" false 1000
+
+let comment = (between (pstr "$") (pstr "$") commentBody) |>> Comment <??> "Comment" <!> "comment"
+
+
+
+let note = spaces1 >>? (comment <|> anyRest <|> group <|> singleNote <|> tuplet) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
 
 let noteWithOptionalSpaces = note .>> optional (attempt emptyLines)
 

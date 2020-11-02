@@ -252,6 +252,29 @@ Rhythms are denoted with a number after the pitch.
 
 Dots `.` can also be added after the number. The limit is 3 dots for notes of an 8th note or longer, 2 dots on a 16th note, 1 dot on a 32nd note, and no dots are allowed on a 64th note. Rhythms are optional; if omitted, the note will have the same rhythm as the previous note. The default for the first note on the page is one unit of the given time signature. Note: the 0 rhythm can only be used for rests. r0 denotes an empty measure. Another node: if you label a measure as measure 0, it can have less than the required number of beats. This allows for pick up notes at the beginning of the piece.
 
+## Comments
+
+Comments can be added in between any notes using the $ symbol. The comment must begin with and end with a $. It will appear directly underneath the note that came before the comment.
+
+   ```
+   -title Comments
+   -time 4-4
+   -key c
+   -composer Hugo Hua
+
+   0:
+      1e
+      $Note$
+      1e
+   1:
+      1f#4
+      1f#
+      1e
+      1d
+   ```
+
+![comments](img/comments.png)
+
 ## Properties
 
 Properties allow for symbols, articulations, and customization. This section details all the valid properties.
@@ -311,6 +334,32 @@ Slurs are drawn using the `/sls` - slur start - and `/sle` - slur end properties
    ```
 
 ![slurs](img/properties/slurs.png)
+
+### Hammer On/Off
+
+Hammer notes look like ties, but don't have to be between the same note. They are defined by `/ham`
+
+   ```
+   -title Hammer
+   -time 4-4
+   -key c
+   -composer Hugo Hua
+
+   1:
+      1e
+      1e8
+      1f#/ham
+      1g#4
+      1e
+   2:
+      2b
+      2a8/ham
+      2b16/ham
+      2a16
+      1g#2
+   ```
+
+![hammer](img/properties/hammer.png)
 
 ### Plucked Notes
 
