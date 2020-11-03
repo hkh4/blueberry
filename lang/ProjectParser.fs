@@ -67,6 +67,7 @@ type Note =
 | Group of group
 | Tuplet of Note List * Rhythm
 | Comment of String
+| HiddenComment
 
 
 type Expr =
@@ -263,13 +264,20 @@ let commentBody = charsTillString "$" false 1000
 
 let comment = (between (pstr "$") (pstr "$") commentBody) |>> Comment <??> "Comment" <!> "comment"
 
+let hiddenCommentBody = charsTillString "%" false 1000 <!> "hiddenBody"
+
+let hiddenCommentNoType = sepEndBy (between (pstr "%") (pstr "%") hiddenCommentBody) spaces1 <!> "hiddenNOType"
+
+let hiddenComment = (between (pstr "%") (pstr "%") hiddenCommentBody) >>% HiddenComment <!> "hiddenComment"
 
 
-let note = spaces1 >>? (comment <|> anyRest <|> group <|> singleNote <|> tuplet) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
+
+
+let note : Parser<_> = spaces1 >>? (comment <|> anyRest <|> hiddenComment <|> group <|> singleNote <|> tuplet) .>> spacesAndNewLine <??> "A note or a rest" <!> "note"
 
 let noteWithOptionalSpaces = note .>> optional (attempt emptyLines)
 
-let measure1 = measureNumber .>>. (many1 noteWithOptionalSpaces) .>> spaces |>> Measure <!> "measure"
+let measure1 = hiddenCommentNoType >>. (measureNumber .>>. (many1 noteWithOptionalSpaces) .>> spaces) |>> Measure <!> "measure"
 
 let expr = (option .>>. (many (measure1 <|> singleOption))) .>> spaces <!> "expr"
 

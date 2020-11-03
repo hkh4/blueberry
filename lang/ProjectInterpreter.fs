@@ -829,6 +829,7 @@ RETURNS: an Element, a float which is the start of the next note, and the list o
 *)
 let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBeats: int) (nextStart: float) (last: int) (optionsR: optionsRecord) (graceBefore: Element List) : (Element * float * Element List) option =
    // this is EITHER a tuple of an Element and a bool (true means grace note, else not) or None
+
    let noteOption =
       match n with // figure out the type of the note
 
@@ -848,6 +849,10 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
       | Comment(s) ->
          Some({emptyElement with Comments = s}, false)
 
+      // should never reach this case
+      | HiddenComment ->
+         printfn "Error in evalNote: HiddenComment given"
+         None
 
 
 
@@ -922,26 +927,40 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
 
 (* Recursive helper for measure evaluator, calls the note evaluator and composes the list of Elements, returns a SingleMeasure
 1) measureNumber is the number of the current measure
-2) m is the list of Notes remaining to be evaluated
-3) elementList is the list of Elements which is built upon recursively by calling evalNote
-4) baseBeat is the bottom number of time signature
-5) numberOfBeats is the top number of time signature
-6) acc is the accumulator to keep track of the total width of all the elements in the measure
-7) nextStart is the start of the next element
-8) optionsR is the optionsRecord
-9) graceBefore is the list of notes that are grace notes for the next element
+2) m is the list of Notes remaining to be evaluated, with hiddenComments removed
+3) noComments is the list with all comments and hiddencomments removed
+4) elementList is the list of Elements which is built upon recursively by calling evalNote
+5) baseBeat is the bottom number of time signature
+6) numberOfBeats is the top number of time signature
+7) acc is the accumulator to keep track of the total width of all the elements in the measure
+8) nextStart is the start of the next element
+9) optionsR is the optionsRecord
+10) graceBefore is the list of notes that are grace notes for the next element
 RETURNS: float which is the total width of the measure, and the list of elements that make up the measure
 *)
-let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : Element List) (baseBeat: RhythmNumber) (numberOfBeats: int) (acc : float) (nextStart: float)  (optionsR: optionsRecord) (graceBefore: Element List) : (float * Element List) option =
+let rec evalMeasureHelper (measureNumber: int) (m : Note List) (noComments : Note List) (elementList : Element List) (baseBeat: RhythmNumber) (numberOfBeats: int) (acc : float) (nextStart: float)  (optionsR: optionsRecord) (graceBefore: Element List) : (float * Element List) option =
    match m with
    | [] -> Some(acc, elementList)
    | head::tail ->
-      // create a new list that contains the new note evaluated added onto all the others
-      let el =
-         // if tail is empty, then this note is the last one
-         match tail with
-         | [] -> evalNote measureNumber head baseBeat numberOfBeats nextStart 1 optionsR graceBefore
-         | _ -> evalNote measureNumber head baseBeat numberOfBeats nextStart 0 optionsR graceBefore
+
+      let (el, newNoComments)=
+         match head with
+
+         // If it's a comment, the noComments list stays the same
+         | Comment(s) ->
+            let elTemp = evalNote measureNumber head baseBeat numberOfBeats nextStart 0 optionsR graceBefore
+            (elTemp, noComments)
+
+         // If it's a note, check if it's the last note
+         | _ ->
+
+            let elTemp =
+               // if tail of the list without comments is empty, then this note is the last one
+               match noComments.Tail with
+               | [] -> evalNote measureNumber head baseBeat numberOfBeats nextStart 1 optionsR graceBefore
+               | _ -> evalNote measureNumber head baseBeat numberOfBeats nextStart 0 optionsR graceBefore
+
+            (elTemp, noComments.Tail)
 
       match el with
       | Some(n,newNextStart,newGraceBefore) ->
@@ -958,14 +977,14 @@ let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : El
                let newAcc = n.Width + acc
                // append new element to the end of the list
                let newList = elementList @ [n]
-               evalMeasureHelper measureNumber tail newList baseBeat numberOfBeats newAcc newNextStart optionsR newGraceBefore
+               evalMeasureHelper measureNumber tail newNoComments newList baseBeat numberOfBeats newAcc newNextStart optionsR newGraceBefore
             | _ ->
-               evalMeasureHelper measureNumber tail elementList baseBeat numberOfBeats acc newNextStart optionsR newGraceBefore
+               evalMeasureHelper measureNumber tail newNoComments elementList baseBeat numberOfBeats acc newNextStart optionsR newGraceBefore
 
          // If it was a comment, add the comment to the last note and recurse
          | {Element.Comments = c} ->
 
-            match m with
+            match elementList with
             | [] ->
                printfn "A comment cannot come before the first note in a measure."
                None
@@ -975,7 +994,7 @@ let rec evalMeasureHelper (measureNumber: int) (m : Note List) (elementList : El
                let lastWithComment = { last with Comments = c }
                let newRev = lastWithComment::rev.Tail
                let newElementList = List.rev newRev
-               evalMeasureHelper measureNumber tail newElementList baseBeat numberOfBeats acc newNextStart optionsR newGraceBefore
+               evalMeasureHelper measureNumber tail newNoComments newElementList baseBeat numberOfBeats acc newNextStart optionsR newGraceBefore
 
 
       | None -> None
@@ -1144,7 +1163,23 @@ let evalMeasure (m: Expr) (optionsR: optionsRecord) (changes: {| Time: bool; Key
             printfn "Error! The bottom of the time signature can be 1 2 4 8 16 32 or 64"
             X0
 
-      match (evalMeasureHelper b c [] baseBeat numberOfBeats acc 1.0 optionsR []) with
+      // Create two new instances of the note list: one without hiddencomments and one without both comments and hiddencomments
+      let rec noCommentsF original (noHidden : Note List) (noComments : Note List) =
+         match original with
+         | [] -> (noHidden, noComments)
+         | head::tail ->
+            match head with
+            | Comment(s) ->
+               noCommentsF tail (noHidden @ [head]) noComments
+            | HiddenComment ->
+               noCommentsF tail noHidden noComments
+            | _ ->
+               noCommentsF tail (noHidden @ [head]) (noComments @ [head])
+
+
+      let (noHidden, noComments) = noCommentsF c [] []
+
+      match (evalMeasureHelper b noHidden noComments [] baseBeat numberOfBeats acc 1.0 optionsR []) with
 
       | Some(width,list) ->
 

@@ -254,7 +254,7 @@ Dots `.` can also be added after the number. The limit is 3 dots for notes of an
 
 ## Comments
 
-Comments can be added in between any notes using the $ symbol. The comment must begin with and end with a $. It will appear directly underneath the note that came before the comment.
+Comments can be added in between any notes using the $ symbol. The comment must begin with and end with a $. It will appear directly underneath the note that came before the comment. In addition, hidden comments can be written using the % symbol. These can be written anywhere in a measure, as well as in between measures, and will not appear anywhere in the tab.
 
    ```
    -title Comments
@@ -262,11 +262,13 @@ Comments can be added in between any notes using the $ symbol. The comment must 
    -key c
    -composer Hugo Hua
 
+   % hello %
    0:
       1e
       $Note$
       1e
    1:
+      %Hidden comment%
       1f#4
       1f#
       1e
