@@ -6,7 +6,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Types.fs" />
     <Compile Include="ProjectParser.fs" />
+    <Compile Include="Options.fs" />
+    <Compile Include="Divide.fs" />
+    <Compile Include="Properties.fs" />
+    <Compile Include="Beams.fs" />
+    <Compile Include="Graphics.fs" />
     <Compile Include="ProjectInterpreter.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

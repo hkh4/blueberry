@@ -2,82 +2,8 @@ module ProjectParser
 
 open System
 open FParsec
-(*
-Notes:
-sls = slur start
-sle = slur end
-stu = strum up
-std = strum down
-par = parens
-plu = pluck up
-pld = pluck down
-gra = grace note
-har = harmonic
-sld = slide down
-slu = slide up
-sli = slide
-tie = tie
-^ = up fret
-*)
+open Types
 
-type Pitch =
-| A | ASharp | AFlat | ANat | B | BSharp | BFlat | BNat | C | CSharp | CFlat | CNat | D | DSharp | DFlat | DNat | E | ESharp | EFlat | ENat | F | FSharp | FFlat | FNat | G | GSharp | GFlat | GNat | NoPitch
-
-type MultiProperty =
-| Gra | Stu | Std | Plu | Pld | Sls | Sle
-
-type EitherProperty =
-| Par | Sld | Sli | Slu | Tie | Har | Upf | Ham
-
-type Property =
-| Multi of MultiProperty
-| Either of EitherProperty
-
-type RhythmNumber =
-| X0
-| X1
-| X2
-| X4
-| X8
-| X16
-| X32
-| X64
-
-type Rhythm =
-| R of RhythmNumber * int     //int is the number of dots
-| Other
-
-type simple =
-| SingleSimple of int * Pitch * Property List
-| RestSimple
-
-type complex =
-| SingleComplex of int * Pitch * Rhythm * Property List
-| RestComplex of Rhythm
-
-type GroupSimple = GS of int * Pitch * EitherProperty List
-
-type group =
-| GSimple of GroupSimple List * MultiProperty List
-| GComplex of GroupSimple List * Rhythm * MultiProperty List
-
-type Note =
-| Simple of simple
-| Complex of complex
-| Group of group
-| Tuplet of Note List * Rhythm
-| Comment of String
-| HiddenComment
-
-
-type Expr =
-| ScoreOption of string * string
-| Measure of int * Note List
-
-
-// Generic types to avoid Value Restriction error
-type UserState = unit // doesn't have to be unit, of course
-type Parser<'t> = Parser<'t, UserState>
 
 
 // HELPERS
@@ -161,6 +87,9 @@ let par = pstr "par" >>% Par
 let tie = pstr "tie" >>% Tie
 let upf = pstr "^" >>% Upf
 let ham = pstr "ham" >>% Ham
+let plm = pstr "plm" >>% Plm
+let pl1 = pstr "pl1" >>% Pl1
+let pl2 = pstr "pl2" >>% Pl2
 
 
 
@@ -169,13 +98,13 @@ let slash = pchar '/' <!> "slash"
 
 let eitherProperty = pchar '/' >>. (par <|> sld <|> sli <|> tie <|> slu <|> har <|> upf <|> ham)
 
-let multiProperty = slash >>. (stu <|> std <|> plu <|> pld <|> gra <|> sls <|> sle) <!> "multiProperty" <??> "stu (strum up), std (strum down), plu (pluck up), pld (pluck down), har (harmonic), gra (grace note), sls (slur start), or sle (slur end). Any other properties should be included with each individual note inside the parentheses"
+let multiProperty = slash >>. (stu <|> std <|> plu <|> pld <|> gra <|> sls <|> sle <|> plm <|> pl1 <|> pl2) <!> "multiProperty" <??> "stu (strum up), std (strum down), plu (pluck up), pld (pluck down), har (harmonic), gra (grace note), plm (palm mute), pl1 (long palm mute start), pl2 (long palm mute end), sls (slur start), or sle (slur end). Any other properties should be included with each individual note inside the parentheses"
 
 let eitherProperties = many eitherProperty
 
 let multiProperties = many multiProperty <!> "multiProperties"
 
-let anyProperty = pchar '/' >>. ((par |>> Either) <|> (ham |>> Either) <|> (slu |>> Either) <|> (sld |>> Either) <|> (sli |>> Either)  <|> (har |>> Either) <|> (tie |>> Either) <|> (upf |>> Either) <|> (stu |>> Multi) <|> (std |>> Multi) <|> (plu |>> Multi) <|> (pld |>> Multi) <|> (gra |>> Multi) <|> (sls |>> Multi) <|> (sle |>> Multi)) <!> "anyproperty"
+let anyProperty = pchar '/' >>. ((par |>> Either) <|> (ham |>> Either) <|> (slu |>> Either) <|> (sld |>> Either) <|> (sli |>> Either)  <|> (har |>> Either) <|> (tie |>> Either) <|> (upf |>> Either) <|> (stu |>> Multi) <|> (std |>> Multi) <|> (plu |>> Multi) <|> (pld |>> Multi) <|> (gra |>> Multi) <|> (plm |>> Multi) <|> (pl1 |>> Multi) <|> (pl2 |>> Multi) <|> (sls |>> Multi) <|> (sle |>> Multi)) <!> "anyproperty"
 let anyProperties = many anyProperty <??> "property" <!> "anyProperties"
 
 

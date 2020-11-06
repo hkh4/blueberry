@@ -1,17 +1,17 @@
--title Hammer
+-title Palm Mute
 -time 4-4
 -key c
--composer Hugo Hua
+-composer :D
 
 1:
-   1e
-   1e8
-   1f#/ham
-   1g#4
-   1e
+   1f#/plm
+   3e8
+   1f#
+   6g#4
+   5d
 2:
    2b
-   2a8/ham
-   2b16/ham
-   2a16
-   1g#2
+   2a8/plm
+   3f#2/plm
+   1g16
+   5ab16

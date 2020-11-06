@@ -363,6 +363,32 @@ Hammer notes look like ties, but don't have to be between the same note. They ar
 
 ![hammer](img/properties/hammer.png)
 
+### Palm Mute
+
+A single note palm mute can be written with `/plm`. It adds a little 'PM' underneath the note.
+
+   ```
+   -title Palm Mute
+   -time 4-4
+   -key c
+   -composer :D
+
+   1:
+      1f#/plm
+      3e8
+      1f#
+      6g#4
+      5d
+   2:
+      2b
+      2a8/plm
+      3f#2/plm
+      1g16
+      5ab16
+   ```
+
+![palm mute](img/properties/palm.png)
+
 ### Plucked Notes
 
 Plucked Notes can be either up `/plu` or down `/pld`. It draws the squiggly line often used in fingerstyle playing.
