@@ -663,7 +663,11 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
                      match (checkEndHammer tail newPropertyList''') with
                      | Some(newPropertyList'''', hammerText) ->
 
-                        showLines tail newUpdatedLines (newText + propertyText + slurText + tieText + hammerText) newPriorityText newPropertyList''''
+                        match (checkEndMute tail newPropertyList'''') with
+                        Some(muteText, newPropertyList''''') ->
+
+                           showLines tail newUpdatedLines (newText + propertyText + slurText + tieText + hammerText + muteText) newPriorityText newPropertyList'''''
+                        | None -> None
                      | None -> None
                   | None -> None
                | None -> None

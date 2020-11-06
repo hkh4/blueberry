@@ -32,6 +32,7 @@ let rec show (pages: Page List) (updatedPages: Page List) (starterText: string) 
       let defaultPropertyList =
          {
             SlurStart = ((0.0,0.0),false,false);
+            MuteStart = ((0.0,0.0),false)
             TieStart = Map.empty.
                Add(1,((0.0,0.0),0,false,false)).
                Add(2,((0.0,0.0),0,false,false)).
@@ -1502,6 +1503,39 @@ let eval optionsList measuresList outFile =
                x1 2 add y1 10 sub moveto
                str stringwidth pop -0.5 mul 0 rmoveto
                str show
+               grestore end
+               } bind def
+
+               /longpalmmute {
+               6 dict begin gsave
+               /y2 exch def
+               /x2 exch def
+               /y1 exch def
+               /x1 exch def
+               x1 y1 palmmute
+               /y1 y1 7.8 sub store
+               /x2 x2 2 add store
+               /x1 x1 8 add store
+               0.5 setlinewidth
+               /counter x2 x1 sub 6 div floor cvi def
+               /current 0 def
+               counter {
+                  current 6 mul x1 add y1 moveto
+                  /current current 1 add store
+                  4 0 rlineto
+                  stroke
+               } repeat
+               /nextStart current 6 mul x1 add def
+               nextStart y1 moveto
+               x2 nextStart sub 4 le {
+                  x2 y1 lineto
+                  stroke
+               }{
+                  4 0 rlineto
+                  stroke
+               } ifelse
+               x2 y1 moveto
+               0 3 rlineto stroke
                grestore end
                } bind def
 

@@ -4,14 +4,15 @@
 -composer :D
 
 1:
-   1f#/plm
-   3e8
+   1f#
+   3e8/pl1
    1f#
    6g#4
    5d
 2:
    2b
-   2a8/plm
-   3f#2/plm
+   2a8/pl2
+   3f#2
+   2f16/gra/pl1
    1g16
-   5ab16
+   5ab16/pl2

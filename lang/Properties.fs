@@ -65,6 +65,67 @@ let drawSlur (isGrace: bool) (currentX: float) (currentY: float) (mProperties: M
 
 
 
+(* Draw longer palm mutes
+1) currentX is the x coord
+2) currentY is the y coord
+3) mList is the list of multiproperties
+4) pList is the PropertyList
+5) measureNumber is the number of the current measure
+6) isGrace is whether or not this is a grace note
+RETURNS list of strings to be printed, and the updated PropertyList
+*)
+let drawLongPalmMute (currentX: float) (currentY: float) (mList: MultiProperty List) (propertyList: PropertyList) (measureNumber: int) (isGrace: bool) : (String List * PropertyList) option =
+
+   // does this element have Pl1
+   let hasPl1 = List.exists (fun e -> e = Pl1) mList
+   // does this element have Pl2
+   let hasPl2 = List.exists (fun e -> e = Pl2) mList
+
+   match (hasPl1,hasPl2) with
+   // if a note has both pl1 and pl2, error
+   | (true,true) ->
+      printfn "Error in measure %i! A note can't both start and end a palm mute!" measureNumber
+      None
+   // if a note has pl1 but not pl2
+   | (true,false) ->
+      match propertyList.MuteStart with
+
+      // there was already a mute started
+      | ((x,y),v) when v = true ->
+         printfn "Error in measure %i! Overlapping palm mutes detected!" measureNumber
+         None
+
+      // return an empty list, and the new muteStart
+      | ((x,y),v) ->
+         let newPropertyList = { propertyList with MuteStart = ((currentX,currentY),true) }
+         Some([""],newPropertyList)
+
+   // has the end mute
+   | (false,true) ->
+      match propertyList.MuteStart with
+      // there was a mute started
+      | ((x,y),v) when v = true ->
+
+         let muteCommand = " longpalmmute "
+         let newCurrentX =
+            match isGrace with
+            | true -> currentX - 0.5
+            | false -> currentX
+
+         let muteString = string x + " " + string y + " " + string newCurrentX + " " + string currentY + muteCommand
+         let newPropertyList = { propertyList with MuteStart = ((0.0,0.0),false) }
+         Some([muteString],newPropertyList)
+      // no mute started, error
+      | ((x,y),v) ->
+         printfn "Error in measure %i! A palm mute was marked as ended but there was no beginning mute" measureNumber
+         None
+   // doesn't have start or end mute
+   | (false,false) -> Some([""],propertyList)
+
+
+
+
+
 (* Helper method for drawing tie properties
 1) currentString is the guitar string of the note
 2) eProperties is the list of EitherProperty
@@ -517,6 +578,8 @@ let drawPalmMute (x: float) (y: float) (mList: MultiProperty List) : (string Lis
 
 
 
+
+
 (* Helper method for drawing the eProperties of a singleNote
 1) currentString is the guitar string of the note
 2) eProperties is the list of EitherProperty
@@ -601,8 +664,12 @@ let drawMProperties (mList: MultiProperty List) (propertyList: PropertyList) (is
                   match (drawPalmMute x y mList) with
                   | Some(palmMuteList) ->
 
-                     Some((slurList @ strumUpList @ strumDownList @ pluckUpList @ pluckDownList @ palmMuteList),propertyList')
+                     match (drawLongPalmMute x y mList propertyList' measureNumber isGrace) with
+                     | Some(longPalmList, propertyList'') ->
 
+                        Some((slurList @ strumUpList @ strumDownList @ pluckUpList @ pluckDownList @ palmMuteList @ longPalmList),propertyList'')
+
+                     | None -> None
                   | None -> None
                | None -> None
             | None -> None
@@ -873,6 +940,37 @@ let checkEndSlur (restOfLines: Line List) (propertyList: PropertyList) =
       with
       | _ ->
          printfn "Unended slur detected."
+         None
+   | _ ->
+      Some("",propertyList)
+
+
+
+
+(* add a palm mute at the end of a line if needed, and update the PropertyList
+1) restOfLines is the rest of the lines after the current. Need it to check the next line
+2) propertyList describes how to draw certain properties that depend on previous notes
+*)
+let checkEndMute (restOfLines: Line List) (propertyList: PropertyList) =
+   match propertyList.MuteStart with
+   // this means a mute ended in a previous line and needs to be extended
+   | ((x,y),v) when x <> 0.0 && y <> 0.0 && v = true ->
+      // draw a mute stub from where it began to the last barline
+      let lastX = 565.0 //565 is where a line ends
+      let muteCommand = " longpalmmute "
+      let muteStub = string x + " " + string y + " " + string lastX + " " + string y + " " + muteCommand
+
+      // try and set the new MuteStart, but if there are no more lines, error
+      try
+         // figure out the start of the next line
+         let nextHead = restOfLines.Head
+         let (nextStartX,nextStartY) = nextHead.Start
+         let newPropertyList = { propertyList with MuteStart = ((nextStartX,nextStartY),true) }
+         Some(muteStub,newPropertyList)
+
+      with
+      | _ ->
+         printfn "Unended mute detected."
          None
    | _ ->
       Some("",propertyList)

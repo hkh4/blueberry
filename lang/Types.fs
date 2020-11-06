@@ -149,6 +149,8 @@ type Page = {
 type PropertyList = {
    // (x,y),fret,grace note,valid
    SlurStart: (float * float) * bool * bool
+   // (x,y),valid
+   MuteStart: (float * float) * bool
    // <string,(x,y),fret,grace,valid>
    TieStart: Map<int,(float * float) * int * bool * bool>
    // <string: (x,y),fret,grace,valid>

@@ -389,6 +389,33 @@ A single note palm mute can be written with `/plm`. It adds a little 'PM' undern
 
 ![palm mute](img/properties/palm.png)
 
+### Longer Palm Mute
+
+If you have a palm mute that lasts for a while, instead of typing `/plm` for each note, use `/pl1` and `/pl2` for the start and end of a longer palm muted section.
+
+   ```
+   -title Palm Mute
+   -time 4-4
+   -key c
+   -composer :D
+
+   1:
+      1f#
+      3e8/pl1
+      1f#
+      6g#4
+      5d
+   2:
+      2b
+      2a8/pl2
+      3f#2
+      2f16/gra/pl1
+      1g16
+      5ab16/pl2
+   ```
+
+![long palm mute](img/properties/longpalmmute.png)
+
 ### Plucked Notes
 
 Plucked Notes can be either up `/plu` or down `/pld`. It draws the squiggly line often used in fingerstyle playing.

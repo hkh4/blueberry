@@ -34,7 +34,7 @@ let optionIdentifier = pstr "-" >>. optionWord_spaces1 <??> "'-' followed by the
 let singleOption = (optionIdentifier .>>. ((restOfLine false) .>> (newline .>>. spaces))) |>> ScoreOption
 let option = (many singleOption) .>> spaces
 
-
+ 
 
 //**************** PARSE MEASURES ******************
 
