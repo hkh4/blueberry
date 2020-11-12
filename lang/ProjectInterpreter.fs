@@ -62,9 +62,9 @@ let rec show (pages: Page List) (updatedPages: Page List) (starterText: string) 
                Add(5,((0.0,0.0),0,false,false)).
                Add(6,((0.0,0.0),0,false,false))
          }
-      match (showLines lines [] text "" defaultPropertyList) with
+      match (showLines lines [] "" "" defaultPropertyList) with
       | Some(t,priority,updatedLines) ->
-         let newText = priority + t + " showpage "
+         let newText = text + priority + t + " showpage "
          // update the Page with the new lines
          let newPage = { head with Lines = updatedLines }
          let newUpdatedPages = updatedPages @ [newPage]
@@ -1376,7 +1376,7 @@ let eval optionsList measuresList outFile =
                setfont
                newpath
                0 0 0 setrgbcolor
-               x1 2 add y1 20 sub moveto
+               x1 2 add y1 50 add moveto
                str stringwidth pop -0.5 mul 0 rmoveto
                str show
                grestore end
