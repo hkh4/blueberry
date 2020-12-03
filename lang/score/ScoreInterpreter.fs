@@ -1,8 +1,8 @@
-module ProjectInterpreter
+module ScoreInterpreter
 
 open System
 open System.IO
-open ProjectParser
+open ScoreParser
 open Types
 open Options
 open Divide

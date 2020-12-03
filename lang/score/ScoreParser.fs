@@ -1,29 +1,9 @@
-module ProjectParser
+module ScoreParser
 
 open System
 open FParsec
 open Types
-
-
-
-// HELPERS
-let pstr s = pstring s
-// Helper parse that parses one word
-let word : Parser<_> = many1Satisfy (fun c -> c <> ' ' && c <> '\n' && c <> '\r' && c <> '\t') <??> "Expecting a word"
-// Single space
-let regularSpace : Parser<_> = pchar ' ' <??> "Expecting a space"
-// Multiple spaces
-let multipleSpaces : Parser<_> = manySatisfy (fun c -> c = ' ') <??> "Expecting whitespace"
-let multipleSpaces1 = many1Satisfy (fun c -> c = ' ') <??> "Expecting whitespace"
-// debugging
-let (<!>) (p: Parser<_,_>) label : Parser<_,_> =
-   fun stream ->
-      //printfn "%A: Entering %s" stream.Position label
-      let reply = p stream
-      //printfn "%A: Leaving %s (%A)" stream.Position label reply.Status
-      reply
-
-
+open ParserHelpers
 
 //**************** PARSE OPTIONS *******************
 
@@ -34,7 +14,7 @@ let optionIdentifier = pstr "-" >>. optionWord_spaces1 <??> "'-' followed by the
 let singleOption = (optionIdentifier .>>. ((restOfLine false) .>> (newline .>>. spaces))) |>> ScoreOption
 let option = (many singleOption) .>> spaces
 
- 
+
 
 //**************** PARSE MEASURES ******************
 

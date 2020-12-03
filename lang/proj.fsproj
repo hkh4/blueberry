@@ -6,14 +6,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Types.fs" />
-    <Compile Include="ProjectParser.fs" />
-    <Compile Include="Options.fs" />
-    <Compile Include="Divide.fs" />
-    <Compile Include="Properties.fs" />
-    <Compile Include="Beams.fs" />
-    <Compile Include="Graphics.fs" />
-    <Compile Include="ProjectInterpreter.fs" />
+    <Compile Include="./helpers/ParserHelpers.fs" />
+    <Compile Include="./score/Types.fs" />
+    <Compile Include="./score/ScoreParser.fs" />
+    <Compile Include="./score/Options.fs" />
+    <Compile Include="./score/Divide.fs" />
+    <Compile Include="./score/Properties.fs" />
+    <Compile Include="./score/Beams.fs" />
+    <Compile Include="./score/Graphics.fs" />
+    <Compile Include="./score/ScoreInterpreter.fs" />
+    <Compile Include="./tab/TabTypes.fs"/>
+    <Compile Include="./tab/TabParser.fs"/>
+    <Compile Include="./tab/TabInterpreter.fs"/>
     <Compile Include="Program.fs" />
   </ItemGroup>
 
