@@ -36,8 +36,7 @@ let main argv =
       | "tab" ->
          match run tabGrammar fileText with
          | Success(result, _, _) ->
-            printfn "%A" result
-            match tabEval with
+            match tabEval result with
             | Some(message) ->
                printfn "%A" message
                0

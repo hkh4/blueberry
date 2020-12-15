@@ -1,1 +1,10 @@
-f
+-title hello
+-composer Hugo
+-capo 3
+
+[
+barre: [
+fret: 1
+strings: 1-6
+]
+]

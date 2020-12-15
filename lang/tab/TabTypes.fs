@@ -3,6 +3,13 @@ module TabTypes
 open System
 open FParsec
 
-// Generic types to avoid Value Restriction error
-type UserState = unit // doesn't have to be unit, of course
-type Parser<'t> = Parser<'t, UserState>
+// fret, start string, end string
+type Barre = int * int * int
+
+// fret, string
+type Spot = int * int
+
+type TabExpr =
+| TabOption of string * string
+| Chord of Barre * Spot list
+| Music of string

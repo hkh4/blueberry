@@ -4,5 +4,6 @@ open System
 open TabTypes
 open TabParser
 
-let tabEval =
-   Some("Success")
+
+let tabEval parsed =
+   Some(parsed)

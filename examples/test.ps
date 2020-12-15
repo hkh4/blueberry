@@ -1,0 +1,53 @@
+%!PS
+%%BeginProlog
+
+/composer {
+1 dict begin gsave
+/str exch def
+/Times-Roman findfont
+10 scalefont
+setfont
+newpath
+0 0 0 setrgbcolor
+565 720 moveto
+str stringwidth pop -1 mul 0 rmoveto
+str show
+grestore end
+} bind def
+
+/centerText {
+   dup stringwidth pop -0.5 mul 0 rmoveto show } def
+
+/title {
+   1 dict begin gsave
+   /str exch def
+   /Times-Roman findfont
+   22 scalefont setfont
+   newpath
+   0 0 0 setrgbcolor
+   306 745 moveto
+   str centerText
+   grestore end
+} bind def
+
+
+/chart {
+   2 dict begin gsave
+   0.5 setlinewidth
+   /y1 exch def
+   /x1 exch def
+   x1 y1 moveto
+   0 1 5 {
+      /num exch def
+      x1 y1 num 10 mul add moveto
+      50 0 rlineto
+      x1 num 10 mul add y1 moveto
+      0 50 rlineto
+      stroke
+   } for
+   grestore end
+} bind def
+
+100 100 chart
+
+%%EndProlog
