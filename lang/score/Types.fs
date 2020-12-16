@@ -1,7 +1,7 @@
 module Types
 
 open System
-open FParsec 
+open FParsec
 
 //****** Parser types
 
@@ -85,7 +85,6 @@ type Expr =
 // ****** Interpreter types
 
 type optionsRecord = {
-   Type: string
    Time: int * int
    Key: string
    Capo: int

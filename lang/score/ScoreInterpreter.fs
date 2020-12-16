@@ -79,7 +79,7 @@ let rec show (pages: Page List) (updatedPages: Page List) (starterText: string) 
 let eval optionsList measuresList outFile =
 
    // default options
-   let optionsR = {Type = "tab"; Time = (4,4); Key = "c"; Capo = 0; Title = "untitled"; Composer = "unknown"}
+   let optionsR = {Time = (4,4); Key = "c"; Capo = 0; Title = "untitled"; Composer = "unknown"}
 
    // First, parse the options
    match (evalOption optionsList optionsR) with

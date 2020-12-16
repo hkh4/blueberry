@@ -13,17 +13,6 @@ RETURNS an option, the bool is really just a placeholder
 let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
    match a with
 
-   // If type
-   | ScoreOption(key: string, value: string) when key = "type" ->
-      let valueTrim = value.Trim(' ')
-      match valueTrim with
-      | "tab" ->
-         let newOption = { optionsR with Key = valueTrim }
-         Some(newOption)
-      | _ ->
-         printfn "Valid types : tab"
-         None
-
    // If time
    | ScoreOption(key: string, value: string) when key = "time" ->
       let valueTrim = value.Trim(' ')
@@ -116,7 +105,7 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
 
    // Notes
    | _ ->
-      printfn "Invalid option! Valid options are type, key, title, composer, capo, arranger, and time"
+      printfn "Invalid option! Valid options are key, title, composer, capo, arranger, and time"
       None
 
 

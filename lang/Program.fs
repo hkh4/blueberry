@@ -37,10 +37,10 @@ let main argv =
          match run tabGrammar fileText with
          | Success(result, _, _) ->
             match tabEval result with
-            | Some(message) ->
-               printfn "%A" message
+            | 0 ->
+               //printfn "%A" message
                0
-            | None -> 1
+            | _ -> 1
          | Failure(errorMsg, _, _) ->
             printfn "Failure: %s" errorMsg
             1

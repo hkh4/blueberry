@@ -17,6 +17,7 @@
     <Compile Include="./score/ScoreInterpreter.fs" />
     <Compile Include="./tab/TabTypes.fs"/>
     <Compile Include="./tab/TabParser.fs"/>
+    <Compile Include="./tab/TabOptions.fs" />
     <Compile Include="./tab/TabInterpreter.fs"/>
     <Compile Include="Program.fs" />
   </ItemGroup>
