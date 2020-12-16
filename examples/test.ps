@@ -30,9 +30,40 @@ grestore end
    grestore end
 } bind def
 
+/drawBarre { % given: x, y, fret, start string, end string
+   8 dict begin gsave
+   /endString exch def
+   /startString exch def
+   /fret exch def
+   /y1 exch def
+   /x1 exch def
+   /barreLength endString startString sub def
+   /yStart 5 fret sub 10 mul 5 add y1 add def
+   /xStart startString 1 sub 10 mul x1 add def
+   xStart yStart moveto
+   1 setlinecap
+   5.5 setlinewidth
+   10 barreLength mul 0 rlineto stroke
+   grestore end
+} bind def
 
-/chart {
-   2 dict begin gsave
+/drawSpot { % given: x, y, fret, string
+   6 dict begin gsave
+   /spotString exch def
+   /fret exch def
+   /y1 exch def
+   /x1 exch def
+   /yStart 5 fret sub 10 mul 5 add y1 add def
+   /xStart spotString 1 sub 10 mul x1 add def
+   xStart yStart moveto
+   1 setlinecap
+   5.5 setlinewidth
+   0 0 rlineto stroke
+   grestore end
+} bind def
+
+/chart { % given: x, y
+   3 dict begin gsave
    0.5 setlinewidth
    /y1 exch def
    /x1 exch def
@@ -48,6 +79,11 @@ grestore end
    grestore end
 } bind def
 
+
+
 100 100 chart
+100 100 1 2 6 drawBarre
+100 100 2 3 drawSpot
+
 
 %%EndProlog

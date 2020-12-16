@@ -38,12 +38,15 @@ let spot = digit .>>. (pstr "-" >>. digit) |>> (fun (a,b) -> (int a - _0, int b 
 let spotsBody = between spaces spaces spot <!> "spotsBody"
 let spots = many spotsBody <!> "spots"
 
+// empty barre - just preturn
+let emptyBarre = preturn EmptyBarre
+
 // full chart
+let chartBody = (barre <|> emptyBarre) .>>. spots |>> Chart <!> "chartBody"
 
-let chartBody = barre .>>. spots |>> Chord <!> "chartBody"
+let chart : Parser<_> = (between (pstr "[") (pstr "]") (between spaces spaces chartBody)) .>> spaces <!> "chart"
+let charts = many chart <!> "charts"
 
-let chart : Parser<_> = between (pstr "[") (pstr "]") (between spaces spaces chartBody) <!> "chart"
-
-let tabExpr = (option .>>. chart) .>> spaces <!> "tabExpr"
+let tabExpr = (option .>>. charts) .>> spaces <!> "tabExpr"
 
 let tabGrammar : Parser<_> = tabExpr .>> eof <!> "tabGrammar"

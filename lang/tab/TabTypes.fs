@@ -4,14 +4,16 @@ open System
 open FParsec
 
 // fret, start string, end string
-type barre = Barre of int * int * int
+type barre =
+| Barre of int * int * int
+| EmptyBarre
 
 // fret, string
 type spot = Spot of int * int
 
 type TabExpr =
 | TabOption of string * string
-| Chord of barre * spot list
+| Chart of barre * spot list
 | Music of string
 
 type optionsRecord = {

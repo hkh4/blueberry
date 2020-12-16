@@ -5,6 +5,7 @@ open System.IO
 open TabTypes
 open TabParser
 open TabOptions
+open Charts
 
 
 //******************* DRIVER
@@ -16,13 +17,52 @@ let tabEval parsed =
    // deconstruct
    let (opts, charts) = parsed
 
+   printfn "%A" charts
+
    // parse the options
    match evalOption opts defaultOptionsRecord with
    | Some(optionsR) ->
-      printfn "%A" optionsR
-      0
-   | None ->
-      1
+
+      match evalCharts charts "" with
+      | Some(chartText) ->
+         printfn "%A" chartText
+         0
+      | None -> 1
+   | None -> 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//
 
 
 
