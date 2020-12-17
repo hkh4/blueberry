@@ -23,9 +23,54 @@ type optionsRecord = {
    Composer: string
 }
 
+
+
+//*************************** CONSTANTS ****************************
+
 let defaultOptionsRecord = {
    Key = "c";
    Capo = 0;
    Title = "untitled";
    Composer = "unknown";
 }
+
+
+// **** Chart constants
+
+// location of the first start
+let chartStart = (72.0, 610.0)
+
+// location of the first start on the second page and onwards
+let chartStart2 = (72.0, 650.0)
+
+// max number of charts per page
+let chartMax = 30
+
+// horizontal spacing
+let chartXSkip = 82.0
+
+// vertical spacing
+let chartYSkip = 100.0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//

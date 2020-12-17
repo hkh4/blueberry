@@ -19,7 +19,7 @@ let multipleSpaces1 : Parser<_> = many1Satisfy (fun c -> c = ' ') <??> "Expectin
 // debugging
 let (<!>) (p: Parser<_,_>) label : Parser<_,_> =
    fun stream ->
-      printfn "%A: Entering %s" stream.Position label
+      //printfn "%A: Entering %s" stream.Position label
       let reply = p stream
-      printfn "%A: Leaving %s (%A)" stream.Position label reply.Status
+      //printfn "%A: Leaving %s (%A)" stream.Position label reply.Status
       reply

@@ -8,11 +8,190 @@ open TabOptions
 open Charts
 
 
+
+(* Print out to the postscript file
+1) text is the string to print
+2) outFile is the name of the file to be written to
+RETURNS 0 if succesful and 1 if error
+*)
+let show text outFile =
+
+   let fullText = "
+   %!PS
+   %%BeginProlog
+
+   /composer {
+   1 dict begin gsave
+   /str exch def
+   /Times-Roman findfont
+   10 scalefont
+   setfont
+   newpath
+   0 0 0 setrgbcolor
+   565 705 moveto
+   str stringwidth pop -1 mul 0 rmoveto
+   str show
+   grestore end
+   } bind def
+
+   /capo {
+   1 dict begin gsave
+   /str exch def
+   /Times-Roman findfont
+   10 scalefont
+   setfont
+   newpath
+   0 0 0 setrgbcolor
+   40 705 moveto
+   str show
+   grestore end
+   } bind def
+
+   /centerText {
+      dup stringwidth pop -0.5 mul 0 rmoveto show } def
+
+   /title {
+      1 dict begin gsave
+      /str exch def
+      /Times-Roman findfont
+      22 scalefont setfont
+      newpath
+      0 0 0 setrgbcolor
+      318 730 moveto
+      str centerText
+      grestore end
+   } bind def
+
+   /drawBarre { % given: x, y, fret, start string, end string
+      8 dict begin gsave
+      /endString exch def
+      /startString exch def
+      /fret exch def
+      /y1 exch def
+      /x1 exch def
+      /barreLength endString startString sub def
+      /yStart 5 fret sub 10 mul 5 add y1 add def
+      /xStart startString 1 sub 10 mul x1 add def
+      xStart yStart moveto
+      1 setlinecap
+      5.5 setlinewidth
+      10 barreLength mul 0 rlineto stroke
+      grestore end
+   } bind def
+
+   /drawSpot { % given: x, y, fret, string
+      6 dict begin gsave
+      /spotString exch def
+      /fret exch def
+      /y1 exch def
+      /x1 exch def
+      /yStart 5 fret sub 10 mul 5 add y1 add def
+      /xStart spotString 1 sub 10 mul x1 add def
+      xStart yStart moveto
+      1 setlinecap
+      6.5 setlinewidth
+      0 0 rlineto stroke
+      grestore end
+   } bind def
+
+   /chart { % given: x, y, fret, title
+      5 dict begin gsave
+      0.5 setlinewidth
+      /title exch def
+      /fret exch def
+      /y1 exch def
+      /x1 exch def
+      x1 y1 moveto
+      0 1 5 {
+         /num exch def
+         x1 y1 num 10 mul add moveto
+         50 0 rlineto
+         x1 num 10 mul add y1 moveto
+         0 50 rlineto
+         stroke
+      } for
+
+      /Helvetica findfont
+      8 scalefont setfont
+      newpath
+      0 0 0 setrgbcolor
+      x1 y1 9 sub moveto
+      (E) centerText
+
+      newpath
+      0 0 0 setrgbcolor
+      x1 10 add y1 9 sub moveto
+      (A) centerText
+
+      newpath
+      0 0 0 setrgbcolor
+      x1 20 add y1 9 sub moveto
+      (D) centerText
+
+      newpath
+      0 0 0 setrgbcolor
+      x1 30 add y1 9 sub moveto
+      (G) centerText
+
+      newpath
+      0 0 0 setrgbcolor
+      x1 40 add y1 9 sub moveto
+      (B) centerText
+
+      newpath
+      0 0 0 setrgbcolor
+      x1 50 add y1 9 sub moveto
+      (E) centerText
+
+      % fret
+      newpath
+      0 0 0 setrgbcolor
+      x1 5 sub y1 42 add moveto
+      fret centerText
+
+      % title
+      newpath
+      0 0 0 setrgbcolor
+      x1 25 add y1 20 sub moveto
+      title centerText
+
+      grestore end
+   } bind def
+
+   /drawOX {
+   4 dict begin gsave
+   /sym exch def
+   /fret exch def
+   /y1 exch def
+   /x1 exch def
+
+   /Helvetica findfont
+   8 scalefont setfont
+   newpath
+   0 0 0 setrgbcolor
+   10 fret 1 sub mul x1 add y1 53 add moveto
+   sym centerText
+
+   grestore end
+   } bind def " + text + " showpage %%EndProlog "
+
+   try
+      File.WriteAllText(outFile+".ps", fullText)
+      0
+   with
+   | _ ->
+      printfn "Error when writing to file"
+      1
+
+
+
+
 //******************* DRIVER
 (* Main eval method
 1) parsed is the result of the parser
+2) outfile is the name of the file to be written to
 *)
-let tabEval parsed =
+let tabEval parsed outFile =
 
    // deconstruct
    let (opts, charts) = parsed
@@ -21,12 +200,17 @@ let tabEval parsed =
 
    // parse the options
    match evalOption opts defaultOptionsRecord with
-   | Some(optionsR) ->
+   | Some(optionsR, optionsText) ->
 
-      match evalCharts charts "" with
+      let (x,y) = chartStart
+
+      match evalCharts charts "" optionsR x y 0 1 with
       | Some(chartText) ->
          printfn "%A" chartText
-         0
+
+         match show (chartText + optionsText) outFile with
+         | 0 -> 0
+         | _ -> 1
       | None -> 1
    | None -> 1
 

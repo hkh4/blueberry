@@ -58,11 +58,13 @@ let parseOptions (opt: TabExpr) (optionsR: optionsRecord) : optionsRecord option
 (* Driver for parsing options
 1) opts are all the options
 2) optionsR is the record that holds all the info. Begins as the default
-RETURNS the completed optionsR, or an error
+RETURNS the completed optionsR, or an error, as well as the options text
 *)
-let rec evalOption (opts: TabExpr List) (optionsR: optionsRecord) : optionsRecord option =
+let rec evalOption (opts: TabExpr List) (optionsR: optionsRecord) : (optionsRecord * String) option =
    match opts with
-   | [] -> Some(optionsR)
+   | [] ->
+      let optionsText = " (" + optionsR.Title + ") title " + "(" + optionsR.Composer + ") composer (capo " + string optionsR.Capo + ") capo "
+      Some(optionsR, optionsText)
    | head::tail ->
       match (parseOptions head optionsR) with
       | Some(newOptionsR) -> evalOption tail newOptionsR
