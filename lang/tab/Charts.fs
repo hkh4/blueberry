@@ -10,12 +10,12 @@ open TabTypes
 2) x is the x coord
 3) y is the y coord
 4) baseFret is the value of the smallest fret
-RETURNS the string with the text code, and 1 if string 1 fret 1 has a spot
+RETURNS the string with the text code, 1 if string 1 fret 1 has a spot, and the string number
 *)
-let evalSpot (s: spot) (x: float) (y: float) (baseFret: int) : (String * int) option =
+let evalSpot (s: spot) (x: float) (y: float) (baseFret: int) : (String * int * int) option =
 
    match s with
-   | Spot(fret, guitarString) ->
+   | Spot(guitarString, fret) ->
 
       let newFret = fret - baseFret + 1
 
@@ -24,7 +24,22 @@ let evalSpot (s: spot) (x: float) (y: float) (baseFret: int) : (String * int) op
          if newFret = 1 && guitarString = 1 then 1
          else 0
 
-      Some(" " + string x + " " + string y + " " + string (fret - baseFret + 1) + " " + string guitarString + " drawSpot ", oneOne)
+      Some(" " + string x + " " + string y + " " + string (fret - baseFret + 1) + " " + string guitarString + " drawSpot ", oneOne, guitarString)
+
+   | XSpot(guitarString) ->
+
+      Some(" " + string x + " " + string y + " " + string guitarString + " (X) drawOX ", guitarString, guitarString)
+
+
+
+(* Draw an O for an open string
+1) s is the int of the string number
+2) x is the x coord
+3) y is the y coord
+*)
+let drawO (s: int) (x: float) (y: float) : String =
+
+   " " + string x + " " + string y + " " + string s + " (O) drawOX "
 
 
 
@@ -36,35 +51,55 @@ let evalSpot (s: spot) (x: float) (y: float) (baseFret: int) : (String * int) op
 4) text is the text that is built up and returned
 5) baseFret is the value of the smallest fret
 6) oneOne is 1 if there's a spot on string 1 fret 1
+7) stringUncovered keeps track of which string on the guitar don't have a spot, barre or x
 RETURNS a string with the text code, and 1 if string 1 fret 1 has a spot
 *)
-let rec evalSpots (spots: spot List) (x: float) (y: float) (text: String) (baseFret: int) (oneOne: int) : (String * int) option =
+let rec evalSpots (spots: spot List) (x: float) (y: float) (text: String) (baseFret: int) (oneOne: int) (stringsUncovered: int List): (String * int) option =
 
    match spots with
-   | [] -> Some(text, oneOne)
+   | [] ->
+
+      // Draw O's for all the remaining uncovered strings
+      // Recursive function that calls a helper for each uncovered string and draws an O
+      let rec drawOs x y stringsLeft text =
+
+         match stringsLeft with
+         | [] -> text
+         | head::tail ->
+            let newText = drawO head x y
+            drawOs x y tail (text + newText)
+
+      let OText = drawOs x y stringsUncovered ""
+      let fullText = OText + text
+
+      Some(fullText, oneOne)
    | head::tail ->
 
       match evalSpot head x y baseFret with
-      | Some(spotText, one1) ->
+      | Some(spotText, one1, guitarString) ->
+
+         let newStringsUncovered = List.filter (fun c -> not (c = guitarString)) stringsUncovered
+
          let newOneOne =
             if oneOne = 1 || one1 = 1 then 1
             else 0
 
          let fullText = text + spotText
-         evalSpots tail x y fullText baseFret newOneOne
+         evalSpots tail x y fullText baseFret newOneOne newStringsUncovered
       | None -> None
 
 
 
 
-(* Evaluate and create text to print for barre section of a chart
+(* Evaluate a single barre
 1) b is the barre itself
 2) x is the x coord
 3) y is the y coord
 4) baseFret is the value of the smallest fret
-RETURNS a string with the text code, and an int to say whether or not the barre started on string 1 for formatting purposes (1 yes else no)
+5) uncoveredStrings are all the guitar strings not yet touched by a barre
+RETURNS a string with the text code, an int to say whether or not the barre started on string 1 fret 1 for formatting purposes (1 yes else no), and a list of all the guitar strings that have been covered by a barre
 *)
-let evalBarre (b: barre) (x: float) (y: float) (baseFret: int) : (String * int) option =
+let evalBarre (b: barre) (x: float) (y: float) (baseFret: int) (uncoveredStrings: int List) : (String * int * int List) option =
 
    match b with
    | Barre(fret, startString, endString) ->
@@ -79,60 +114,99 @@ let evalBarre (b: barre) (x: float) (y: float) (baseFret: int) : (String * int) 
 
       | (s,e) ->
          let updatedFret = fret - baseFret + 1
-         Some(" " + string x + " " + string y + " " + string updatedFret + " " + string s + " " + string e + " drawBarre ", startString)
+
+         let oneOne =
+            if updatedFret = 1 && startString = 1 then 1
+            else 0
+
+         let allStrings = [startString .. endString]
+         let newUncoveredStrings = List.filter (fun c -> not (List.exists (fun d -> d = c) allStrings)) uncoveredStrings
+
+         Some(" " + string x + " " + string y + " " + string updatedFret + " " + string s + " " + string e + " drawBarre ", oneOne, newUncoveredStrings)
 
 
-   | EmptyBarre -> Some(" ", 0)
+   | EmptyBarre -> Some(" ", 0, [])
+
+
+
+
+(* Evaluate and create text to print for barres section of a chart
+1) b is the barre itself
+2) x is the x coord
+3) y is the y coord
+4) baseFret is the value of the smallest fret
+5) text is all the code text
+6) oneOne is 1 if some barre touches fret 1 string 1
+7) uncoveredStrings are all the strings that have not yet been touched by a barre
+RETURNS a string with the text code, an int to say whether or not a barre started on string 1 fret 1 for formatting purposes (1 yes else no), and a list of all the guitar strings that have not been covered by a barre
+*)
+let rec evalBarres (barres: barre List) (x: float) (y: float) (baseFret: int) (text: String) (oneOne: int) (uncoveredStrings: int List) : (String * int * int List) option =
+
+   match barres with
+   | [] -> Some(text, oneOne, uncoveredStrings)
+
+   | head::tail ->
+      match evalBarre head x y baseFret uncoveredStrings with
+      | Some(newText, newOneOne, newUncoveredStrings) ->
+
+         let updatedOneOne =
+            if newOneOne = 1 || oneOne = 1 then 1
+            else 0
+
+         evalBarres tail x y baseFret (text + newText) updatedOneOne newUncoveredStrings
+
+      | None -> None
 
 
 
 
 (* Find the lowest fret and the range of the frets
-1) b is the barre
+1) barres is the list of barres
 2) spots is the list of spots
 RETURNS the base fret and the fret range
 *)
-let findBaseRange (b: barre) (spots: spot List) : int * int =
+let findBaseRange (barres: barre List) (spots: spot List) : int * int =
 
    // helper method, returns a list of the frets of the spots
-   let findSpotFrets ss = List.collect (fun (Spot(spotFret, _)) -> [spotFret]) spots
+   let findSpotFrets ss =
+      List.choose (fun s ->
+         match s with
+         | Spot(_,f) -> Some(f)
+         | XSpot(_) -> None) ss
 
-   match b with
-   | Barre(fret, startString, endString) ->
+   // helper method, returns a list of the frets of the barres
+   let findBarreFrets bb =
+      List.choose (fun b ->
+         match b with
+         | Barre(f,_,_) -> Some(f)
+         | EmptyBarre -> None) bb
 
-      // For each spot, get its fret and put it in a list
-      let spotFrets = findSpotFrets spots
 
-      let allFrets = fret::spotFrets
+   let spotFrets = findSpotFrets spots
+   let barreFrets = findBarreFrets barres
 
-      let baseFret = List.min allFrets
-      let range = (List.max allFrets) - baseFret
+   let allFrets = spotFrets @ barreFrets
+   let baseFret = List.min allFrets
+   let range = (List.max allFrets) - baseFret
+   (baseFret, range)
 
-      (baseFret,range)
 
-   | EmptyBarre ->
-
-      let spotFrets = findSpotFrets spots
-      let baseFret = List.min spotFrets
-      let range = (List.max spotFrets) - baseFret
-      (baseFret, range)
 
 
 
 (* Parse a single chart
 1) charts is the list of Chords
 2) text is the string to return
-3) optionsR has all the options info
-4) x is the xCoord
-5) y is the yCoord
+3) x is the xCoord
+4) y is the yCoord
 RETURNS a string to be printed to postscript, or none
 *)
-let evalChart (chart: TabExpr) (text: String) (optionsR: optionsRecord) (x: float) (y: float) : String option =
+let evalChart (chart: TabExpr) (text: String) (x: float) (y: float) : String option =
 
    match chart with
-   | Chart(title, barre, spots) ->
+   | Chart(title, barres, spots) ->
 
-      match findBaseRange barre spots with
+      match findBaseRange barres spots with
       // if the range is too large, raise an error
       | (baseFret, range) when range > 4 ->
          printfn "A chart can only have a maximum fret range of 5! Here is the problem chart: %A" chart
@@ -141,10 +215,10 @@ let evalChart (chart: TabExpr) (text: String) (optionsR: optionsRecord) (x: floa
       // if the range is fine
       | (baseFret, range) ->
 
-         match evalBarre barre x y baseFret with
-         | Some(barreText, barre1) ->
+         match evalBarres barres x y baseFret "" 0 [1..6] with
+         | Some(barreText, barre1, stringsUncovered) ->
 
-            match evalSpots spots x y "" baseFret 0 with
+            match evalSpots spots x y "" baseFret 0 stringsUncovered with
             | Some(spotText, spot1) ->
 
                let one1 =
@@ -171,24 +245,45 @@ let evalChart (chart: TabExpr) (text: String) (optionsR: optionsRecord) (x: floa
 (* Driver for evaluating charts
 1) charts is the list of Chords
 2) text is the string to return
-3) optionsR has all the options info
-4) x is the xCoord
-5) y is the yCoord
-6) count is the number of charts that have already been printed
-7) page is what page it is currently printing on
-RETURNS a string to be printed to postscript, or none
+3) x is the xCoord
+4) y is the yCoord
+5) count is the number of charts that have already been printed
+6) page is what page it is currently printing on
+RETURNS a string to be printed to postscript, plus the final x y coords
 *)
-let rec evalCharts (charts: TabExpr list) (text: String) (optionsR: optionsRecord) (x: float) (y: float) (count: int) (page: int) : String option =
+let rec evalCharts (charts: TabExpr list) (text: String) (x: float) (y: float) (count: int) (page: int) : (String * float * float) option =
 
    match charts with
-   | [] -> Some(text)
+   | [] -> Some(text,x,y)
    | head::tail ->
 
       // call evalChart, then figure out variables for the next recursive call
-      match evalChart head text optionsR x y with
+      match evalChart head text x y with
       | Some(newText) ->
 
-         Some(newText)
+         let newCount = count + 1
+
+         let newX =
+            match (newCount % chartLineMax) with
+            // if the number of charts is divisible by the max number per line, start a new line
+            | 0 -> chartStartX
+            | _ -> x + chartXSkip
+
+         // if there's a new page, showPage will have the text "showpage"
+         let (newY, newPage, showPage) =
+            // if the number of charts is divisible by the max number per page, start a new page
+            match (newCount % chartPageMax) with
+            // always 2 because the first start on the first page is taken care of during the first function call
+            | 0 -> (chartStart2Y, page + 1, " showpage ")
+            | _ ->
+
+               // if it's not a new page, need to see if we're going to a new line
+               match (newCount % chartLineMax) with
+               | 0 -> (y - chartYSkip, page, "")
+               | _ -> (y, page, "")
+
+
+         evalCharts tail (text + newText + showPage) newX newY newCount newPage
       | None -> None
 
 

@@ -224,13 +224,11 @@ let tabEval parsed outFile =
    match evalOption opts defaultOptionsRecord with
    | Some(optionsR, optionsText) ->
 
-      let (x,y) = chartStart
-
-      match evalCharts charts "" optionsR x y 0 1 with
-      | Some(chartText) ->
+      match evalCharts charts "" chartStartX chartStartY 0 1 with
+      | Some(chartText, x, y) ->
          printfn "%A" chartText
 
-         match show (chartText + optionsText) outFile with
+         match show (optionsText + chartText) outFile with
          | 0 -> 0
          | _ -> 1
       | None -> 1

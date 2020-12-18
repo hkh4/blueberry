@@ -33,19 +33,29 @@ let barreInside = ((spaces >>. fret) .>>. (spaces >>. strings)) .>> spaces <!> "
 // barre is inside []
 let barre = pstr "barre:" >>. (spaces >>. (between (pstr "[") (pstr "]") barreInside)) |>> (fun (a,(b,c)) -> (int a - _0, int b - _0, int c - _0)) |>> Barre <!> "barre"
 
-// Spots
-let spot = digit .>>. (pstr "-" >>. digit) |>> (fun (a,b) -> (int a - _0, int b - _0)) |>> Spot <!> "spot"
-let spotsBody = between spaces spaces spot <!> "spotsBody"
-let spots = many spotsBody <!> "spots"
-
 // empty barre - just preturn
-let emptyBarre = preturn EmptyBarre
+let emptyBarre = preturn EmptyBarre |>> (fun a -> [a]) <!> "emptyBarre"
+
+let barres = many1 (between spaces spaces barre)
+
+let anyBarre = barres <|> emptyBarre <!> "anyBarre"
+
+
+// Spots
+let spotBeginning = digit .>> (pstr "-")
+
+let spot = spotBeginning .>>.? digit |>> (fun (a,b) -> (int a - _0, int b - _0)) |>> Spot <!> "spot"
+
+let xSpot = spotBeginning .>> (pstr "X") |>> (fun a -> int a - _0) |>> XSpot <!> "xspot"
+
+let spotsBody = between spaces spaces (spot <|> xSpot) <!> "spotsBody"
+let spots = many spotsBody <!> "spots"
 
 // title
 let title = (pstr "title:") >>. (restOfLine true)
 
 // full chart
-let chartBody = tuple3 title (barre <|> emptyBarre) spots |>> Chart <!> "chartBody"
+let chartBody = tuple3 title anyBarre spots |>> Chart <!> "chartBody"
 
 let chart : Parser<_> = (between (pstr "[") (pstr "]") (between spaces spaces chartBody)) .>> spaces <!> "chart"
 let charts = many chart <!> "charts"

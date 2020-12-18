@@ -5,15 +5,203 @@
 [
 title: f-major
 barre: [
-fret: 1
+fret: 5
 strings: 2-6
 ]
-1-1
-4-5
-5-3
+barre: [
+fret: 7
+strings: 5-6
+]
+1-X
+2-6
+5-6
+3-8
 ]
 
 [
 title: f
 4-4
+]
+
+[
+title: f-major
+barre: [
+fret: 5
+strings: 2-6
+]
+barre: [
+fret: 7
+strings: 5-6
+]
+1-X
+2-6
+5-6
+3-8
+]
+
+[
+title: f-major
+barre: [
+fret: 5
+strings: 2-6
+]
+barre: [
+fret: 7
+strings: 5-6
+]
+1-X
+2-6
+5-6
+3-8
+]
+
+[
+title: f-major
+barre: [
+fret: 5
+strings: 2-6
+]
+barre: [
+fret: 7
+strings: 5-6
+]
+1-X
+2-6
+5-6
+3-8
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
+]
+
+[
+title: g
+2-5
 ]

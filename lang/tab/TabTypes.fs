@@ -8,12 +8,14 @@ type barre =
 | Barre of int * int * int
 | EmptyBarre
 
-// fret, string
-type spot = Spot of int * int
+
+type spot =
+| Spot of int * int // string, fret
+| XSpot of int // just the string number
 
 type TabExpr =
 | TabOption of string * string
-| Chart of string * barre * spot list
+| Chart of string * barre list * spot list
 | Music of string
 
 type optionsRecord = {
@@ -38,13 +40,16 @@ let defaultOptionsRecord = {
 // **** Chart constants
 
 // location of the first start
-let chartStart = (72.0, 610.0)
+let chartStartX = 72.0
+let chartStartY = 610.0
 
 // location of the first start on the second page and onwards
-let chartStart2 = (72.0, 650.0)
+let chartStart2X = 72.0
+let chartStart2Y = 650.0
 
 // max number of charts per page
-let chartMax = 30
+let chartLineMax = 6
+let chartPageMax = 30
 
 // horizontal spacing
 let chartXSkip = 82.0
