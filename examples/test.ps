@@ -75,9 +75,10 @@ grestore end
    grestore end
 } bind def
 
-/chart { % given: x, y, fret, title
-   5 dict begin gsave
+/chart { % given: x, y, fret, title, fullbarre (1 yes else no - if the barre starts on string 1, move the fret number a little to the left)
+   6 dict begin gsave
    0.5 setlinewidth
+   /fullBarre exch def
    /title exch def
    /fret exch def
    /y1 exch def
@@ -124,17 +125,21 @@ grestore end
    x1 50 add y1 9 sub moveto
    (E) centerText
 
-   % fret
-   newpath
-   0 0 0 setrgbcolor
-   x1 5 sub y1 42 add moveto
-   fret centerText
-
    % title
    newpath
    0 0 0 setrgbcolor
    x1 25 add y1 20 sub moveto
    title centerText
+
+   % fret
+   newpath
+   0 0 0 setrgbcolor
+   fullBarre 1 eq
+   {
+   /x1 x1 2 sub store
+   }{} ifelse
+   x1 6 sub y1 42 add moveto
+   fret centerText
 
    grestore end
 } bind def
@@ -158,41 +163,41 @@ grestore end
 
 
 
-72 610 (6) (F major) chart
+72 610 (6) (F major) 0 chart
 72 610 1 2 6 drawBarre
 72 610 2 3 drawSpot
 72 610 1 (O) drawOX
 72 610 2 (X) drawOX
 
-154 610 (1) (F) chart
+154 610 (1) (F) 0 chart
 154 610 1 5 6 drawBarre
 154 610 4 2 drawSpot
 154 610 3 3 drawSpot
 154 610 2 4 drawSpot
 154 610 1 (X) drawOX
 
-236 610 (1) (F) chart
+236 610 (1) (F) 0 chart
 236 610 1 5 6 drawBarre
 236 610 4 2 drawSpot
 236 610 3 3 drawSpot
 236 610 2 4 drawSpot
 236 610 1 (X) drawOX
 
-318 610 (1) (F) chart
+318 610 (1) (F) 0 chart
 318 610 1 5 6 drawBarre
 318 610 4 2 drawSpot
 318 610 3 3 drawSpot
 318 610 2 4 drawSpot
 318 610 1 (X) drawOX
 
-400 610 (1) (F) chart
+400 610 (1) (F) 0 chart
 400 610 1 5 6 drawBarre
 400 610 4 2 drawSpot
 400 610 3 3 drawSpot
 400 610 2 4 drawSpot
 400 610 1 (X) drawOX
 
-482 610 (1) (F) chart
+482 610 (1) (F) 0 chart
 482 610 1 5 6 drawBarre
 482 610 4 2 drawSpot
 482 610 3 3 drawSpot
@@ -203,82 +208,82 @@ grestore end
 
 
 
-72 510 (6) (F major) chart
+72 510 (6) (F major) 0 chart
 72 510 1 2 6 drawBarre
 72 510 2 3 drawSpot
 72 510 1 (O) drawOX
 72 510 2 (X) drawOX
 
-154 510 (1) (F) chart
+154 510 (1) (F) 0 chart
 154 510 1 5 6 drawBarre
 154 510 4 2 drawSpot
 154 510 3 3 drawSpot
 154 510 2 4 drawSpot
 154 510 1 (X) drawOX
 
-236 510 (1) (F) chart
+236 510 (1) (F) 0 chart
 236 510 1 5 6 drawBarre
 236 510 4 2 drawSpot
 236 510 3 3 drawSpot
 236 510 2 4 drawSpot
 236 510 1 (X) drawOX
 
-318 510 (1) (F) chart
+318 510 (1) (F) 0 chart
 318 510 1 5 6 drawBarre
 318 510 4 2 drawSpot
 318 510 3 3 drawSpot
 318 510 2 4 drawSpot
 318 510 1 (X) drawOX
 
-400 510 (1) (F) chart
+400 510 (1) (F) 0 chart
 400 510 1 5 6 drawBarre
 400 510 4 2 drawSpot
 400 510 3 3 drawSpot
 400 510 2 4 drawSpot
 400 510 1 (X) drawOX
 
-482 510 (1) (F) chart
+482 510 (1) (F) 0 chart
 482 510 1 5 6 drawBarre
 482 510 4 2 drawSpot
 482 510 3 3 drawSpot
 482 510 2 4 drawSpot
 482 510 1 (X) drawOX
 
-72 110 (6) (F major) chart
+72 110 (6) (F major) 0 chart
 72 110 1 2 6 drawBarre
 72 110 2 3 drawSpot
 72 110 1 (O) drawOX
 72 110 2 (X) drawOX
 
-154 110 (1) (F) chart
+154 110 (1) (F) 0 chart
 154 110 1 5 6 drawBarre
 154 110 4 2 drawSpot
 154 110 3 3 drawSpot
 154 110 2 4 drawSpot
 154 110 1 (X) drawOX
 
-236 110 (1) (F) chart
+236 110 (1) (F) 0 chart
 236 110 1 5 6 drawBarre
 236 110 4 2 drawSpot
 236 110 3 3 drawSpot
 236 110 2 4 drawSpot
 236 110 1 (X) drawOX
 
-318 110 (1) (F) chart
+318 110 (1) (F) 0 chart
 318 110 1 5 6 drawBarre
 318 110 4 2 drawSpot
 318 110 3 3 drawSpot
 318 110 2 4 drawSpot
 318 110 1 (X) drawOX
 
-400 110 (1) (F) chart
+400 110 (1) (F) 0 chart
 400 110 1 5 6 drawBarre
 400 110 4 2 drawSpot
 400 110 3 3 drawSpot
 400 110 2 4 drawSpot
 400 110 1 (X) drawOX
 
-482 110 (1) (F) chart
+482 110 (1) (F) 0 chart
 482 110 1 5 6 drawBarre
 482 110 4 2 drawSpot
 482 110 3 3 drawSpot
@@ -291,41 +296,41 @@ grestore end
 
 showpage
 
-72 650 (6) (F major) chart
+72 650 (6) (F major) 0 chart
 72 650 1 2 6 drawBarre
 72 650 2 3 drawSpot
 72 650 1 (O) drawOX
 72 650 2 (X) drawOX
 
-154 650 (1) (F) chart
+154 650 (1) (F) 0 chart
 154 650 1 5 6 drawBarre
 154 650 4 2 drawSpot
 154 650 3 3 drawSpot
 154 650 2 4 drawSpot
 154 650 1 (X) drawOX
 
-236 650 (1) (F) chart
+236 650 (1) (F) 0 chart
 236 650 1 5 6 drawBarre
 236 650 4 2 drawSpot
 236 650 3 3 drawSpot
 236 650 2 4 drawSpot
 236 650 1 (X) drawOX
 
-318 650 (1) (F) chart
+318 650 (1) (F) 0 chart
 318 650 1 5 6 drawBarre
 318 650 4 2 drawSpot
 318 650 3 3 drawSpot
 318 650 2 4 drawSpot
 318 650 1 (X) drawOX
 
-400 650 (1) (F) chart
+400 650 (1) (F) 0 chart
 400 650 1 5 6 drawBarre
 400 650 4 2 drawSpot
 400 650 3 3 drawSpot
 400 650 2 4 drawSpot
 400 650 1 (X) drawOX
 
-482 650 (1) (F) chart
+482 650 (1) (F) 0 chart
 482 650 1 5 6 drawBarre
 482 650 4 2 drawSpot
 482 650 3 3 drawSpot
@@ -334,41 +339,41 @@ showpage
 
 
 
-72 150 (6) (F major) chart
-72 150 1 2 6 drawBarre
+72 150 (6) (F major) 1 chart
+72 150 1 1 6 drawBarre
 72 150 2 3 drawSpot
 72 150 1 (O) drawOX
 72 150 2 (X) drawOX
 
-154 150 (1) (F) chart
+154 150 (1) (F) 1 chart
 154 150 1 5 6 drawBarre
 154 150 4 2 drawSpot
 154 150 3 3 drawSpot
 154 150 2 4 drawSpot
 154 150 1 (X) drawOX
 
-236 150 (1) (F) chart
+236 150 (1) (F) 1 chart
 236 150 1 5 6 drawBarre
 236 150 4 2 drawSpot
 236 150 3 3 drawSpot
 236 150 2 4 drawSpot
 236 150 1 (X) drawOX
 
-318 150 (1) (F) chart
+318 150 (1) (F) 1 chart
 318 150 1 5 6 drawBarre
 318 150 4 2 drawSpot
 318 150 3 3 drawSpot
 318 150 2 4 drawSpot
 318 150 1 (X) drawOX
 
-400 150 (1) (F) chart
+400 150 (1) (F) 1 chart
 400 150 1 5 6 drawBarre
 400 150 4 2 drawSpot
 400 150 3 3 drawSpot
 400 150 2 4 drawSpot
 400 150 1 (X) drawOX
 
-482 150 (1) (F) chart
+482 150 (1) (F) 1 chart
 482 150 1 5 6 drawBarre
 482 150 4 2 drawSpot
 482 150 3 3 drawSpot

@@ -13,7 +13,7 @@ type spot = Spot of int * int
 
 type TabExpr =
 | TabOption of string * string
-| Chart of barre * spot list
+| Chart of string * barre * spot list
 | Music of string
 
 type optionsRecord = {

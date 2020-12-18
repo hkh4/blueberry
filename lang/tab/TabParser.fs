@@ -41,8 +41,11 @@ let spots = many spotsBody <!> "spots"
 // empty barre - just preturn
 let emptyBarre = preturn EmptyBarre
 
+// title
+let title = (pstr "title:") >>. (restOfLine true)
+
 // full chart
-let chartBody = (barre <|> emptyBarre) .>>. spots |>> Chart <!> "chartBody"
+let chartBody = tuple3 title (barre <|> emptyBarre) spots |>> Chart <!> "chartBody"
 
 let chart : Parser<_> = (between (pstr "[") (pstr "]") (between spaces spaces chartBody)) .>> spaces <!> "chart"
 let charts = many chart <!> "charts"

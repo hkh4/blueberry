@@ -94,9 +94,10 @@ let show text outFile =
       grestore end
    } bind def
 
-   /chart { % given: x, y, fret, title
-      5 dict begin gsave
+   /chart { % given: x, y, fret, title, fullbarre (1 yes else no - if the barre starts on string 1, move the fret number a little to the left)
+      6 dict begin gsave
       0.5 setlinewidth
+      /fullBarre exch def
       /title exch def
       /fret exch def
       /y1 exch def
@@ -143,19 +144,40 @@ let show text outFile =
       x1 50 add y1 9 sub moveto
       (E) centerText
 
-      % fret
-      newpath
-      0 0 0 setrgbcolor
-      x1 5 sub y1 42 add moveto
-      fret centerText
-
       % title
       newpath
       0 0 0 setrgbcolor
       x1 25 add y1 20 sub moveto
       title centerText
 
+      % fret
+      newpath
+      0 0 0 setrgbcolor
+      fullBarre 1 eq
+      {
+      /x1 x1 2 sub store
+      }{} ifelse
+      x1 6 sub y1 42 add moveto
+      fret centerText
+
       grestore end
+   } bind def
+
+   /drawOX {
+   4 dict begin gsave
+   /sym exch def
+   /fret exch def
+   /y1 exch def
+   /x1 exch def
+
+   /Helvetica findfont
+   8 scalefont setfont
+   newpath
+   0 0 0 setrgbcolor
+   10 fret 1 sub mul x1 add y1 53 add moveto
+   sym centerText
+
+   grestore end
    } bind def
 
    /drawOX {
