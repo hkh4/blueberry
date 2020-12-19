@@ -6,6 +6,7 @@ open TabTypes
 open TabParser
 open TabOptions
 open Charts
+open Music
 
 
 
@@ -225,9 +226,14 @@ let tabEval parsed outFile =
       match evalCharts charts "" chartStartX chartStartY 0 1 with
       | Some(chartText, x, y) ->
 
-         match show (optionsText + chartText) outFile with
-         | 0 -> 0
-         | _ -> 1
+         match evalMusic music x y with
+         | Some(musicText) ->
+
+            match show (optionsText + chartText + musicText) outFile with
+            | 0 -> 0
+            | _ -> 1
+
+         | None -> 1
       | None -> 1
    | None -> 1
 

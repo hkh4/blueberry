@@ -254,7 +254,8 @@ RETURNS a string to be printed to postscript, plus the final x y coords
 let rec evalCharts (charts: TabExpr list) (text: String) (x: float) (y: float) (count: int) (page: int) : (String * float * float) option =
 
    match charts with
-   | [] -> Some(text,x,y)
+   | [] ->
+      Some(text,x,y)
    | head::tail ->
 
       // call evalChart, then figure out variables for the next recursive call
