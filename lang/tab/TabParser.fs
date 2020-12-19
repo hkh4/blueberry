@@ -17,7 +17,7 @@ let optionWord_spaces1 = (word .>> multipleSpaces1) <??> "Option identifier foll
 // options
 let optionIdentifier = pstr "-" >>. optionWord_spaces1 <??> "'-' followed by the option identifier. No spaces in between."
 let singleOption = (optionIdentifier .>>. ((restOfLine false) .>> (newline .>>. spaces))) |>> TabOption
-let option = (many singleOption) .>> spaces
+let options = (many singleOption) .>> spaces
 
 
 //***************** Chord charts
@@ -60,6 +60,12 @@ let chartBody = tuple3 title anyBarre spots |>> Chart <!> "chartBody"
 let chart : Parser<_> = (between (pstr "[") (pstr "]") (between spaces spaces chartBody)) .>> spaces <!> "chart"
 let charts = many chart <!> "charts"
 
-let tabExpr = (option .>>. charts) .>> spaces <!> "tabExpr"
+//*** Words
+
+let line = restOfLine false |>> SingleLine
+
+let lines = sepBy line newline |>> Music
+
+let tabExpr = (tuple3 options charts lines) .>> spaces <!> "tabExpr"
 
 let tabGrammar : Parser<_> = tabExpr .>> eof <!> "tabGrammar"

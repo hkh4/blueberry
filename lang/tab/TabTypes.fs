@@ -8,15 +8,16 @@ type barre =
 | Barre of int * int * int
 | EmptyBarre
 
-
 type spot =
 | Spot of int * int // string, fret
 | XSpot of int // just the string number
 
+type singleLine = SingleLine of string
+
 type TabExpr =
 | TabOption of string * string
 | Chart of string * barre list * spot list
-| Music of string
+| Music of singleLine list
 
 type optionsRecord = {
    Key: string
@@ -49,7 +50,7 @@ let chartStart2Y = 650.0
 
 // max number of charts per page
 let chartLineMax = 6
-let chartPageMax = 30
+let chartPageMax = 36
 
 // horizontal spacing
 let chartXSkip = 82.0

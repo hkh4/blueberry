@@ -216,9 +216,7 @@ let show text outFile =
 let tabEval parsed outFile =
 
    // deconstruct
-   let (opts, charts) = parsed
-
-   printfn "%A" charts
+   let (opts, charts, music) = parsed
 
    // parse the options
    match evalOption opts defaultOptionsRecord with
@@ -226,7 +224,6 @@ let tabEval parsed outFile =
 
       match evalCharts charts "" chartStartX chartStartY 0 1 with
       | Some(chartText, x, y) ->
-         printfn "%A" chartText
 
          match show (optionsText + chartText) outFile with
          | 0 -> 0
