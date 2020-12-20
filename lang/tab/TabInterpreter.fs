@@ -196,7 +196,86 @@ let show text outFile =
    sym centerText
 
    grestore end
-   } bind def " + text + " showpage %%EndProlog "
+   } bind def
+
+   /line {
+   4 dict begin gsave
+   /ar exch def
+   /y1 exch def
+   /x1 exch def
+
+   /Times-Roman findfont
+   12 scalefont setfont
+   newpath
+   0 0 0 setrgbcolor
+
+   /skipLoop false def
+
+   x1 y1 moveto
+
+   0 1 ar length 1 sub {
+
+      skipLoop true eq {
+         /skipLoop false store
+
+      }{
+
+         /i exch def
+         /current ar i get def
+
+         1 current eq {
+
+            /newCurrent ar i 1 add get def
+
+            /currentX currentpoint pop def
+            /currentY currentpoint exch pop def
+
+            0 20 rmoveto
+            newCurrent show
+            currentX currentY moveto
+            /skipLoop true store
+
+         } {
+
+            current (\n) eq {
+
+               % new line
+               currentpoint exch pop 72 lt {
+                  showpage
+                  72 720 moveto
+               }{
+                  72 currentpoint exch pop 40 sub moveto
+               } ifelse
+
+            }{
+
+               % if it needs a new line, do so
+               currentpoint pop current stringwidth pop add 540 gt {
+
+                  currentpoint exch pop 72 lt {
+                     showpage
+                     72 720 moveto
+                  }{
+                     x1 currentpoint exch pop 40 sub moveto
+                  } ifelse
+
+                  current show
+
+               }{
+                  current show
+               } ifelse
+
+            } ifelse
+
+         } ifelse
+
+
+      } ifelse
+
+   } for
+
+   grestore end
+   } bind def" + text + " showpage %%EndProlog "
 
    try
       File.WriteAllText(outFile+".ps", fullText)
