@@ -57,13 +57,18 @@ let evalLine (line: singleLine) : string option =
 
       let trimmed = s.Trim(' ')
 
-      let listOfWords = trimmed.Split(" ") |> Array.toList
+      // if the entire line is empty, don't make such a big gap
+      match trimmed with
+      | "" -> Some(""" (\sm) """)
+      | _ ->
 
-      let fullString = List.fold (fun acc c -> acc + (wordToString c "")) "" listOfWords
+         let listOfWords = trimmed.Split(" ") |> Array.toList
 
-      let withNewLine = fullString + """ (\n) """
+         let fullString = List.fold (fun acc c -> acc + (wordToString c "")) "" listOfWords
 
-      Some(withNewLine)
+         let withNewLine = fullString + """ (\n) """
+
+         Some(withNewLine)
 
 
 

@@ -48,6 +48,19 @@ let show text outFile =
    grestore end
    } bind def
 
+   /tuning {
+   1 dict begin gsave
+   /str exch def
+   /Times-Roman findfont
+   10 scalefont
+   setfont
+   newpath
+   0 0 0 setrgbcolor
+   40 690 moveto
+   str show
+   grestore end
+   } bind def
+
    /centerText {
       dup stringwidth pop -0.5 mul 0 rmoveto show } def
 
@@ -230,11 +243,11 @@ let show text outFile =
             /currentX currentpoint pop def
             /currentY currentpoint exch pop def
 
-            0 20 rmoveto
+            0 12.5 rmoveto
 
             % bold
             /Times-Bold findfont
-            12 scalefont setfont
+            9 scalefont setfont
 
             newCurrent show
             currentX currentY moveto
@@ -244,35 +257,50 @@ let show text outFile =
 
          } {
 
-            current (\n) eq {
+            current (\sm) eq {
 
                % new line
                currentpoint exch pop 72 lt {
                   showpage
                   72 720 moveto
                }{
-                  72 currentpoint exch pop 40 sub moveto
+                  72 currentpoint exch pop 15 sub moveto
                } ifelse
 
             }{
 
-               % if it needs a new line, do so
-               currentpoint pop current stringwidth pop add 540 gt {
+               current (\n) eq {
 
+                  % new line
                   currentpoint exch pop 72 lt {
                      showpage
                      72 720 moveto
                   }{
-                     x1 currentpoint exch pop 40 sub moveto
+                     72 currentpoint exch pop 25 sub moveto
                   } ifelse
 
-                  current show
-
                }{
-                  current show
+
+                  % if it needs a new line, do so
+                  currentpoint pop current stringwidth pop add 540 gt {
+
+                     currentpoint exch pop 72 lt {
+                        showpage
+                        72 720 moveto
+                     }{
+                        x1 currentpoint exch pop 25 sub moveto
+                     } ifelse
+
+                     current show
+
+                  }{
+                     current show
+                  } ifelse
+
                } ifelse
 
             } ifelse
+
 
          } ifelse
 

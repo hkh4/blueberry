@@ -36,6 +36,7 @@ let evalSpot (s: spot) (x: float) (y: float) (baseFret: int) : (String * int * i
 1) s is the int of the string number
 2) x is the x coord
 3) y is the y coord
+RETURNS the string text code
 *)
 let drawO (s: int) (x: float) (y: float) : String =
 
@@ -67,9 +68,11 @@ let rec evalSpots (spots: spot List) (x: float) (y: float) (text: String) (baseF
          | [] -> text
          | head::tail ->
             let newText = drawO head x y
+
             drawOs x y tail (text + newText)
 
       let OText = drawOs x y stringsUncovered ""
+
       let fullText = OText + text
 
       Some(fullText, oneOne)
@@ -120,12 +123,13 @@ let evalBarre (b: barre) (x: float) (y: float) (baseFret: int) (uncoveredStrings
             else 0
 
          let allStrings = [startString .. endString]
+
          let newUncoveredStrings = List.filter (fun c -> not (List.exists (fun d -> d = c) allStrings)) uncoveredStrings
 
          Some(" " + string x + " " + string y + " " + string updatedFret + " " + string s + " " + string e + " drawBarre ", oneOne, newUncoveredStrings)
 
 
-   | EmptyBarre -> Some(" ", 0, [])
+   | EmptyBarre -> Some(" ", 0, uncoveredStrings)
 
 
 
@@ -146,6 +150,7 @@ let rec evalBarres (barres: barre List) (x: float) (y: float) (baseFret: int) (t
    | [] -> Some(text, oneOne, uncoveredStrings)
 
    | head::tail ->
+
       match evalBarre head x y baseFret uncoveredStrings with
       | Some(newText, newOneOne, newUncoveredStrings) ->
 

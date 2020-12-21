@@ -103,9 +103,14 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
       let newOption = { optionsR with Composer = valueTrim }
       Some(newOption)
 
+   | ScoreOption(key, value) when key = "tuning" ->
+      let valueTrim = value.Trim(' ')
+      let newOption = { optionsR with Tuning = valueTrim }
+      Some(newOption)
+
    // Notes
    | _ ->
-      printfn "Invalid option! Valid options are key, title, composer, capo, arranger, and time"
+      printfn "Invalid option! Valid options are key, title, composer, capo, arranger, tuning, and time"
       None
 
 

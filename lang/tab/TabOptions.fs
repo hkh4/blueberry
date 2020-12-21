@@ -51,8 +51,13 @@ let parseOptions (opt: TabExpr) (optionsR: optionsRecord) : optionsRecord option
          printfn "Invalid key. Valid options are: c cm c# c#m cb d dm db d#m e em eb ebm f fm f#m f# g gm g#m gb a am a#m ab abm b bm bb bbm"
          None
 
+   | TabOption(key, value) when key = "tuning" ->
+      let valueTrim = value.Trim(' ')
+      let newOption = { optionsR with Tuning = valueTrim }
+      Some(newOption)
+
    | _ ->
-      printfn "Invalid option! Valid options are title, composer, capo, and key"
+      printfn "Invalid option! Valid options are title, composer, capo, tuning, and key"
       None
 
 (* Driver for parsing options
@@ -63,7 +68,7 @@ RETURNS the completed optionsR, or an error, as well as the options text
 let rec evalOption (opts: TabExpr List) (optionsR: optionsRecord) : (optionsRecord * String) option =
    match opts with
    | [] ->
-      let optionsText = " (" + optionsR.Title + ") title " + "(" + optionsR.Composer + ") composer (capo " + string optionsR.Capo + ") capo "
+      let optionsText = " (" + optionsR.Title + ") title " + "(" + optionsR.Composer + ") composer (capo " + string optionsR.Capo + ") capo (Tuning: " + optionsR.Tuning + ") tuning "
       Some(optionsR, optionsText)
    | head::tail ->
       match (parseOptions head optionsR) with

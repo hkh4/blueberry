@@ -24,6 +24,7 @@ type optionsRecord = {
    Capo: int
    Title: string
    Composer: string
+   Tuning: String
 }
 
 
@@ -35,6 +36,7 @@ let defaultOptionsRecord = {
    Capo = 0;
    Title = "untitled";
    Composer = "unknown";
+   Tuning = "standard";
 }
 
 

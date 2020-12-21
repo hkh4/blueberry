@@ -90,6 +90,7 @@ type optionsRecord = {
    Capo: int
    Title: string
    Composer: string
+   Tuning: string
 }
 
 type singleNote =

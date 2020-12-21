@@ -79,7 +79,7 @@ let rec show (pages: Page List) (updatedPages: Page List) (starterText: string) 
 let eval optionsList measuresList outFile =
 
    // default options
-   let optionsR = {Time = (4,4); Key = "c"; Capo = 0; Title = "untitled"; Composer = "unknown"}
+   let optionsR = {Time = (4,4); Key = "c"; Capo = 0; Title = "untitled"; Composer = "unknown"; Tuning = "standard"}
 
    // First, parse the options
    match (evalOption optionsList optionsR) with
@@ -168,6 +168,19 @@ let eval optionsList measuresList outFile =
                   width 0 rlineto
                   stroke
                   end
+               } bind def
+
+               /tuning {
+               1 dict begin gsave
+               /str exch def
+               /Times-Roman findfont
+               10 scalefont
+               setfont
+               newpath
+               0 0 0 setrgbcolor
+               40 705 moveto
+               str show
+               grestore end
                } bind def
 
                %Bar line
@@ -1543,7 +1556,7 @@ let eval optionsList measuresList outFile =
 
                "
                // Add the title and composer to the text
-               let text' = text + " (" + newOption.Title + ") title " + "(" + newOption.Composer + ") composer (capo " + string newOption.Capo + ") capo "
+               let text' = text + " (" + newOption.Title + ") title " + "(" + newOption.Composer + ") composer (capo " + string newOption.Capo + ") capo " + " (Tuning: " + newOption.Tuning + ") tuning"
                //print and show
                match (show pages [] text' "" outFile) with
                | Some(updatedText, updatedPages) ->
