@@ -231,9 +231,16 @@ let show text outFile =
             /currentY currentpoint exch pop def
 
             0 20 rmoveto
+
+            % bold
+            /Times-Bold findfont
+            12 scalefont setfont
+
             newCurrent show
             currentX currentY moveto
             /skipLoop true store
+            /Times-Roman findfont
+            12 scalefont setfont
 
          } {
 
@@ -275,7 +282,7 @@ let show text outFile =
    } for
 
    grestore end
-   } bind def" + text + " showpage %%EndProlog "
+   } bind def " + text + " showpage %%EndProlog "
 
    try
       File.WriteAllText(outFile+".ps", fullText)

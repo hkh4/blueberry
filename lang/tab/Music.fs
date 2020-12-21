@@ -6,7 +6,7 @@ open TabTypes
 
 
 (**)
-let rec lineToString (s: string) (res: string) : string =
+let rec wordToString (s: string) (res: string) : string =
 
    // Keep looking for chord markers until there are no more left.
    match s.IndexOf("/")  with
@@ -15,14 +15,35 @@ let rec lineToString (s: string) (res: string) : string =
       let last = " (" + s + ") "
       res + last + " ( ) "
 
+   // first slash
    | firstSlash ->
+
+
       // find the ending slash
-      let afterFirstSlash = s.[x+1..]
-      let sec = afterFirstSlash.IndexOf("/")
+      let afterFirstSlash = s.[firstSlash+1..]
+      let secondSlash = afterFirstSlash.IndexOf("/")
 
       match secondSlash with
       | -1 ->
+
+         // if there is no second slash, then assume this slash is part of the lyrics and return the rest of it
+         let ending = " (" + s + ") ( ) "
+         res + ending
+
       | secondSlash ->
+
+         // first, get the section up until the first slash
+         let beforeFirstSlash = s.[0..firstSlash - 1]
+         let beforeFirstSlashString = " (" + beforeFirstSlash + ") "
+
+         // then, create the chord by adding a 1, and then the chord itself
+         let betweenSlashes = s.[firstSlash + 1 .. firstSlash + secondSlash]
+         let chordText = " 1 (" + betweenSlashes + ") "
+
+         // finally, recurse on the rest of the string
+         let restOfString = s.[firstSlash + secondSlash + 2..]
+
+         wordToString restOfString (res + beforeFirstSlashString + chordText)
 
 
 
@@ -38,9 +59,12 @@ let evalLine (line: singleLine) : string option =
 
       let listOfWords = trimmed.Split(" ") |> Array.toList
 
-      let fullString = List.fold (fun acc c -> acc + (lineToString c "")) "" listOfWords
+      let fullString = List.fold (fun acc c -> acc + (wordToString c "")) "" listOfWords
 
-      Some(" " + string x + " " + string y + " [ " + fullString + " ] ", x, y)
+      let withNewLine = fullString + """ (\n) """
+
+      Some(withNewLine)
+
 
 
 
@@ -56,12 +80,16 @@ RETURNS the text code or none
 let rec evalLines (lines: singleLine list) (x: float) (y: float) (text: string) : string option =
 
    match lines with
-   | [] -> Some(text)
+   | [] ->
+
+      let fullText = " " + string x + " " + string y + " [" + text + "] line "
+      Some(fullText)
+
    | head::tail ->
 
-      match evalLine head x y with
+      match evalLine head with
       | Some(lineText) ->
-         evalLines tail (text + lineText)
+         evalLines tail x y (text + lineText)
 
       | None -> None
 
@@ -82,8 +110,8 @@ let evalMusic (music: TabExpr) (x: float) (y: float) : string option =
 
       // if x is greater than 100, there was at least one chart, so skip to the next line
       let newY =
-         if x > 100.0 then y - 50.0
-         else y
+         if x > 100.0 then y - 80.0
+         else y - 20.0
 
       match evalLines lines chartStartX newY "" with
       | Some(musicText) -> Some(musicText)
