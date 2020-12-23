@@ -1,10 +1,11 @@
 # Create Guitar Tabs
 
-With a simple syntax, blueberry lets you focus on the music, and not on annoying UIs! Blueberry comes with two modes: score mode and tab mode. [Score mode](#Score-Mode Documentation) is used to create guitar tablature for fingerstyle playing, while tab mode is used to create more traditional guitar tabs, with lyrics, chord charts, and chord placements.
+With a simple syntax, blueberry lets you focus on the music, and not on annoying UIs! Blueberry comes with two modes: score mode and tab mode. Score mode is used to create guitar tablature for fingerstyle playing, while tab mode is used to create more traditional guitar tabs, with lyrics, chord charts, and chord placements.
 
 &nbsp;
 
 ![Score example](img/blueberry-example.png)
+![Tab example](img/tab.png)
 
 &nbsp;
 
@@ -719,3 +720,39 @@ The options used at the beginning of the document (key, capo, time in particular
 # Tab-Mode Documentation
 
 ## Basic Syntax
+
+   ```
+   -title Song
+   -composer Unknown
+   -capo 3
+
+   [
+   title: E
+   2-2
+   3-2
+   4-1
+   ]
+
+   [
+   title: F
+   barre: [
+   fret: 1
+   strings: 1-6
+   ]
+   2-3
+   3-3
+   4-2
+   ]
+
+   Verse 1:
+   Here /F/are some words /E/that are lyrics
+   Example /D/example example
+
+   Chorus:
+   /A/Lorem ipsum do/Bb/lor sit amet, conse/Gm/ctetur adipiscing elit.
+   Ut vel ips/Ab-(up)/um quis nunc po/E/rta aliquet.
+   Ae/F/nean massa n/E/isi, tempus eu he/E/ndreri/E/t non, iaculis at ex.
+   /F/Sed ultrices sit ame/F/t /F/mi solli/F/citudin dictum.
+   ```
+
+![tab-example](img/tab-example.png)
