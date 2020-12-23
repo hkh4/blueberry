@@ -789,3 +789,13 @@ All chords begin with a set of brackets, inside which are 3 parts: the title, a 
    ```
 
 ![chord](img/chord.png)
+
+## Lyrics and Chord Placement
+
+When writing lyrics, they will appear exactly as written, with the same whitespace and linebreaks, except for when line or page wraps are needed. Chords can be placed at specific locations using two slashes, with the name of the chord in the middle `/F/`. If you put any spaces inside the slashes, weird things could happen, so to avoid this, use dashes instead of whitespace. It will be converted automatically.
+
+   ```
+   Here are /F/some co/E/ol lyr/F-major/ics with chords in them!
+   ```
+
+![lyrics](img/lyrics.png)
