@@ -6,7 +6,10 @@ open TabTypes
 
 
 (**)
-let rec wordToString (s: string) (res: string) : string =
+let rec wordToString (str: string) (res: string) : string =
+
+   // first turn all dashes into spaces
+   let s = str.Replace("-", " ")
 
    // Keep looking for chord markers until there are no more left.
    match s.IndexOf("/")  with
@@ -115,8 +118,8 @@ let evalMusic (music: TabExpr) (x: float) (y: float) : string option =
 
       // if x is greater than 100, there was at least one chart, so skip to the next line
       let newY =
-         if x > 100.0 then y - 80.0
-         else y - 20.0
+         if x > 100.0 then y - 50.0
+         else y + 20.0
 
       match evalLines lines chartStartX newY "" with
       | Some(musicText) -> Some(musicText)

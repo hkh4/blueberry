@@ -1,10 +1,10 @@
 # Create Guitar Tabs
 
-With a simple syntax, blueberry lets you focus on the music, and not on annoying UIs!
+With a simple syntax, blueberry lets you focus on the music, and not on annoying UIs! Blueberry comes with two modes: score mode and tab mode. [Score mode](#Score-Mode Documentation) is used to create guitar tablature for fingerstyle playing, while tab mode is used to create more traditional guitar tabs, with lyrics, chord charts, and chord placements.
 
 &nbsp;
 
-![Example](img/blueberry-example.png)
+![Score example](img/blueberry-example.png)
 
 &nbsp;
 
@@ -29,12 +29,12 @@ Download the packages above and clone this repo into an easily accessible locati
    cd path-to-folder/blueberry/lang
    ```
 
-2. Create a new file to write your code in. I suggest using the .blb extension for easy-of-use, but any extension works.
+2. Create a new file to write your code in. I suggest using the .blb extension for ease-of-use, but any extension works.
 
 3. Run using dotnet. It will create a .ps file with the specified name.
 
    ```shell
-   dotnet run <filename> <output filename>
+   dotnet run <mode> <filename> <output filename>
    ```
 
 4. Use ps2pdf, a command line tool from Ghostscript, to convert the postscript file to a pdf. If you get an error, you may need to add ghostscript to your PATH variable.
@@ -52,27 +52,48 @@ Download the packages above and clone this repo into an easily accessible locati
       open $1.pdf
    }
 
-   function blb() {
+   function blbscore() {
       if [[ "$#" == 0 ]]; then
-      echo 'Usage: blb <file with code> <name of output file>'
+      echo 'Usage: blbscore <file with code> <name of output file>'
       return 0
       fi
       if [ -z "$2" ]
-         then
+        then
             OUTFILE='score'
       else
-         OUTFILE=$2
+        OUTFILE=$2
       fi
       cwd=$(pwd)
-      cd ~/PATHTOFILE/blueberry/lang
-      dotnet run $cwd/$1 $OUTFILE
+      cd ~/PATH_TO_REPO
+      dotnet run score $cwd/$1 $OUTFILE
       pspdf $OUTFILE
       rm $OUTFILE.ps
       mv $OUTFILE.pdf $cwd
       cd $cwd
    }
+
+   function blbtab() {
+      if [[ "$#" == 0 ]]; then
+      echo 'Usage: blbtab <file with code> <name of output file>'
+      return 0
+      fi
+      if [ -z "$2" ]
+      then
+      OUTFILE='tab'
+      else
+      OUTFILE=$2
+      fi
+      cwd=$(pwd)
+      cd ~/PATH_TO_REPO
+      dotnet run tab $cwd/$1 $OUTFILE
+      pspdf $OUTFILE
+      rm $OUTFILE.ps
+      mv $OUTFILE.pdf $cwd
+      cd $cwd
+
+   }
    ```
-Now, you can create files anywhere on your computer, and run it using `blb <filename> <outputFile>`!
+Now, you can create files anywhere on your computer, and run it using `blbtab <filename> <outputFile>` or `blbscore <filename> <outputFile>`!
 
 ## Windows
 
@@ -80,7 +101,7 @@ Download the packages above and clone this repo into an easily accessible locati
 
 The instructions for running within the blueberry folder should be the same as for Mac users. Use the terminal function within VsCode. In addition, check out this [post](https://stackoverflow.com/questions/6011373/call-ghostscript-in-windows-by-its-invocation-name#:~:text=Open%20a%20cmd%20window%20and,64%20bit%20Windows) for how to use the ghostscript functions in the terminal. I'm not familiar with scripting on Windows and how to create a script to run the program from other folders.
 
-# Documentation
+# Score-Mode Documentation
 
 ## Basic Syntax
 
@@ -693,3 +714,8 @@ The options used at the beginning of the document (key, capo, time in particular
    ```
 
 ![time change](img/timeChange.png)
+
+
+# Tab-Mode Documentation
+
+## Basic Syntax
