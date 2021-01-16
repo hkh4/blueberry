@@ -1556,7 +1556,7 @@ let eval optionsList measuresList outFile =
 
                "
                // Add the title and composer to the text
-               let text' = text + " (" + newOption.Title + ") title " + "(" + newOption.Composer + ") composer (capo " + string newOption.Capo + ") capo " + " (Tuning: " + newOption.Tuning + ") tuning"
+               let text' = text + " (" + newOption.Title + ") title " + "(" + newOption.Composer + ") composer (capo " + string newOption.Capo + ") capo " + " (Tuning: " + newOption.Tuning + ") tuning "
                //print and show
                match (show pages [] text' "" outFile) with
                | Some(updatedText, updatedPages) ->
