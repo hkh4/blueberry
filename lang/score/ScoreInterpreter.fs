@@ -15,9 +15,10 @@ open Graphics
 3) starterText is the string of the postscript functions
 4) text is the text that will be updated then printed to postscript file
 5) outFile is the name of the file to be printed to
+6) list of numbers for tuning
 RETURNS string to be printed and the new Page List
 *)
-let rec show (pages: Page List) (updatedPages: Page List) (starterText: string) (text: string) (outFile: string) : (string * Page List) option =
+let rec show (pages: Page List) (updatedPages: Page List) (starterText: string) (text: string) (outFile: string) (tuningNumbers: int List) : (string * Page List) option =
    match pages with
    // Base: no more pages, print the text to a file called score.ps
    | [] ->
@@ -62,13 +63,13 @@ let rec show (pages: Page List) (updatedPages: Page List) (starterText: string) 
                Add(5,((0.0,0.0),0,false,false)).
                Add(6,((0.0,0.0),0,false,false))
          }
-      match (showLines lines [] "" "" defaultPropertyList) with
+      match (showLines lines [] "" "" defaultPropertyList tuningNumbers) with
       | Some(t,priority,updatedLines) ->
          let newText = text + priority + t + " showpage "
          // update the Page with the new lines
          let newPage = { head with Lines = updatedLines }
          let newUpdatedPages = updatedPages @ [newPage]
-         show tail newUpdatedPages starterText newText outFile
+         show tail newUpdatedPages starterText newText outFile tuningNumbers
       | None ->
          None
 
@@ -79,7 +80,7 @@ let rec show (pages: Page List) (updatedPages: Page List) (starterText: string) 
 let eval optionsList measuresList outFile =
 
    // default options
-   let optionsR = {Time = (4,4); Key = "c"; Capo = 0; Title = "untitled"; Composer = "unknown"; Tuning = "standard"}
+   let optionsR = {Time = (4,4); Key = "c"; Capo = 0; Title = "untitled"; Composer = "unknown"; Tuning = "standard"; TuningNumbers = [0;7;2;9;5;0]}
 
    // First, parse the options
    match (evalOption optionsList optionsR) with
@@ -1558,7 +1559,7 @@ let eval optionsList measuresList outFile =
                // Add the title and composer to the text
                let text' = text + " (" + newOption.Title + ") title " + "(" + newOption.Composer + ") composer (capo " + string newOption.Capo + ") capo " + " (Tuning: " + newOption.Tuning + ") tuning "
                //print and show
-               match (show pages [] text' "" outFile) with
+               match (show pages [] text' "" outFile newOption.TuningNumbers) with
                | Some(updatedText, updatedPages) ->
 
                   Some(updatedText, updatedPages)

@@ -8,6 +8,10 @@ open Beams
 
 // ############### DRAW THE NOTES ###################
 
+
+// mutable global variable which stores the tuning
+let mutable tuning = []
+
 (* Given a string number and a pitch, figure out the fret number
 1) guitarString is the int of which string this note will be on
 2) pitch is the Pitch of the note
@@ -35,11 +39,12 @@ let calculateStringAndFret (guitarString: int) (pitch: Pitch) (capo: int) : int 
    let numAfterCapo = (num + (12 - capo)) % 12
    // based on string number, adjust fret
    match guitarString with
-   | 1 | 6 -> Some(numAfterCapo)
-   | 2 -> Some((numAfterCapo + 7) % 12)
-   | 3 -> Some((numAfterCapo + 2) % 12)
-   | 4 -> Some((numAfterCapo + 9) % 12)
-   | 5 -> Some((numAfterCapo + 5) % 12)
+   | 1 -> Some((numAfterCapo + tuning.[0]) % 12)
+   | 2 -> Some((numAfterCapo + tuning.[1]) % 12)
+   | 3 -> Some((numAfterCapo + tuning.[2]) % 12)
+   | 4 -> Some((numAfterCapo + tuning.[3]) % 12)
+   | 5 -> Some((numAfterCapo + tuning.[4]) % 12)
+   | 6 -> Some((numAfterCapo + tuning.[5]) % 12)
    | _ ->
       printfn "Invalid string number! Must be 1-6"
       None
@@ -557,9 +562,14 @@ let rec showMeasures (measures: SingleMeasure List) (updatedMeasures: SingleMeas
 3) text is all the postscript text to be written
 4) priorityText is text that should be written first
 5) propertyList is the record that describes the properties to be drawn
+6) tuningNumbers is the list of numbers to tweak guitar string tunings
 RETURNS: new updated text, priority text, and new Line List
 *)
-let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (priorityText: string) (propertyList: PropertyList) : (string * string * Line List) option =
+let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (priorityText: string) (propertyList: PropertyList) (tuningNumbers: int List) : (string * string * Line List) option =
+
+   // set global varible
+   tuning <- tuningNumbers
+
    match lines with
    // Base case: return the text when all lines have been processed
    | [] -> Some(text,priorityText,updatedLines)
@@ -666,7 +676,7 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
                         match (checkEndMute tail newPropertyList'''') with
                         Some(muteText, newPropertyList''''') ->
 
-                           showLines tail newUpdatedLines (newText + propertyText + slurText + tieText + hammerText + muteText) newPriorityText newPropertyList'''''
+                           showLines tail newUpdatedLines (newText + propertyText + slurText + tieText + hammerText + muteText) newPriorityText newPropertyList''''' tuningNumbers
                         | None -> None
                      | None -> None
                   | None -> None

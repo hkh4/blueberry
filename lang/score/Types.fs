@@ -91,6 +91,7 @@ type optionsRecord = {
    Title: string
    Composer: string
    Tuning: string
+   TuningNumbers: int List
 }
 
 type singleNote =

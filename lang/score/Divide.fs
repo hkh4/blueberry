@@ -972,7 +972,7 @@ let rec divideLines (measureList : SingleMeasure List) (lineList : Line List) (w
 
 // ################# Step 3: Divide lines into pages
 
-(* recursively divide lines into a page
+(* recursively divide lines into a page 
 1) lines is the list of Lines to be evaluated
 2) linesSoFar is the lines that will be added to this current Page
 3) start is the x,y coords of the start of the current line

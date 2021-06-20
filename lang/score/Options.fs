@@ -105,8 +105,39 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
 
    | ScoreOption(key, value) when key = "tuning" ->
       let valueTrim = value.Trim(' ')
-      let newOption = { optionsR with Tuning = valueTrim }
-      Some(newOption)
+
+      // split it up into the 6 strings
+      let stringsKeys = valueTrim.Split "-"
+
+      match stringsKeys.Length with
+      | 6 ->
+        let arrayOfNumbers =
+          Array.collect (fun elem ->
+            match elem with
+              | "e" | "fb" -> [|0|]
+              | "f" | "e#" -> [|11|]
+              | "f#" | "gb" -> [|10|]
+              | "g" -> [|9|]
+              | "g#" | "ab" -> [|8|]
+              | "a" -> [|7|]
+              | "a#" | "bb" -> [|6|]
+              | "b" | "cb" -> [|5|]
+              | "c" | "b#" -> [|4|]
+              | "c#" | "db" -> [|3|]
+              | "d" -> [|2|]
+              | "d#" | "eb" -> [|1|]
+              | _ ->
+                 printfn "Error in parseOptions. A note with Pitch type NoPitch should never enter this function"
+                 [|-1|]) stringsKeys
+
+        let listOfNumbers = Array.toList arrayOfNumbers
+
+        let newOption = { optionsR with TuningNumbers = listOfNumbers; Tuning = valueTrim }
+        Some(newOption)
+      | _ ->
+        printfn "Tuning should have exactly 6 strings"
+        None
+
 
    // Notes
    | _ ->
