@@ -689,7 +689,7 @@ let drawMProperties (mList: MultiProperty List) (propertyList: PropertyList) (is
 RETURNS the list of strings to be printed and the new PropertyList
 *)
 let rec drawPropertiesElement (el: Element) (propertyList: PropertyList) (isGrace: bool) (measureNumber: int) : (string List * PropertyList) option =
-
+ 
    match el.NoteInfo with
    | SingleNote(n,mProperties) ->
       // x y

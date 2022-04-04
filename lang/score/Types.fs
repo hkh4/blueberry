@@ -3,7 +3,7 @@ module Types
 open System
 open FParsec
 
-//****** Parser types
+//****** Parser types 
 
 (*
 Notes:
@@ -144,7 +144,7 @@ type Page = {
 }
 
 type PropertyList = {
-   // (x,y),fret,grace note,valid
+   // (x,y),grace note,valid
    SlurStart: (float * float) * bool * bool
    // (x,y),valid
    MuteStart: (float * float) * bool

@@ -1,0 +1,976 @@
+-composer The Arcadian Wild
+-capo 4
+-key e
+-title Man in Room 39
+-time 4-4
+
+% Intro %
+0:
+   2c8.
+   $Note: everything is swung, so 8. + 16th = 8th triplets feel$
+   2d16
+1:
+   2e8.
+   4b16
+   3g8.
+   5e16
+   2e8.
+   4b16
+   3g8.
+   6g16
+2:
+   2e8.
+   4b16
+   3g8.
+   5e16
+   1b8.
+   4b16
+   3f8.
+   5e16
+3:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   3g8.
+   6g16
+4:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   <3f8/ham 3g8 4b>4
+5:
+   (1a 4c)4
+   3a8.
+   5e16
+   (1a 4c)8.
+   4b16
+   1a8.
+   3f16
+-time 2-4
+6:
+   1b8.
+   4b16
+   3f8.
+   5e16
+-time 4-4
+7:
+   2e8.
+   4b16
+   3g8.
+   6g16
+   2e8.
+   4b16
+   3g8.
+   5e16
+8:
+   2e8.
+   4b16
+   3g8.
+   6g16
+   2e8.
+   4b16
+   3g8.
+   5e16
+
+% Verse 1 %
+9:
+   2e8.
+   $Verse 1$
+   4b16
+   3g8.
+   5e16
+   2e8.
+   4b16
+   3g8.
+   6g16
+10:
+   2e8.
+   4b16
+   3g8.
+   5e16
+   2d8.
+   4b16
+   3f8.
+   5e16
+11:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   3g8.
+   6g16
+12:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   <3f8/ham 3g8 4b>4
+13:
+   (1a 4c)4
+   3a8.
+   5e16
+   (1a 4c)8.
+   4b16
+   1a8.
+   3f16
+14:
+   1b8.
+   4b16
+   3f8.
+   5d16
+   1b8.
+   4b16
+   3f8.
+   5e16
+15:
+   2c8.
+   4c16
+   <3f8/ham 3g 4c>4
+   2c8.
+   5e16
+   3g8.
+   6g16
+16:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   3g8.
+   5e16
+17:
+   2e8.
+   4b16
+   3g8.
+   5e16
+   1a8.
+   4c16
+   3a8.
+   5e16
+18:
+   1b8.
+   4b16
+   3f8.
+   5d16
+   1b8.
+   4b16
+   3f8.
+   5e16
+19:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   1b8.
+   4b16
+   3f8.
+   5e16
+20:
+   1a8.
+   4c16
+   3a8.
+   6g16
+   1a8.
+   4c16
+   3a8.
+   5e16
+21:
+   1a8.
+   4c16
+   3a8.
+   5e16
+   1a8.
+   4c16
+   3a8.
+   5e16
+22:
+   1b4
+   (2d 3f 4b)4/plu
+   1b8./plm
+   (3f 4b 5e)16/plu
+   1b8./plm
+   (4b 5d)16
+23:
+   1b2.../plm
+   4b16/ham
+
+% Chorus %
+
+24:
+   (1a 3a 4c)4
+   $Chorus$
+   (3a 4c)8.
+   5e16
+   4c8.
+   5e16
+   3a8.
+   4b16
+25:
+   2e8.
+   4b16
+   <3f8/ham 3g 4b>4
+   2e8.
+   5e16
+   2d8.
+   4b16
+26:
+   1b8.
+   4b16
+   3f8.
+   5d16
+   1b8.
+   4b16
+   3f8.
+   5e16
+27:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   3g8.
+   5e16
+28:
+   1a8.
+   4c16
+   3a8.
+   5e16
+   3a8./par
+   6g16
+   1a8.
+   5e16
+29:
+   2e8.
+   4b16
+   <3f8/ham 3g 4b>4
+   2e8.
+   5e16
+   2d8.
+   4b16
+30:
+   1b8.
+   4b16
+   3f8.
+   5d16
+   1b8.
+   4b16
+   3f8.
+   5e16
+31:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   <3f8/ham 3g8 4c8>4
+   2c8.
+   5e16
+32:
+   1a8.
+   4c16
+   3a8.
+   5e16
+   3a8.
+   4c16
+   2e8.
+   4b16
+33:
+   2e8.
+   4b16
+   3g8.
+   6b16
+   2e8.
+   4b16
+   3g8.
+   1b16
+34:
+   1b4
+   (3f 4b 5d)
+   1b8./plm
+   (3f 4b 5e)16/plu
+   1b8./plm
+   (4b 5d)16
+35:
+   1b2/plm/tie
+   1b8.
+   4b16
+   2c8.
+   2d16
+
+% Verse 2 %
+36:
+   2e8.
+   $ Verse 2 $
+   4b16
+   3g8.
+   5e16
+   2e8.
+   4b16
+   3g8.
+   6g16
+37:
+   2e8.
+   4b16
+   3g8.
+   5e16
+   2d8.
+   4b16
+   3f8.
+   5e16
+38:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   3g8.
+   5d16
+39:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   <3f8/ham 3g8 4b>4
+40:
+   (1a 4c)4
+   3a8.
+   5e16
+   (1a 4c)8.
+   4b16
+   1a8.
+   3f16
+41:
+   1b8.
+   4b16
+   3f8.
+   5d16
+   1b8.
+   4b16
+   3f8.
+   5e16
+42:
+   2c8.
+   4c16
+   <3f8/ham 3g 4c>4
+   2c8.
+   5e16
+   3g8.
+   6g16
+43:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   3g8.
+   5e16
+44:
+   2e8.
+   4b16
+   3g8.
+   5e16
+   1a8.
+   4c16
+   3a8.
+   5e16
+45:
+   1b8.
+   4b16
+   3f8.
+   5d16
+   1b8.
+   4b16
+   3f8.
+   5e16
+46:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   1b8.
+   4b16
+   3f8.
+   5e16
+47:
+   1a8.
+   4c16
+   3a8.
+   5e16
+   1a8.
+   4c16
+   3a8.
+   6g16
+48:
+   1a8.
+   4c16
+   3a8.
+   5e16
+   1a8.
+   4c16
+   3a8.
+   5e16
+49:
+   1b4
+   (3f 4b 5d)
+   1b8./plm
+   (3f 4b 5e)16/plu
+   1b8./plm
+   (4b 5d)16
+50:
+   1b2.../plm
+   4b16/ham
+
+% Chorus %
+
+51:
+   (1a 2e 3a 4c)8./stu
+   $Chorus$
+   4c16
+   3a8.
+   5e16
+   4c8.
+   5e16
+   <3a8 4b 5e>4
+52:
+   2e8.
+   4b16
+   <3f8/ham 3g 4b>4
+   2e8.
+   5e16
+   2d8.
+   4b16
+53:
+   1b8.
+   4b16
+   3f8.
+   5d16
+   1b8.
+   4b16
+   3f8.
+   5e16
+54:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   2c8.
+   4b16
+   (1b 2d 3f/par)8./stu
+   4b16
+55:
+   1a8.
+   4c16
+   3a8.
+   5e16
+   1a8./par
+   4c16
+   3a8.
+   5e16
+56:
+   2e8.
+   4b16
+   3g8.
+   6b16
+   2e8.
+   4b16
+   3g8.
+   5e16
+57:
+   1b8.
+   4b16
+   3f8.
+   5d16
+   1b8.
+   4b16
+   3f8.
+   5e16
+58:
+   2c8.
+   4c16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   3g8.
+   5e16
+59:
+   1a8.
+   4c16
+   3a8.
+   5e16
+   2e8.
+   4c16
+   3a8.
+   6b16
+60:
+   2e8.
+   4b16
+   3g8.
+   6b16
+   2e8.
+   4b16
+   3g8.
+   1b16
+61:
+   1b4
+   4b
+   1b8./plm
+   (3f 4b 5e)16/plu
+   1b8./plm
+   (4b 5d)16
+62:
+   1b2/plm
+   (1b 2d)8./stu
+   4b16
+   2c8.
+   2d16
+
+% Instrumental %
+63:
+   2e8.
+   $Instrumental$
+   4b16
+   3g8.
+   5e16
+   2e8.
+   4b16
+   3g8.
+   5e16
+64:
+   2e8.
+   4b16
+   2e8.
+   5e16
+   (1b 2d)8./stu
+   4b16
+   2d8.
+   5e16
+65:
+   2c8.
+   4b16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   3g8.
+   6g16
+66:
+   2c8.
+   4b16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   <3f8/ham 3g8 4b>4
+67:
+   (1a 4c)4
+   3a8.
+   5e16
+   (1a 4c)8.
+   4b16
+   1a8.
+   3f16
+-time 2-4
+68:
+   1b8.
+   4b16
+   3f8.
+   5e16
+-time 4-4
+69:
+   2e8.
+   4b16
+   3g8.
+   5e16
+   2e8.
+   4b16
+   3g8.
+   6b16
+70:
+   2e8.
+   4b16
+   3g8.
+   5e16
+   2e8.
+   4b16
+   2d8.
+   4b16
+
+% Bridge %
+71:
+   2c8.
+   $Bridge$
+   4c16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   3g8.
+   6g16
+72:
+   2c8.
+   4c16
+   3g8.
+   6b16
+   2c8.
+   4c16
+   2d8.
+   4b16
+73:
+   2e8.
+   4b16
+   3g8.
+   5e16
+   2e8.
+   4b16
+   2d8.
+   4b16
+74:
+   1b8.
+   4b16
+   3f8.
+   5d16
+   1b8.
+   4b16
+   3f8.
+   5e16
+75:
+   1a8.
+   4c16
+   3a8.
+   6g16
+   1a8.
+   4c16
+   3a8.
+   5e16
+76:
+   1a8.
+   4c16
+   3a8.
+   5e16
+   1a8.
+   4c16
+   3a8.
+   5d16
+77:
+   1g8.
+   4cn16
+   3f8.
+   6g16
+   1g8.
+   4cn16
+   3f8.
+   5f16
+78:
+   1g8.
+   4cn16
+   3f8.
+   6g16
+   1g8.
+   4cn16
+   3f8.
+   5d16
+79:
+   (1g 2c 3g 4c 5e 6g)4/stu
+   (1g 2c 3g 4c 5e 6g)16/stu
+   r8.
+   r4
+   (1x 2x 3x)8.
+   (1g/par 2e/par 3g/par 4b/par)16/std
+80:
+   (1g 2e 3g 4b 5e 6g)4/stu
+   (1g 2e 3g 4b 5e 6g)16/stu
+   r8.
+   r4
+   (1x 2x 3x)8.
+   (1b/par 2d/par 3f/par 4b/par)16/std
+81:
+   (1b 2d 3f 4b 5d/par 6b/par)4/stu
+   (1b 2d 3f 4b 5d 6b)4../stu
+   (1b 2d 3f 4b 5d 6b)16/std
+   (1b 2d 3f 4b 5d 6b)4/stu
+82:
+   (1g 2c 3g 4c 5e 6g)4/stu
+   (1g 2c 3g 4c 5e 6g)8./stu
+   (1g 2c 3g 4c 5e 6g)16/std
+   (1b 2d 3f 4b 5d 6b)4/stu
+   (1b 2d 3f 4b 5d 6b)8./stu
+   (1b 2d 3f 4b 5d 6b)16/std
+83:
+   (1a/tie 2e/tie 3a/tie 4c/tie 5e/tie)2/stu
+   (1a 2e 3a 4c 5e)8.
+   4c16
+   (1a 2e)8./stu
+   5e16
+84:
+   1a8.
+   4c16
+   3a8.
+   6g16
+   1a8.
+   4c16
+   3a8.
+   5e16
+85:
+   1b4
+   (2d 3f 4b)4/plu
+   1b8./plm
+   (3f 4b 5e)16/plu
+   1b8./plm
+   (4b 5d)16
+86:
+   1b2/plm/tie
+   1b8.
+   4b16
+   (1b 2d)8./stu
+   5e16
+87:
+   (1a 2e)4/stu
+   (1a 2e 3a 4c 5e)/stu/plm
+   r4
+   (1x 2x 3x)4
+88:
+   r4
+   (1x 2x 3x)4
+   r4
+   (1x 2x 3x)4
+89:
+   r4
+   (1x 2x 3x)4
+   r4
+   (1x 2x 3x)4
+90:
+   r4
+   (1x 2x 3x)4
+   r4
+   (1x 2x 3x)4
+91:
+   r4
+   (1x 2x 3x)4
+   r4
+   (1x 2x 3x)4
+92:
+   r4
+   (1x 2x 3x)4
+   r4
+   (1x 2x 3x)4
+93:
+   r4
+   (1x 2x 3x)4
+   r4
+   (1x 2x 3x)4
+94:
+   r4
+   (1x 2x 3x)4
+   r4
+   (1x 2x 3x)4
+95:
+   r4
+   (1x 2x 3x)4
+   r4
+   (1x 2x 3x)4
+96:
+   r4
+   (1x 2x 3x)4
+   r4
+   (1x 2x 3x)8.
+   (1b 2d 3f 4b 5d 6b)16/std
+97:
+   (1b 2d 3f 4b 5d 6b)4/stu
+   $G$
+   (1b 2d 3f 4b 5d 6b)8./stu
+   (1b 2d 3f 4b 5d 6b)16/std
+   (1b 2d 3f 4b 5d 6b)4/stu
+   (1b 2d 3f 4b 5d 6b)8./stu
+   (1b 2d 3f 4b 5d 6b)16/std
+98:
+   (1b 2d 3f 4b 5d 6b)8./stu
+   (1b 2d 3f 4b 5d 6b)16/std
+   (1b 2d 3f 4b 5d 6b)8./stu
+   (1b 2d 3f 4b 5d 6b)16/std
+   (1b 2d 3f 4b 5d 6b)8./stu
+   (1b 2d 3f 4b 5d 6b)16/std
+   (1b 2d 3f 4b 5d 6b)8./stu
+   (1b 2d 3f 4b 5d 6b)16/std
+99:
+   (1a 2e 3a 4c 5e 6a)4/stu
+   $F$
+   (1a 2e 3a 4c 5e 6a)8./stu
+   (1a 2e 3a 4c 5e 6a)16/std
+   (1a 2e 3a 4c 5e 6a)8./stu
+   (1a 2e 3a 4c 5e 6a)16/std
+   (1a 2e 3a 4c 5e 6a)8./stu
+   (1a 2e 3a 4c 5e 6a)16/std
+100:
+   (1g 2e 3g 4b 5e 6g)4/stu
+   $C$
+   (1g 2e 3g 4b 5e 6g)8./stu
+   (1g 2e 3g 4b 5e 6g)16/std
+   (1g 2e 3g 4b 5e 6g)8./stu
+   (1g 2e 3g 4b 5e 6g)16/std
+   (1g 2e 3g 4b 5e 6g)8./stu
+   (1g 2e 3g 4b 5e 6g)16/std
+101:
+   (1b 2d 3f 4b 5d 6b)4/stu
+   $G$
+   (1b 2d 3f 4b 5d 6b)8./stu
+   (1b 2d 3f 4b 5d 6b)16/std
+   (1b 2d 3f 4b 5d 6b)8./stu
+   (1b 2d 3f 4b 5d 6b)16/std
+   (1b 2d 3f 4b 5d 6b)8./stu
+   (1b 2d 3f 4b 5d 6b)16/std
+102:
+   (1g 2c 3g 4c 5e 6g)4/stu
+   $Am$
+   (1g 2c 3g 4c 5e 6g)8./stu
+   (1g 2c 3g 4c 5e 6g)16/std
+   (1g 2c 3g 4c 5e 6g)8./stu
+   (1g 2c 3g 4c 5e 6g)16/std
+   (1b 2d 3f 4b 5d 6b)8./stu
+   $G$
+   (1b 2d 3f 4b 5d 6b)16/std
+103:
+   (1a 2e 3a 4c 5e 6a)4/stu
+   $F$
+   (1a 2e 3a 4c 5e 6a)8./stu
+   (1a 2e 3a 4c 5e 6a)16/std
+   (1a 2e 3a 4c 5e 6a)8./stu
+   (1a 2e 3a 4c 5e 6a)16/std
+   (1a 2e 3a 4c 5e 6a)8./stu
+   (1a 2e 3a 4c 5e 6a)16/std
+104:
+   (1g 2e 3g 4b 5e 6g)4/stu
+   $C$
+   (1g 2e 3g 4b 5e 6g)8./stu
+   (1g 2e 3g 4b 5e 6g)16/std
+   (1g 2e 3g 4b 5e 6g)8./stu
+   (1g 2e 3g 4b 5e 6g)16/std
+   (1g 2e 3g 4b 5e 6g)8./stu
+   (1g 2e 3g 4b 5e 6g)16/std
+105:
+   (1b 2d 3f 4b 5d 6b)4/stu
+   $G$
+   (1b 2d 3f 4b 5d 6b)8./stu
+   (1b 2d 3f 4b 5d 6b)16/std
+   (1b 2d 3f 4b 5d 6b)8./stu
+   (1b 2d 3f 4b 5d 6b)16/std
+   (1b 2d 3f 4b 5d 6b)8./stu
+   (1b 2d 3f 4b 5d 6b)16/std
+106:
+   (1g 2c 3g 4c 5e 6g)4/stu
+   $Am$
+   (1g 2c 3g 4c 5e 6g)8./stu
+   (1g 2c 3g 4c 5e 6g)16/std
+   (1g 2c 3g 4c 5e 6g)8./stu
+   (1g 2c 3g 4c 5e 6g)16/std
+   (1b 2d 3f 4b 5d 6b)8./stu
+   $G$
+   (1b 2d 3f 4b 5d 6b)16/std
+107:
+   (1a 2e 3a 4c 5e 6a)4/stu
+   $F$
+   (1a 2e 3a 4c 5e 6a)8./stu
+   (1a 2e 3a 4c 5e 6a)16/std
+   (1a 2e 3a 4c 5e 6a)8./stu
+   (1a 2e 3a 4c 5e 6a)16/std
+   (1a 2e 3a 4c 5e 6a)8./stu
+   (1a 2e 3a 4c 5e 6a)16/std
+108:
+   (1g 2e 3g 4b 5e 6g)4/stu
+   $C$
+   (1g 2e 3g 4b 5e 6g)8./stu
+   (1g 2e 3g 4b 5e 6g)16/std
+   (1g 2e 3g 4b 5e 6g)8./stu
+   (1g 2e 3g 4b 5e 6g)16/std
+   (1g 2e 3g 4b 5e 6g)8./stu
+   (1g 2e 3g 4b 5e 6g)16/std
+109:
+   (1b 2d 3f 4b/par 5d/par)4/stu
+   $G$
+   (1b 2d 3f 4b 5d)4../stu
+   (1g 2e 3g 4b 5e)16/std
+   $C$
+   (1g 2e 3g 4b 5e 6g)8./stu
+   (1b 2d 3f 4b 5d)16/std
+   $G$
+110:
+   (1b/tie 2d/tie 3f/tie 4b/tie 5d/tie)2/stu
+   (1b 2d 3f 4b 5d)8.
+   5e16
+   2c8.
+   2d16
+111:
+   2e8.
+   4b16
+   3g8.
+   5e16
+   2e8.
+   4b16
+   3g8.
+   5e16
+112:
+   2e8.
+   4b16
+   2d8.
+   4b16
+   1b8.
+   5d16
+   2d8.
+   4b16
+113:
+   2c8.
+   4b16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   3g8.
+   6g16
+114:
+   2c8.
+   4b16
+   3g8.
+   5e16
+   2c8.
+   4c16
+   <3f8/ham 3g8 4b>4
+115:
+   (1a 4c)4
+   3a8.
+   5e16
+   (1a 4c)8.
+   4b16
+   1a8.
+   3f16
+-time 2-4
+116:
+   1b8.
+   4b16
+   3f8.
+   5e16
+-time 4-4
+117:
+   2e8.
+   4b16
+   <3f8 3g 4b>4
+   2e8.
+   5e16
+   3g8.
+   4b16
+118:
+   2e1

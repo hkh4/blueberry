@@ -396,6 +396,7 @@ let rec showElements (els: Element List) (updatedElements: Element List) (measur
             | None -> None
 
       | TupletNote(tupletNotes) ->
+
          // recurse over each note within the tuplet
          match (showElements tupletNotes [] measureWidth x y l insideScale priorityText capo) with
          | Some(newStringList, newPriorityText, newTupletNotes) ->
@@ -581,9 +582,10 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
       // Call guitartablines to create lines, based on start position
       let staffline =
          match staffx with
-         // If first line, pass "1" to the function to specify length
+         // If first line, pass "1" to the function to specify //length
          | 70.0 -> string staffx + " " + string staffy + " 1 guitartablines"
          | _ -> string staffx + " " + string staffy + " 0 guitartablines"
+
 
       // Create clef and/or time signature
       let (clef, timeSig, newX) =
@@ -627,6 +629,7 @@ let rec showLines (lines: Line List) (updatedLines: Line List) (text: string) (p
             { head with Measures = newMeasures; OriginalWidth = num + 35.0 }
 
          | _ -> head
+
 
       // Float to tell how much to scale widths of individual elements
       let scale = (newHead.FinalWidth + staffx - newX) / newHead.OriginalWidth

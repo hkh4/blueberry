@@ -51,7 +51,7 @@ let widthStart (template: Element) (r: Rhythm) (nextStart: float) (baseBeat: Rhy
             // If this isn't the last note, return
             | 0 -> newWidthTemp
             | _ ->
-               // If it is the last note, and the width is less than 10, set it to 10 so that there's sufficient space before the next bar line
+               // If it is the last note, and the width is less than 13, set it to 13 so that there's sufficient space before the next bar line
                match newWidthTemp with
                | num when num < 13.0 -> 13.0
                | _ -> newWidthTemp
@@ -418,7 +418,7 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
                // Don't care about the start for tuplet notes
                // Look into the Map of rhythms to widths
                // Should be smaller for tuplet notes, so divide by 1.2
-               let newWidthTemp = widthOfRhythms.[note.Duration] / 1.5
+               let newWidthTemp = widthOfRhythms.[note.Duration] / 1.3
 
                let newWidth =
                   match last with
@@ -433,6 +433,8 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
                         match newWidthTemp with
                         | num when num < 13.0 -> 13.0
                         | _ -> newWidthTemp
+
+
 
                // add grace notes to the first note
                let newNote =
@@ -454,7 +456,9 @@ let parseTuplet (t: Note List) (r: Rhythm) (baseBeat: RhythmNumber) (numberOfBea
          | None -> None
 
 
-   tHelper t [] 0.0
+   let res = tHelper t [] 0.0
+   //printfn "%A" res
+   res
 
 
 
@@ -496,8 +500,6 @@ let evalNote (measureNumber: int) (n: Note) (baseBeat: RhythmNumber) (numberOfBe
       | HiddenComment ->
          printfn "Error in evalNote: HiddenComment given"
          None
-
-
 
    match noteOption with
    // if it's not a grace note
@@ -875,6 +877,7 @@ let rec evalAllMeasures (measuresList : Expr List) (optionsR : optionsRecord) (s
    match measuresList with
    // Base case : return SingleMeasure List
    | [] ->
+
       Some(singleMeasureList)
    | head::tail ->
 
@@ -972,7 +975,7 @@ let rec divideLines (measureList : SingleMeasure List) (lineList : Line List) (w
 
 // ################# Step 3: Divide lines into pages
 
-(* recursively divide lines into a page 
+(* recursively divide lines into a page
 1) lines is the list of Lines to be evaluated
 2) linesSoFar is the lines that will be added to this current Page
 3) start is the x,y coords of the start of the current line
@@ -1010,7 +1013,8 @@ RETURNS: list of Pages
 let rec dividePages (lines : Line List) (pageList : Page List) (start : float * float) : Page List option =
    match lines with
    // base case: return list of pages
-   | [] -> Some(pageList)
+   | [] ->
+      Some(pageList)
    | head::tail ->
       match (divideOnePage lines [] start) with
       // returns a Line List

@@ -321,6 +321,7 @@ let beamByTime (key: int list list) (lastLocation: float * float) (lastRhythm: R
 RETURNS: a list of strings to be printed, and an int which is the new lastBeamed
 *)
 let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhythm: Rhythm) (lastStart: float) (timeSignature: int * int) (lastBeamed: int) (lastLastRhythm: Rhythm) (isGrace: bool) : string List * int =
+
    let dotNumber =
       match head.Duration with
       | R(x,n) -> n
@@ -407,6 +408,7 @@ let beamHelper (head: Element) (s: int) (lastLocation: float * float) (lastRhyth
             | _ ->
                printfn "Error: this time signature has not yet been fully implemented. Sorry!"
                [[0]]
+
          // call beamByTime, return the strings of the beams and the int for the new lastBeamed
          let (newText, newLastBeamed) = beamByTime key lastLocation lastRhythm lastStart head lastBeamed lastLastRhythm isGrace
          // return
@@ -637,7 +639,7 @@ let rec beamGraceNotes (els: Element List) (text: string List) (time: int * int)
       | TupletNote(nList) ->
 
          let tupleGraceText = beamGraceNotes nList [] time
-         beamGraceNotes tail (text @ tupleGraceText) time
+         beamGraceNotes tail (text @ tupleGraceText) time 
 
       | _ ->
          // draw the slash at the beginning of the grace note

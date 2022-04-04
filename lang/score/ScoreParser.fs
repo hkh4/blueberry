@@ -18,7 +18,7 @@ let option = (many singleOption) .>> spaces
 
 //**************** PARSE MEASURES ******************
 
-//pitches
+// pitches
 let csharp = pstr "c#" >>% CSharp
 let cflat = pstr "cb" >>% CFlat
 let cnat = pstr "cn" >>% CNat
@@ -178,6 +178,7 @@ let hiddenCommentBody = charsTillString "%" false 1000 <!> "hiddenBody"
 let hiddenCommentNoType = sepEndBy (between (pstr "%") (pstr "%") hiddenCommentBody) spaces1 <!> "hiddenNOType"
 
 let hiddenComment = (between (pstr "%") (pstr "%") hiddenCommentBody) >>% HiddenComment <!> "hiddenComment"
+
 
 
 

@@ -292,9 +292,12 @@ let eval optionsList measuresList outFile =
                xcoord 0.5714285714285714 add ycoord 6.571428571428571 sub xcoord 1.1428571428571428 add ycoord 7.285714285714286 sub xcoord 3.4285714285714284 add ycoord 9.514285714285714 sub curveto
                xcoord 0.8571428571428571 add ycoord 8.657142857142857 sub xcoord ycoord 10.085714285714285 sub xcoord 1.657142857142857 add ycoord 12.085714285714285 sub curveto
                xcoord 1.657142857142857 add ycoord 12.142857142857142 sub xcoord 1.5714285714285714 add ycoord 12.200000000000001 sub xcoord 1.4857142857142858 add ycoord 12.12857142857143 sub curveto
+
                xcoord 2.142857142857143 sub ycoord 10.0 sub xcoord 0.19999999999999998 add ycoord 7.428571428571429 sub xcoord 1.7142857142857142 add ycoord 8.285714285714286 sub curveto
+
                xcoord 0.6571428571428571 sub ycoord 5.257142857142857 sub lineto
                xcoord 1.1428571428571428 add ycoord 3.257142857142857 sub xcoord 1.1428571428571428 add ycoord 2.2857142857142856 sub xcoord 0.24285714285714285 sub ycoord 0.19999999999999998 sub curveto
+
                xcoord 0.24285714285714285 sub ycoord 0.1142857142857143 sub xcoord 0.14285714285714285 sub ycoord xcoord ycoord curveto
                fill
                grestore
@@ -312,7 +315,9 @@ let eval optionsList measuresList outFile =
                   xcoord 0.64816513755 sub ycoord 0.51853211004 sub xcoord 1.058669724665 sub ycoord 0.885825687985 sub xcoord 1.46917431178 sub ycoord 0.99385321091 sub curveto
                   xcoord 2.46302752269 sub ycoord 1.85807339431 sub lineto
                   xcoord 2.03091743099 sub ycoord 1.85807339431 sub xcoord 1.85807339431 sub ycoord 1.77165137597 sub xcoord 0.95064220174 sub ycoord 1.4475688071950001 sub curveto
+
                   xcoord 0.8642201834000001 sub ycoord 1.42596330261 sub xcoord 0.8642201834000001 sub ycoord 1.663623853045 sub 0.08642201834 arct
+
                   closepath
                   fill
                   newpath xcoord 2.46302752269 sub ycoord 0.8210091742300001 sub 1.03706422008 0 360 arc fill
@@ -333,7 +338,9 @@ let eval optionsList measuresList outFile =
                   xcoord 2.72229357771 add ycoord 6.3520183479900005 add xcoord 2.5062385318600002 add ycoord 6.5248623846700005 add xcoord 2.37660550435 add ycoord 6.43844036633 add curveto
                   xcoord 1.51238532095 add ycoord 4.904449540795 add lineto
                   xcoord 1.51238532095 add ycoord 4.58036697202 add xcoord 0.04321100917 sub ycoord 0.12963302751 add xcoord 0.04321100917 sub ycoord 0.12963302751 add curveto
+
                   xcoord 0.08642201834 sub ycoord xcoord 0.051853211004 add ycoord 0.064816513755 sub 0.17284403668 arct
+
                   fill
                   xcoord 2.37660550435 add ycoord 6.43844036633 add restCurl
                   grestore
@@ -1202,7 +1209,7 @@ let eval optionsList measuresList outFile =
                   /y1 exch def
                   /x1 exch def
                   0.1 setlinewidth
-                  x1 y1 moveto
+                  x1 y1 move
                   x1 0.7 sub y1 1 add x1 0.7 sub y1 1.5 add x1 y1 3 add curveto
                   x1 1.3 add y1 4 add x1 1.3 add y1 4.5 add x1 y1 6 add curveto
                   x1 0.1 sub y1 6.1 add x1 0.3 sub y1 5.85 add x1 0.2 sub y1 5.7 add curveto

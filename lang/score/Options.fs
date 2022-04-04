@@ -152,7 +152,7 @@ let parseOptions (a : Expr) (optionsR : optionsRecord) : optionsRecord option =
 2) optionsR is the options record to be updated
 RETURNS the updated options record
 *)
-let rec evalOption (o: Expr List) (optionsR: optionsRecord) : optionsRecord option =
+let rec evalOption (o: Expr list) (optionsR: optionsRecord) : optionsRecord option =
    match o with
    | [] ->
       Some(optionsR)
